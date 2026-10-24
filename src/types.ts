@@ -9,5 +9,4 @@ export type AuthPortal = User["role"];
 
 export interface AuthResponse {
   user: User;
-  token: string;
 }

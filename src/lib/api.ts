@@ -1,44 +1,61 @@
-import type { AuthPortal, AuthResponse, User } from "../types";
+import { authClient } from "./auth-client";
+import { portalPaths } from "./portals";
+import type { AuthPortal, User } from "../types";
 
-const API_URL = import.meta.env.VITE_API_URL || "/api";
+function normalizeUser(user: { id: string; name: string; email: string; role?: string }): User {
+  const roles = { WARGA: "warga", POLISI: "polisi", ADMIN: "admin" } as const;
+  if (!user.role || !(user.role in roles)) throw new Error("Role akun tidak dikenali. Hubungi pengelola.");
+  return { id: user.id, name: user.name, email: user.email, role: roles[user.role as keyof typeof roles] };
+}
 
-async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options?.headers,
-    },
-  });
-
-  const body = (await response.json().catch(() => ({}))) as {
-    data?: T;
-    error?: string;
+function authError(error: { code?: string; message?: string } | null) {
+  const messages: Record<string, string> = {
+    INVALID_EMAIL_OR_PASSWORD: "Email atau password tidak cocok.",
+    USER_ALREADY_EXISTS: "Email sudah terdaftar. Silakan masuk.",
+    USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL: "Email sudah terdaftar. Silakan masuk.",
+    PASSWORD_TOO_SHORT: "Password minimal terdiri dari 8 karakter.",
+    PASSWORD_TOO_LONG: "Password maksimal terdiri dari 128 karakter.",
+    INVALID_EMAIL: "Alamat email belum valid.",
   };
-
-  if (!response.ok) {
-    throw new Error(body.error || "Terjadi kesalahan. Coba lagi.");
-  }
-
-  return body.data as T;
+  return new Error(messages[error?.code || ""] || error?.message || "Permintaan belum berhasil. Coba lagi.");
 }
 
-export function register(input: { name: string; email: string; password: string }) {
-  return request<AuthResponse>("/auth/register", {
-    method: "POST",
-    body: JSON.stringify(input),
-  });
+export async function register(input: { name: string; email: string; password: string }) {
+  const { data, error } = await authClient.signUp.email(input);
+  if (error || !data) throw authError(error);
+  return { user: normalizeUser(data.user) };
 }
 
-export function login(input: { email: string; password: string; portal: AuthPortal }) {
-  return request<AuthResponse>("/auth/login", {
-    method: "POST",
-    body: JSON.stringify(input),
-  });
+export async function login(input: { email: string; password: string; portal: AuthPortal }) {
+  const { data, error } = await authClient.signIn.email({ email: input.email, password: input.password });
+  if (error || !data) throw authError(error);
+  return { user: normalizeUser(data.user) };
 }
 
-export function getCurrentUser(token: string) {
-  return request<User>("/auth/me", {
-    headers: { Authorization: `Bearer ${token}` },
+export async function getCurrentUser() {
+  const { data, error } = await authClient.getSession();
+  if (error) throw authError(error);
+  return data?.user ? normalizeUser(data.user) : null;
+}
+
+export async function logout() {
+  const { error } = await authClient.signOut();
+  if (error) throw authError(error);
+}
+
+export async function signInGoogle(portal: AuthPortal) {
+  const { error } = await authClient.signIn.social({
+    provider: "google",
+    callbackURL: `${window.location.origin}${portalPaths[portal].home}`,
+    errorCallbackURL: `${window.location.origin}${portalPaths[portal].login}`,
   });
+  if (error) throw authError(error);
+}
+
+export async function linkGoogle() {
+  const { error } = await authClient.linkSocial({
+    provider: "google",
+    callbackURL: window.location.href,
+  });
+  if (error) throw authError(error);
 }

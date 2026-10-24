@@ -4,6 +4,7 @@ import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
 import "./styles.css";
+import "@fontsource-variable/plus-jakarta-sans";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
