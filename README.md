@@ -10,6 +10,7 @@ Frontend application Garda Jakarta untuk autentikasi pengguna dan fondasi peta i
 - Route `/map` sebagai placeholder terproteksi setelah login.
 - Proxy Vite dari `/api` ke backend lokal `http://localhost:4000`.
 - Layout auth mengikuti referensi pola login/register Mobbin: hierarchy tegas, form ringkas, dan feedback error langsung.
+- Ilustrasi auth menggunakan artwork unDraw yang dibundel di `public/illustrations`.
 
 ## Menjalankan
 

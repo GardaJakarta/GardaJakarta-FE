@@ -23,7 +23,7 @@ export default function AuthShell({
         <p className="brand-copy">Kenali situasi di sekitar Anda, pahami konteksnya, dan ikut menjaga Jakarta bersama.</p>
         <img
           className="auth-illustration"
-          src="https://cdn.undraw.co/illustration/small-village_2gpn.svg"
+          src="/illustrations/small-village.svg"
           alt="Ilustrasi lingkungan kota"
         />
         <div className="brand-grid" aria-hidden="true"><span>01</span><span>02</span><span>03</span></div>
