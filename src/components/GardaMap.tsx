@@ -14,6 +14,7 @@ type GardaMapProps = {
   className?: string;
   onMapClick?: (coordinates: { latitude: number; longitude: number }) => void;
   onSelectReport?: (report: IncidentReport) => void;
+  onSelectUnit?: (unit: PoliceUnit) => void;
   interactive?: boolean;
 };
 
@@ -85,6 +86,7 @@ function popupContent(title: string, subtitle: string, photoUrl?: string | null)
     image.src = photoUrl;
     image.alt = title;
     image.loading = "lazy";
+    image.referrerPolicy = "no-referrer";
     image.addEventListener("error", () => image.remove());
     wrapper.appendChild(image);
   }
@@ -96,7 +98,7 @@ function popupContent(title: string, subtitle: string, photoUrl?: string | null)
   return wrapper;
 }
 
-export default function GardaMap({ units, reports, className, onMapClick, onSelectReport, interactive = true }: GardaMapProps) {
+export default function GardaMap({ units, reports, className, onMapClick, onSelectReport, onSelectUnit, interactive = true }: GardaMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapInstance | null>(null);
   const markersRef = useRef<Marker[]>([]);
@@ -160,6 +162,7 @@ export default function GardaMap({ units, reports, className, onMapClick, onSele
     markersRef.current = [];
     units.forEach((unit) => {
       const element = markerElement("police");
+      element.addEventListener("click", (event) => { event.stopPropagation(); onSelectUnit?.(unit); });
       const marker = new maplibregl.Marker({ element, anchor: "bottom" })
         .setLngLat([unit.longitude, unit.latitude])
         .setPopup(new maplibregl.Popup({ offset: 18, closeButton: true }).setDOMContent(popupContent(unit.name, `${unit.district} · ${unit.address}`, unit.photoUrl)))
@@ -176,7 +179,7 @@ export default function GardaMap({ units, reports, className, onMapClick, onSele
       markersRef.current.push(marker);
     });
     return () => { map.off("load", syncSafetyZones); };
-  }, [onSelectReport, reports, units]);
+  }, [onSelectReport, onSelectUnit, reports, units]);
 
   return <div ref={containerRef} className={`garda-map ${className || ""}`} aria-label="Peta informasi keamanan Jakarta" />;
 }

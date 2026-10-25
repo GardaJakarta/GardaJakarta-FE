@@ -3,41 +3,64 @@ import { Link } from "react-router-dom";
 import AppLogo from "../components/branding/AppLogo";
 import GardaMap from "../components/GardaMap";
 import { getPublicMap } from "../lib/api";
-import type { IncidentReport, PoliceUnit } from "../types";
+import type { IncidentReport, PoliceUnit, ReportSeverity, ReportStatus } from "../types";
 
-function PublicStatus({ status }: { status: IncidentReport["status"] }) {
-  const labels: Record<IncidentReport["status"], string> = { PENDING: "Menunggu", VERIFIED: "Terverifikasi", IN_PROGRESS: "Diproses", RESOLVED: "Selesai", REJECTED: "Ditolak" };
-  return <span className={`status-badge status-${status.toLowerCase()}`}>{labels[status]}</span>;
-}
+const categories = ["Pelecehan verbal atau catcalling", "Pelecehan atau kekerasan seksual", "Pencurian atau perampasan", "Begal atau perampokan", "Kekerasan fisik", "Tawuran atau kerumunan berbahaya", "Penipuan atau pemerasan", "Gangguan penerangan atau fasilitas yang berdampak pada keamanan", "Lainnya"];
+const statusLabels: Record<ReportStatus, string> = { PENDING: "Menunggu", VERIFIED: "Terverifikasi", IN_PROGRESS: "Diproses", RESOLVED: "Selesai", REJECTED: "Ditolak" };
+const severityLabels: Record<ReportSeverity, string> = { P0: "Kritis", P1: "Tinggi", P2: "Sedang", P3: "Rendah" };
+
+function PublicStatus({ status }: { status: ReportStatus }) { return <span className={`status-badge status-${status.toLowerCase()}`}>{statusLabels[status]}</span>; }
 
 export default function PublicMapPage() {
   const [units, setUnits] = useState<PoliceUnit[]>([]);
   const [reports, setReports] = useState<IncidentReport[]>([]);
-  const [selected, setSelected] = useState<IncidentReport | null>(null);
+  const [selectedReport, setSelectedReport] = useState<IncidentReport | null>(null);
+  const [selectedUnit, setSelectedUnit] = useState<PoliceUnit | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [filters, setFilters] = useState<{ category: string; status: ReportStatus | ""; severity: ReportSeverity | "" }>({ category: "", status: "", severity: "" });
+
   const load = useCallback(async () => {
     setIsLoading(true);
     try { const data = await getPublicMap(); setUnits(data.units); setReports(data.reports); setError(null); }
     catch { setError("Peta belum dapat dimuat. Periksa koneksi lalu coba lagi."); }
     finally { setIsLoading(false); }
   }, []);
-  // Public data is synchronized with the public API.
+  // Public map data is synchronized with the public API.
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { void load(); }, [load]);
-  const visibleReports = useMemo(() => reports.filter((report) => report.status !== "REJECTED"), [reports]);
-  return (
-    <main className="dashboard-page dashboard-workspace-page">
-      <header className="dashboard-header dashboard-workspace-header"><Link className="map-brand" to="https://gardajakarta.my.id" aria-label="Beranda Garda Jakarta"><AppLogo size={155} aria-label="Garda Jakarta" /></Link><div className="public-map-actions"><Link className="primary-button" to="/login">Masuk untuk melapor</Link></div></header>
-      <div className="dashboard-workspace public-map-workspace">
-        <section className="dashboard-map-stage" aria-label="Peta publik keamanan Jakarta">{error && <p className="dashboard-error dashboard-error-floating" role="alert">{error}</p>}<GardaMap className="dashboard-full-map" units={units} reports={visibleReports} onSelectReport={setSelected} /><div className="dashboard-map-key" aria-label="Keterangan peta"><span><i className="legend-dot legend-report" />Laporan</span><span><i className="legend-dot legend-police" />Kantor polisi</span><span><i className="legend-dot legend-safety" />Area perhatian</span></div></section>
-        <aside className="dashboard-side-panel dashboard-side-panel-public"><div className="dashboard-side-scroll">
-          <section className="dashboard-panel-section"><div className="dashboard-panel-title"><div><span className="dashboard-kicker">{isLoading ? "Memuat" : `${visibleReports.length} laporan`}</span><h2>Laporan sekitar</h2></div></div>{visibleReports.length === 0 ? <p className="dashboard-empty">Belum ada laporan.</p> : <div className="dashboard-queue-list">{visibleReports.slice(0, 12).map((report) => <button className="public-report-item" type="button" key={report.id} onClick={() => setSelected(report)}><span><strong>{report.category}</strong><small>{report.ticketNumber} · {report.policeUnit?.district || "Jakarta"}</small></span><PublicStatus status={report.status} /></button>)}</div>}</section>
-          {selected && <section className="dashboard-panel-section public-selected-report" aria-live="polite"><div className="dashboard-panel-title"><div><span className="dashboard-kicker">Detail terpilih</span><h2>{selected.category}</h2></div><button type="button" className="public-close-button" onClick={() => setSelected(null)} aria-label="Tutup detail">×</button></div><p>{selected.ticketNumber} · {selected.policeUnit?.district || "Jakarta"}</p><PublicStatus status={selected.status} />{selected.description && <p className="public-report-description">{selected.description}</p>}</section>}
-          <section className="dashboard-panel-section public-police-list"><div className="dashboard-panel-title"><div><span className="dashboard-kicker">Lokasi layanan</span><h2>Kantor polisi</h2></div></div>{units.length === 0 ? <p className="dashboard-empty">Data kantor belum tersedia.</p> : <div className="dashboard-report-list">{units.slice(0, 10).map((unit) => <article key={unit.id}><div><strong>{unit.name}</strong><span>{unit.district}</span></div><small>{unit.phone || "Layanan publik"}</small></article>)}</div>}</section>
-          <section className="dashboard-panel-section public-login-cta"><p>Ingin melaporkan kejadian?</p><Link className="primary-button" to="/login">Masuk untuk melapor</Link></section>
-        </div></aside>
-      </div>
-    </main>
-  );
+
+  const visibleReports = useMemo(() => reports.filter((report) => report.status !== "REJECTED" && (!filters.category || report.category === filters.category) && (!filters.status || report.status === filters.status) && (!filters.severity || report.severity === filters.severity)), [filters, reports]);
+  const activeFilterCount = Object.values(filters).filter(Boolean).length;
+  const clearSelection = () => { setSelectedReport(null); setSelectedUnit(null); };
+
+  return <main className="relative h-screen min-h-[560px] overflow-hidden bg-[#eef0ed] text-[#171717]">
+    <header className="absolute inset-x-0 top-0 z-20 flex min-h-[72px] items-center justify-between border-b border-black/5 bg-white/95 px-4 shadow-sm backdrop-blur-md sm:px-7">
+      <Link className="shrink-0" to="https://gardajakarta.my.id" aria-label="Beranda Garda Jakarta"><AppLogo size={145} aria-label="Garda Jakarta" /></Link>
+      <Link className="ml-auto inline-flex items-center bg-[#e62428] px-3 py-2 text-[11px] font-extrabold text-white transition-colors hover:bg-[#c91d22]" to="/login">Masuk untuk melapor</Link>
+    </header>
+    <section className="absolute inset-0 pt-[72px]" aria-label="Peta publik keamanan Jakarta">
+      {error && <p className="absolute left-4 top-20 z-10 border-l-4 border-[#e62428] bg-white px-4 py-3 text-xs font-bold text-[#a2191f] shadow-lg sm:left-7" role="alert">{error}</p>}
+      <GardaMap className="!h-full !min-h-0" units={units} reports={visibleReports} onSelectReport={(report) => { setSelectedReport(report); setSelectedUnit(null); }} onSelectUnit={(unit) => { setSelectedUnit(unit); setSelectedReport(null); }} />
+      <div className="absolute bottom-4 left-4 z-10 flex items-center gap-3 bg-white/95 px-3 py-2 text-[10px] font-extrabold text-[#61615b] shadow-lg backdrop-blur-md sm:left-7"><span className="inline-flex items-center gap-1.5"><i className="legend-dot legend-report" />Laporan</span><span className="inline-flex items-center gap-1.5"><i className="legend-dot legend-police" />Kantor polisi</span><span className="inline-flex items-center gap-1.5"><i className="legend-dot legend-safety" />Area perhatian</span></div>
+    </section>
+    <div className="absolute left-4 top-[88px] z-10 sm:left-7">
+      <button type="button" className={`inline-flex items-center gap-2 bg-white px-3 py-2.5 text-xs font-extrabold shadow-lg transition-colors hover:bg-[#fff4f4] ${activeFilterCount ? "text-[#e62428]" : "text-[#4d4d47]"}`} aria-expanded={filtersOpen} onClick={() => setFiltersOpen((current) => !current)}>
+        <svg className="h-4 w-4" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 5h16v2H4V5Zm3 6h10v2H7v-2Zm3 6h4v2h-4v-2Z" /></svg>
+        Filter
+        {activeFilterCount > 0 && <span className="grid h-4 min-w-4 place-items-center rounded-full bg-[#e62428] px-1 text-[9px] text-white">{activeFilterCount}</span>}
+      </button>
+      {filtersOpen && <div className="mt-2 w-[min(320px,calc(100vw-32px))] border border-black/5 bg-white p-4 shadow-2xl">
+        <div className="mb-3 flex items-center justify-between"><strong className="text-sm">Filter peta</strong><button type="button" className="text-xs font-bold text-[#e62428]" onClick={() => setFilters({ category: "", status: "", severity: "" })}>Reset</button></div>
+        <div className="grid gap-3">
+          <label className="grid gap-1 text-[11px] font-bold text-[#555]"><span>Kategori</span><select className="border border-[#d9d9d3] bg-white px-2.5 py-2 text-xs outline-none focus:border-[#e62428]" value={filters.category} onChange={(event) => setFilters((current) => ({ ...current, category: event.target.value }))}><option value="">Semua kategori</option>{categories.map((category) => <option key={category}>{category}</option>)}</select></label>
+          <label className="grid gap-1 text-[11px] font-bold text-[#555]"><span>Status</span><select className="border border-[#d9d9d3] bg-white px-2.5 py-2 text-xs outline-none focus:border-[#e62428]" value={filters.status} onChange={(event) => setFilters((current) => ({ ...current, status: event.target.value as ReportStatus | "" }))}><option value="">Semua status</option>{Object.entries(statusLabels).filter(([status]) => status !== "REJECTED").map(([status, label]) => <option key={status} value={status}>{label}</option>)}</select></label>
+          <label className="grid gap-1 text-[11px] font-bold text-[#555]"><span>Keparahan</span><select className="border border-[#d9d9d3] bg-white px-2.5 py-2 text-xs outline-none focus:border-[#e62428]" value={filters.severity} onChange={(event) => setFilters((current) => ({ ...current, severity: event.target.value as ReportSeverity | "" }))}><option value="">Semua tingkat</option>{Object.entries(severityLabels).map(([severity, label]) => <option key={severity} value={severity}>{label}</option>)}</select></label>
+        </div>
+        <p className="mt-3 text-[10px] text-[#85857e]">{isLoading ? "Memuat laporan..." : `${visibleReports.length} laporan ditampilkan`}</p>
+      </div>}
+    </div>
+    {(selectedReport || selectedUnit) && <aside className="absolute bottom-4 right-4 z-10 w-[min(340px,calc(100vw-32px))] border border-black/5 bg-white p-5 shadow-2xl sm:bottom-7 sm:right-7" aria-live="polite"><button type="button" className="absolute right-3 top-3 text-xl leading-none text-[#777]" onClick={clearSelection} aria-label="Tutup detail">×</button>{selectedUnit ? <><span className="mb-2 block text-[10px] font-black uppercase tracking-[.15em] text-[#e62428]">Kantor polisi</span>{selectedUnit.photoUrl && <img className="mb-4 h-32 w-full object-cover" src={selectedUnit.photoUrl} alt={selectedUnit.name} referrerPolicy="no-referrer" />}<h2 className="pr-5 text-lg font-extrabold tracking-tight">{selectedUnit.name}</h2><p className="mt-1 text-xs leading-5 text-[#6c6c67]">{selectedUnit.district} · {selectedUnit.address}</p><p className="mt-2 text-xs font-bold text-[#555]">{selectedUnit.phone || "Kontak layanan publik"}</p></> : <><span className="mb-2 block text-[10px] font-black uppercase tracking-[.15em] text-[#e62428]">Laporan keamanan</span><h2 className="pr-5 text-lg font-extrabold tracking-tight">{selectedReport?.category}</h2><p className="mt-1 text-xs text-[#6c6c67]">{selectedReport?.ticketNumber} · {selectedReport?.policeUnit?.district || "Jakarta"}</p><div className="mt-3"><PublicStatus status={selectedReport!.status} /></div></>}</aside>}
+  </main>;
 }
