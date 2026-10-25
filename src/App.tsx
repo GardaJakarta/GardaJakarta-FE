@@ -25,7 +25,7 @@ function LandingRedirect() {
 }
 
 export default function App() {
-  const { user, isReady, sessionError } = useAuth();
+  const { user, isReady } = useAuth();
   const location = useLocation();
   if (location.pathname === "/") return <LandingRedirect />;
   if (!isReady) return <main className="session-state" role="status">Memeriksa sesi...</main>;
