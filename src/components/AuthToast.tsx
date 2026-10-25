@@ -1,10 +1,14 @@
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect } from "react";
 
+const TOAST_DURATION = 6500;
+
 export default function AuthToast({ message, onDismiss }: { message: string | null; onDismiss: () => void }) {
+  const reducedMotion = useReducedMotion();
+
   useEffect(() => {
     if (!message) return;
-    const timeout = window.setTimeout(onDismiss, 6500);
+    const timeout = window.setTimeout(onDismiss, TOAST_DURATION);
     return () => window.clearTimeout(timeout);
   }, [message, onDismiss]);
 
@@ -28,6 +32,13 @@ export default function AuthToast({ message, onDismiss }: { message: string | nu
           <button className="auth-toast-close" type="button" onClick={onDismiss} aria-label="Tutup notifikasi">
             <span aria-hidden="true">&times;</span>
           </button>
+          <motion.span
+            className="auth-toast-progress"
+            aria-hidden="true"
+            initial={{ scaleX: 1 }}
+            animate={{ scaleX: 0 }}
+            transition={{ duration: reducedMotion ? 0 : TOAST_DURATION / 1000, ease: "linear" }}
+          />
         </motion.div>
       )}
     </AnimatePresence>
