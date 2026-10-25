@@ -15,9 +15,12 @@ body { margin: 0; min-width: 320px; }
 button, input { font: inherit; }
 button { cursor: pointer; }
 .auth-page { min-height: 100vh; display: grid; grid-template-columns: minmax(280px, 0.92fr) minmax(400px, 1.08fr); position: relative; overflow: hidden; background: var(--background); }
+.auth-page-register { grid-template-columns: minmax(400px, 1.08fr) minmax(280px, 0.92fr); }
 .auth-panel { min-height: 100vh; padding: clamp(32px, 7vw, 96px); position: relative; z-index: 1; }
 .auth-panel-brand { display: flex; flex-direction: column; justify-content: center; background: var(--foreground); color: #fff; overflow: hidden; }
 .auth-panel-form { display: flex; align-items: center; justify-content: center; background: var(--background); }
+.auth-page-register .auth-panel-brand { grid-column: 2; grid-row: 1; }
+.auth-page-register .auth-panel-form { grid-column: 1; grid-row: 1; }
 .auth-form-wrap { width: min(100%, 460px); }
 .auth-brand { display: inline-flex; align-self: flex-start; margin-bottom: 40px; }
 .auth-brand svg, .map-brand svg { display: block; max-width: 100%; height: auto; }
@@ -52,9 +55,6 @@ button { cursor: pointer; }
 .session-state button { width: auto; }
 a:focus-visible, button:focus-visible { outline: 3px solid #e62428; outline-offset: 5px; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; } }
-.auth-orb { position: absolute; width: 360px; height: 360px; border-radius: 50%; filter: blur(2px); opacity: .14; background: var(--primary); }
-.auth-orb-one { right: -180px; top: -140px; }
-.auth-orb-two { left: 42%; bottom: -260px; width: 500px; height: 500px; }
 .map-page { min-height: 100vh; background: var(--light-gray); }
 .map-header { display: flex; align-items: center; justify-content: space-between; padding: 22px clamp(22px, 6vw, 80px); background: #fff; border-bottom: 1px solid #dedede; }
 .map-brand { display: inline-flex; align-items: center; gap: 11px; color: #171717; text-decoration: none; font-weight: 900; letter-spacing: -.03em; }
@@ -78,6 +78,9 @@ a:focus-visible, button:focus-visible { outline: 3px solid #e62428; outline-offs
 .report-page { min-height: 100vh; background: var(--light-gray); }.report-shell { min-height: calc(100vh - 77px); display: grid; place-items: center; padding: 48px 22px 72px; }.back-link { position: absolute; top: 112px; left: clamp(22px, 6vw, 80px); display: inline-flex; align-items: center; gap: 7px; color: #555; font-size: 14px; font-weight: 800; text-decoration: none; }.report-card { width: min(100%, 650px); padding: clamp(30px, 6vw, 64px); border-radius: 28px; background: #fff; box-shadow: 0 24px 80px rgba(23,23,23,.1); }.report-card-icon { display: grid; place-items: center; width: 58px; height: 58px; margin-bottom: 24px; border-radius: 18px; color: #fff; background: var(--primary); }.report-card .eyebrow { margin: 0 0 15px; }.report-card h1 { margin: 0; font-size: clamp(36px, 6vw, 64px); line-height: .98; letter-spacing: -.065em; }.report-card p:not(.eyebrow):not(.report-note) { max-width: 500px; margin: 22px 0 30px; color: #686862; line-height: 1.7; }.report-button { display: inline-flex; width: auto; align-items: center; gap: 9px; }.report-note { margin: 22px 0 0; color: #8a8a84; font-size: 13px; line-height: 1.6; }.report-account { display: inline-flex; align-items: center; gap: 10px; color: #444; font-size: 14px; text-decoration: none; }.report-account span { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; color: #fff; background: var(--primary); font-size: 13px; font-weight: 900; }.report-account strong { font-weight: 800; }
 @media (max-width: 760px) {
   .auth-page { grid-template-columns: 1fr; }
+  .auth-page-register { grid-template-columns: 1fr; }
+  .auth-page-register .auth-panel-brand,
+  .auth-page-register .auth-panel-form { grid-column: auto; grid-row: auto; }
   .auth-panel { min-height: auto; padding: 38px 24px; }
   .auth-panel-brand { padding: 24px; justify-content: flex-start; }
   .auth-brand { margin-bottom: 20px; }

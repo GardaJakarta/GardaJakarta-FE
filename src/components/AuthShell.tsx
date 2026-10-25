@@ -3,11 +3,13 @@ import type { ReactNode } from "react";
 import AppLogoWhite from "./branding/AppLogoWhite";
 
 export default function AuthShell({
+  mode,
   eyebrow,
   title,
   description,
   children,
 }: {
+  mode: "login" | "register";
   eyebrow: string;
   title: string;
   description: string;
@@ -15,9 +17,7 @@ export default function AuthShell({
 }) {
   const reducedMotion = useReducedMotion();
   return (
-    <main className="auth-page">
-      <div className="auth-orb auth-orb-one" />
-      <div className="auth-orb auth-orb-two" />
+    <main className={`auth-page auth-page-${mode}`}>
       <section className="auth-panel auth-panel-brand">
         <a className="auth-brand" href="https://gardajakarta.my.id" aria-label="Beranda Garda Jakarta">
           <AppLogoWhite size={186} aria-label="Garda Jakarta" />
@@ -32,8 +32,8 @@ export default function AuthShell({
       </section>
       <motion.section
         className="auth-panel auth-panel-form"
-        initial={reducedMotion ? false : { opacity: 0, y: 18 }}
-        animate={{ opacity: 1, y: 0 }}
+        initial={reducedMotion ? false : { opacity: 0, x: mode === "login" ? 28 : -28 }}
+        animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
       >
         <div className="auth-form-wrap">
