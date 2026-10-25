@@ -1,6 +1,6 @@
 # Garda Jakarta FE
 
-Frontend React + Vite untuk aplikasi `app.gardajakarta.my.id`. Scope awalnya adalah fondasi autentikasi dan placeholder peta; fitur peta, laporan, dan dashboard operasional mengikuti tahap produk berikutnya.
+Frontend React + Vite untuk aplikasi `app.gardajakarta.my.id`. Dashboard memakai pola map-first seperti LaporPak: peta menjadi ruang kerja utama, sedangkan daftar laporan dan detail dibuka sebagai panel sesuai role.
 
 ## Scope saat ini
 
@@ -10,7 +10,10 @@ Frontend React + Vite untuk aplikasi `app.gardajakarta.my.id`. Scope awalnya ada
 - Register publik hanya untuk warga di `/register`.
 - Login email/password dan Google OAuth dikelola Better Auth di backend.
 - Session memakai HttpOnly cookie dari backend; frontend tidak menyimpan token auth di `localStorage`.
-- Route terproteksi `/map`, `/polisi`, dan `/admin` sebagai placeholder jujur untuk tahap peta/dashboard berikutnya.
+- Peta publik di `/map` bersifat view-only; dashboard terproteksi di `/dashboard` memakai workspace peta yang sama setelah login.
+- Warga dapat membuat laporan, memilih titik, melihat riwayat miliknya, dan memantau status.
+- Petugas polisi dapat melihat antrian unit, membuka detail laporan, dan memperbarui status sesuai unitnya.
+- Admin operasional mendapat tampilan monitoring dan ringkasan agregat tanpa menampilkan data pelapor pada peta publik.
 - Logo, favicon, font Plus Jakarta Sans, warna, dan headline memakai aset resmi Garda Jakarta dari landing.
 - Ilustrasi auth memakai artwork unDraw yang dibundel lokal di `public/illustrations`.
 
@@ -57,7 +60,7 @@ Konfigurasi service tersimpan di Railway: build `npm run build`, start `npm star
 
 | Path | Fungsi |
 | --- | --- |
-| `src/pages` | Halaman login, register, dan portal placeholder |
+| `src/pages` | Halaman login, register, peta publik, dan dashboard role-aware |
 | `src/components/AuthShell.tsx` | Layout auth dan branding resmi |
 | `src/components/branding` | SVG logo yang disalin dari landing |
 | `src/context` | Bootstrap dan state session |
@@ -67,6 +70,6 @@ Konfigurasi service tersimpan di Railway: build `npm run build`, start `npm star
 
 ## Batasan tahap awal
 
-Akun polisi dan admin tidak dibuat lewat register publik. Akun tersebut harus diprovisikan oleh operator melalui backend. Halaman portal saat ini hanya memvalidasi session dan role; data laporan, layer peta, filter, penugasan, moderasi, dan audit UI belum diimplementasikan.
+Akun polisi dan admin tidak dibuat lewat register publik. Akun tersebut harus diprovisikan oleh operator melalui backend. Penugasan lintas unit, incident clustering, lampiran S3, notifikasi, dan permission granular masih menjadi tahap berikutnya; dashboard saat ini memvalidasi role, memfilter status, dan mencatat perubahan status yang tersedia pada API.
 
 Jika akun email/password belum terverifikasi, masuk menggunakan password dahulu lalu pilih **Tautkan akun Google**. Login Google selalu mengikuti role tersimpan di backend. Reset password dan verifikasi email melalui pengiriman email belum tersedia pada tahap ini.
