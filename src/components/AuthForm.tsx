@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/useAuth";
 import type { AuthPortal } from "../types";
 import { portalPaths } from "../lib/portals";
+import GoogleIcon from "./GoogleIcon";
 
 export default function AuthForm({ mode, portal = "warga" }: { mode: "login" | "register"; portal?: AuthPortal }) {
   const navigate = useNavigate();
@@ -55,7 +56,7 @@ export default function AuthForm({ mode, portal = "warga" }: { mode: "login" | "
       {error && <p className="form-error" role="alert">{error}</p>}
       <button className="primary-button" type="submit" disabled={isLoading}>{isLoading ? "Memproses..." : isRegister ? "Buat Akun" : portal === "warga" ? "Masuk ke Peta" : "Masuk ke Portal"}</button>
       <div className="auth-divider" aria-hidden="true"><span>atau</span></div>
-      <button className="google-button" type="button" disabled={isLoading} onClick={() => void handleGoogle()}>Lanjutkan dengan Google</button>
+      <button className="google-button" type="button" disabled={isLoading} onClick={() => void handleGoogle()}><GoogleIcon /> <span>Lanjutkan dengan Google</span></button>
       {portal === "warga" && <p className="auth-switch">{isRegister ? "Sudah punya akun?" : "Belum punya akun?"}{" "}<Link to={isRegister ? "/login" : "/register"}>{isRegister ? "Masuk" : "Daftar sekarang"}</Link></p>}
     </form>
   );

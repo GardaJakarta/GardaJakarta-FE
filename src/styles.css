@@ -37,7 +37,8 @@ button { cursor: pointer; }
 .primary-button:disabled { cursor: wait; opacity: .64; }
 .auth-divider { display: flex; align-items: center; gap: 12px; color: #8a8a86; font-size: 12px; }
 .auth-divider::before, .auth-divider::after { content: ""; height: 1px; flex: 1; background: #deded8; }
-.google-button { width: 100%; border: 1px solid #d7d7d7; border-radius: 13px; padding: 14px 18px; background: #fff; color: #171717; font-weight: 800; transition: border-color .2s, background .2s; }
+.google-button { display: flex; width: 100%; align-items: center; justify-content: center; gap: 10px; border: 1px solid #d7d7d7; border-radius: 13px; padding: 14px 18px; background: #fff; color: #171717; font-weight: 800; transition: border-color .2s, background .2s; }
+.google-icon { width: 19px; height: 19px; flex: 0 0 auto; }
 .google-button:hover:not(:disabled) { border-color: #171717; background: #fafafa; }
 .google-button:disabled { cursor: wait; opacity: .64; }
 .account-google-button { margin-top: 14px; }
