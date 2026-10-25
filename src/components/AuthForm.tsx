@@ -4,6 +4,15 @@ import { useAuth } from "../context/useAuth";
 import type { AuthPortal } from "../types";
 import { portalPaths } from "../lib/portals";
 import GoogleIcon from "./GoogleIcon";
+import AuthToast from "./AuthToast";
+
+function friendlyError(error: unknown, fallback: string) {
+  if (!(error instanceof Error)) return fallback;
+  if (/fetch|network|cors|failed to fetch/i.test(error.message)) {
+    return "Tidak dapat menghubungi server. Periksa koneksi lalu coba lagi.";
+  }
+  return error.message || fallback;
+}
 
 export default function AuthForm({ mode, portal = "warga" }: { mode: "login" | "register"; portal?: AuthPortal }) {
   const navigate = useNavigate();
@@ -36,7 +45,7 @@ export default function AuthForm({ mode, portal = "warga" }: { mode: "login" | "
       else await signIn(email.trim(), password, portal);
       navigate(portalPaths[portal].home);
     } catch (submissionError) {
-      setError(submissionError instanceof Error ? submissionError.message : "Gagal memproses permintaan.");
+      setError(friendlyError(submissionError, "Gagal memproses permintaan."));
     }
   };
 
@@ -44,7 +53,7 @@ export default function AuthForm({ mode, portal = "warga" }: { mode: "login" | "
     setError(null);
     try { await signInGoogle(portal); }
     catch (submissionError) {
-      setError(submissionError instanceof Error ? submissionError.message : "Login Google belum berhasil.");
+      setError(friendlyError(submissionError, "Login Google belum berhasil."));
     }
   };
 
@@ -53,10 +62,10 @@ export default function AuthForm({ mode, portal = "warga" }: { mode: "login" | "
       {isRegister && <label>Nama lengkap<input value={name} onChange={(event) => setName(event.target.value)} placeholder="Nama Anda" autoComplete="name" required /></label>}
       <label>Email<input value={email} onChange={(event) => setEmail(event.target.value)} placeholder="nama@email.com" type="email" autoComplete="email" required /></label>
       <label>Password<input value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Minimal 8 karakter" type="password" autoComplete={isRegister ? "new-password" : "current-password"} required /></label>
-      {error && <p className="form-error" role="alert">{error}</p>}
+      <AuthToast message={error} onDismiss={() => setError(null)} />
       <button className="primary-button" type="submit" disabled={isLoading}>{isLoading ? "Memproses..." : isRegister ? "Buat Akun" : portal === "warga" ? "Masuk ke Peta" : "Masuk ke Portal"}</button>
       <div className="auth-divider" aria-hidden="true"><span>atau</span></div>
-      <button className="google-button" type="button" disabled={isLoading} onClick={() => void handleGoogle()}><GoogleIcon /> <span>Lanjutkan dengan Google</span></button>
+      <button className="google-button" type="button" disabled={isLoading} onClick={() => void handleGoogle()}><GoogleIcon /> <span>{isRegister ? "Daftar dengan Google" : "Lanjutkan dengan Google"}</span></button>
       {portal === "warga" && <p className="auth-switch">{isRegister ? "Sudah punya akun?" : "Belum punya akun?"}{" "}<Link to={isRegister ? "/login" : "/register"}>{isRegister ? "Masuk" : "Daftar sekarang"}</Link></p>}
     </form>
   );
