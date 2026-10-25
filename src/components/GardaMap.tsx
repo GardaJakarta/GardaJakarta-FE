@@ -1,10 +1,12 @@
 import { useEffect, useRef } from "react";
 import * as maplibregl from "maplibre-gl";
 import type { Map as MapInstance, Marker } from "maplibre-gl";
+import maplibreWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?url";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { IncidentReport, PoliceUnit } from "../types";
 
 const JAKARTA_CENTER: [number, number] = [106.8272, -6.1754];
+maplibregl.setWorkerUrl(maplibreWorkerUrl);
 
 type GardaMapProps = {
   units: PoliceUnit[];
@@ -20,7 +22,9 @@ function markerElement(kind: "police" | "report", severity?: IncidentReport["sev
   element.type = "button";
   element.className = `garda-map-marker garda-map-marker-${kind} garda-map-marker-${severity?.toLowerCase() || "default"}`;
   element.setAttribute("aria-label", kind === "police" ? "Kantor polisi" : "Laporan keamanan");
-  element.innerHTML = kind === "police" ? "<span>✦</span>" : "<span>!</span>";
+  element.innerHTML = kind === "police"
+    ? '<span aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M5 21V6.5L12 3l7 3.5V21h-4v-6H9v6H5Zm3-9h8V8H8v4Z" /></svg></span>'
+    : '<span aria-hidden="true">!</span>';
   return element;
 }
 
@@ -32,6 +36,7 @@ function popupContent(title: string, subtitle: string, photoUrl?: string | null)
     image.src = photoUrl;
     image.alt = title;
     image.loading = "lazy";
+    image.addEventListener("error", () => image.remove());
     wrapper.appendChild(image);
   }
   const heading = document.createElement("strong");
