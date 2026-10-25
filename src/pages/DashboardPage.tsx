@@ -100,6 +100,18 @@ function ReportDetail({ report, role, isDesktop, onClose, onStatusChange, updati
   const [sheetHeight, setSheetHeight] = useState(72);
   const [desktopOffset, setDesktopOffset] = useState(0);
   const dragRef = useRef<{ startX: number; startY: number; startOffset: number; startHeight: number } | null>(null);
+  const sheetHeightRef = useRef(sheetHeight);
+  const desktopOffsetRef = useRef(desktopOffset);
+
+  const updateSheetHeight = (value: number) => {
+    sheetHeightRef.current = value;
+    setSheetHeight(value);
+  };
+
+  const updateDesktopOffset = (value: number) => {
+    desktopOffsetRef.current = value;
+    setDesktopOffset(value);
+  };
 
   const startDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -108,9 +120,9 @@ function ReportDetail({ report, role, isDesktop, onClose, onStatusChange, updati
       const state = dragRef.current;
       if (!state) return;
       if (isDesktop) {
-        setDesktopOffset(Math.max(-120, Math.min(120, state.startOffset + moveEvent.clientX - state.startX)));
+        updateDesktopOffset(Math.max(-120, Math.min(120, state.startOffset + moveEvent.clientX - state.startX)));
       } else {
-        setSheetHeight(Math.max(48, Math.min(88, state.startHeight + ((state.startY - moveEvent.clientY) / window.innerHeight) * 100)));
+        updateSheetHeight(Math.max(48, Math.min(88, state.startHeight + ((state.startY - moveEvent.clientY) / window.innerHeight) * 100)));
       }
     };
     const handleUp = () => {
@@ -121,20 +133,20 @@ function ReportDetail({ report, role, isDesktop, onClose, onStatusChange, updati
       window.removeEventListener("pointercancel", handleUp);
       if (!state) return;
       if (isDesktop) {
-        if (desktopOffset > 92) onClose();
-        else setDesktopOffset(0);
+        if (desktopOffsetRef.current > 92) onClose();
+        else updateDesktopOffset(0);
         return;
       }
-      if (sheetHeight < 50) { onClose(); return; }
+      if (sheetHeightRef.current < 50) { onClose(); return; }
       const snapPoints = [56, 72, 86];
-      setSheetHeight(snapPoints.reduce((nearest, point) => Math.abs(point - sheetHeight) < Math.abs(nearest - sheetHeight) ? point : nearest, snapPoints[0]));
+      updateSheetHeight(snapPoints.reduce((nearest, point) => Math.abs(point - sheetHeightRef.current) < Math.abs(nearest - sheetHeightRef.current) ? point : nearest, snapPoints[0]));
     };
     window.addEventListener("pointermove", handleMove);
     window.addEventListener("pointerup", handleUp);
     window.addEventListener("pointercancel", handleUp);
   };
   const canUpdate = role === "polisi" && report.status !== "RESOLVED" && report.status !== "REJECTED";
-  return <aside style={{ transform: isDesktop ? `translateX(${desktopOffset}px)` : undefined, height: isDesktop ? undefined : `${sheetHeight}dvh` }} className={`${isDesktop ? "absolute bottom-3 right-3 sm:bottom-6 sm:right-6" : "fixed bottom-0 left-0 right-0"} z-40 max-h-[calc(100dvh-104px)] w-[min(380px,calc(100vw-24px))] overflow-y-auto rounded-2xl border border-slate-100 bg-white p-5 shadow-[0_22px_65px_rgba(15,23,42,0.2)] ${isDesktop ? "" : "w-full rounded-b-none"}`} aria-live="polite"><div onPointerDown={startDrag} className="-mx-5 -mt-5 mb-4 flex h-8 touch-none cursor-grab items-center justify-center border-b border-slate-100 active:cursor-grabbing"><span className="h-1.5 w-11 rounded-full bg-slate-200" /></div><button type="button" onClick={onClose} className="absolute right-4 top-4 grid h-7 w-7 place-items-center rounded-full text-lg leading-none text-slate-400 hover:bg-slate-100 hover:text-slate-800" aria-label="Tutup detail">×</button><div className="pr-8"><div className="flex flex-wrap items-center gap-2"><StatusBadge status={report.status} /><SeverityBadge severity={report.severity} /></div><h2 className="mt-3 text-xl font-bold leading-tight tracking-tight text-slate-950">{report.category}</h2><p className="mt-1 text-[11px] font-semibold text-slate-400">{report.ticketNumber} · diperbarui {formatTime(report.updatedAt)}</p></div><div className="mt-5 grid gap-3 border-t border-slate-100 pt-4 text-xs"><div><span className="block text-[10px] font-bold uppercase tracking-widest text-slate-400">Wilayah penanganan</span><strong className="mt-1 block text-slate-800">{report.policeUnit?.name || "Belum ditentukan"}</strong><span className="mt-0.5 block text-slate-500">{report.policeUnit?.district || "Akan ditentukan oleh petugas"}</span></div><div><span className="block text-[10px] font-bold uppercase tracking-widest text-slate-400">Lokasi laporan</span><span className="mt-1 block text-slate-600">Area dianonimkan pada tampilan publik · {report.latitude.toFixed(3)}, {report.longitude.toFixed(3)}</span></div>{report.description && <div><span className="block text-[10px] font-bold uppercase tracking-widest text-slate-400">Kronologi</span><p className="mt-1 whitespace-pre-wrap leading-relaxed text-slate-600">{report.description}</p></div>}</div>{canUpdate && <div className="mt-5 border-t border-slate-100 pt-4"><label className="grid gap-1.5 text-xs font-bold text-slate-700">Perbarui status<select disabled={updating} value={report.status} onChange={(event) => void onStatusChange(event.target.value as Exclude<ReportStatus, "PENDING">)} className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold outline-none transition-colors focus:border-[#e62428] focus:ring-4 focus:ring-red-100"><option value="PENDING" disabled>{statusLabels.PENDING}</option><option value="VERIFIED">{statusLabels.VERIFIED}</option><option value="IN_PROGRESS">{statusLabels.IN_PROGRESS}</option><option value="RESOLVED">{statusLabels.RESOLVED}</option><option value="REJECTED">{statusLabels.REJECTED}</option></select></label><p className="mt-2 text-[10px] leading-relaxed text-slate-400">Perubahan status dicatat sebagai aktivitas operasional.</p></div>}{role === "admin" && <p className="mt-5 border-t border-slate-100 pt-4 text-[10px] leading-relaxed text-slate-400">Data pelapor dan koordinat presisi hanya tersedia sesuai permission. Peta publik menampilkan area yang sudah dianonimkan.</p>}</aside>;
+  return <aside style={{ transform: isDesktop ? `translateX(${desktopOffset}px)` : undefined, height: isDesktop ? undefined : `${sheetHeight}dvh` }} className={`${isDesktop ? "absolute right-3 top-20 h-[calc(100dvh-104px)] min-h-[400px] w-[min(420px,calc(100vw-24px))] sm:right-6" : "fixed bottom-0 left-0 right-0 max-h-[88dvh] w-full rounded-t-2xl rounded-b-none"} z-40 overflow-y-auto border border-slate-100 bg-white p-5 shadow-[0_22px_65px_rgba(15,23,42,0.2)]`} aria-live="polite">{!isDesktop && <div onPointerDown={startDrag} className="-mx-5 -mt-5 mb-4 flex h-8 touch-none cursor-grab items-center justify-center border-b border-slate-100 active:cursor-grabbing"><span className="h-1.5 w-11 rounded-full bg-slate-200" /></div>}<button type="button" onClick={onClose} className="absolute right-4 top-4 grid h-7 w-7 place-items-center rounded-full text-lg leading-none text-slate-400 hover:bg-slate-100 hover:text-slate-800" aria-label="Tutup detail">×</button><div onPointerDown={startDrag} className={`flex items-start justify-between gap-4 border-b border-slate-100 pb-4 touch-none ${isDesktop ? "cursor-move active:cursor-grabbing" : ""}`}><div className="pr-8"><div className="flex flex-wrap items-center gap-2"><StatusBadge status={report.status} /><SeverityBadge severity={report.severity} /></div><h2 className="mt-3 text-xl font-bold leading-tight tracking-tight text-slate-950">{report.category}</h2><p className="mt-1 text-[11px] font-semibold text-slate-400">{report.ticketNumber} · diperbarui {formatTime(report.updatedAt)}</p></div></div><div className="mt-5 grid gap-3 text-xs"><div><span className="block text-[10px] font-bold uppercase tracking-widest text-slate-400">Wilayah penanganan</span><strong className="mt-1 block text-slate-800">{report.policeUnit?.name || "Belum ditentukan"}</strong><span className="mt-0.5 block text-slate-500">{report.policeUnit?.district || "Akan ditentukan oleh petugas"}</span></div><div><span className="block text-[10px] font-bold uppercase tracking-widest text-slate-400">Lokasi laporan</span><span className="mt-1 block text-slate-600">Area dianonimkan pada tampilan publik · {report.latitude.toFixed(3)}, {report.longitude.toFixed(3)}</span></div>{report.description && <div><span className="block text-[10px] font-bold uppercase tracking-widest text-slate-400">Kronologi</span><p className="mt-1 whitespace-pre-wrap leading-relaxed text-slate-600">{report.description}</p></div>}</div>{canUpdate && <div className="mt-5 border-t border-slate-100 pt-4"><label className="grid gap-1.5 text-xs font-bold text-slate-700">Perbarui status<select disabled={updating} value={report.status} onChange={(event) => void onStatusChange(event.target.value as Exclude<ReportStatus, "PENDING">)} className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold outline-none transition-colors focus:border-[#e62428] focus:ring-4 focus:ring-red-100"><option value="PENDING" disabled>{statusLabels.PENDING}</option><option value="VERIFIED">{statusLabels.VERIFIED}</option><option value="IN_PROGRESS">{statusLabels.IN_PROGRESS}</option><option value="RESOLVED">{statusLabels.RESOLVED}</option><option value="REJECTED">{statusLabels.REJECTED}</option></select></label><p className="mt-2 text-[10px] leading-relaxed text-slate-400">Perubahan status dicatat sebagai aktivitas operasional.</p></div>}{role === "admin" && <p className="mt-5 border-t border-slate-100 pt-4 text-[10px] leading-relaxed text-slate-400">Data pelapor dan koordinat presisi hanya tersedia sesuai permission. Peta publik menampilkan area yang sudah dianonimkan.</p>}</aside>;
 }
 
 function ReportForm({ form, setForm, pinMode, setPinMode, submitting, onSubmit, onClose, onUseLocation, error }: { form: ReportFormState; setForm: Dispatch<SetStateAction<ReportFormState>>; pinMode: boolean; setPinMode: (value: boolean) => void; submitting: boolean; onSubmit: (event: FormEvent) => void; onClose: () => void; onUseLocation: () => void; error: string | null }) {
