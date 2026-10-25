@@ -45,4 +45,5 @@ export interface DashboardData {
   reports: IncidentReport[];
   stats: { total: number; pending: number; inProgress: number; resolved: number };
   units: PoliceUnit[];
+  adminOverview?: { users: number; units: number; auditLogs: number; categories: Array<{ name: string; count: number }> };
 }
