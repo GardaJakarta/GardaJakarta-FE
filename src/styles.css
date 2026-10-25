@@ -269,3 +269,52 @@ a:focus-visible, button:focus-visible { outline: 3px solid #e62428; outline-offs
 @media (max-width: 900px) {
   .public-map-workspace .dashboard-map-stage { height: 62dvh; }
 }
+
+/* Dashboard navigation and focused report controls. */
+.dashboard-nav { display: flex; align-items: center; gap: 24px; margin-left: auto; margin-right: 22px; }
+.dashboard-nav a { color: #6b6b65; font-size: 12px; font-weight: 800; text-decoration: none; }
+.dashboard-nav a:hover, .dashboard-nav a:focus-visible { color: var(--primary); }
+.dashboard-account { position: relative; }
+.dashboard-account-trigger { display: inline-flex; align-items: center; gap: 9px; margin-left: 0 !important; border: 0; padding: 4px 0 4px 8px; color: #222 !important; background: transparent; text-align: left; }
+.dashboard-account-trigger .dashboard-account-copy { text-align: left; }
+.dashboard-account-trigger .dashboard-account-copy strong { display: block; color: #222; font-size: 12px; }
+.dashboard-account-trigger .dashboard-account-copy small { display: block; margin-top: 2px; }
+.dashboard-account-chevron { width: 15px; height: 15px; margin-left: 3px; fill: none; stroke: #777; stroke-width: 1.8; }
+.dashboard-account-menu { position: absolute; z-index: 12; top: calc(100% + 10px); right: 0; width: 220px; padding: 8px; border: 1px solid #e5e5df; background: #fff; box-shadow: 0 18px 40px rgba(23,23,23,.14); }
+.dashboard-account-menu-heading { display: grid; gap: 4px; padding: 12px 11px 13px; border-bottom: 1px solid #ededE8; }
+.dashboard-account-menu-heading strong { color: #222; font-size: 12px; }
+.dashboard-account-menu-heading span { overflow: hidden; color: #888; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.dashboard-account-menu > button { display: flex; width: 100%; align-items: center; gap: 9px; margin-left: 0; border: 0; padding: 12px 11px; color: #a51f25; background: transparent; font-size: 12px; font-weight: 800; text-align: left; }
+.dashboard-account-menu > button:hover, .dashboard-account-menu > button:focus-visible { background: #fff4f4; }
+.menu-item-icon { display: grid; width: 20px; height: 20px; place-items: center; border-radius: 5px; color: #fff; background: var(--primary); font-size: 14px; }
+.dashboard-map-controls { position: absolute; z-index: 3; top: 22px; left: 24px; display: flex; align-items: center; gap: 16px; padding: 11px 13px; background: rgba(255,255,255,.94); box-shadow: 0 8px 24px rgba(23,23,23,.1); }
+.dashboard-map-report-link { color: #fff; background: var(--primary); padding: 9px 12px; font-size: 11px; font-weight: 800; text-decoration: none; }
+.dashboard-map-report-link:hover, .dashboard-map-report-link:focus-visible { background: #c91d22; }
+.custom-select { position: relative; }
+.custom-select-trigger { display: flex; width: 100%; min-height: 45px; align-items: center; gap: 10px; border: 1px solid #d9d9d3; padding: 10px 12px; color: #222; background: #fff; font-size: 12px; text-align: left; }
+.custom-select-trigger:focus-visible { border-color: var(--primary); outline: 3px solid rgba(230,36,40,.12); }
+.custom-select-icon, .custom-select-option svg { display: grid; width: 19px; height: 19px; flex: 0 0 auto; place-items: center; color: var(--primary); }
+.custom-select-icon svg, .custom-select-option svg { width: 17px; height: 17px; fill: currentColor; }
+.custom-select-placeholder { color: #85857e; }
+.custom-select-chevron { width: 16px; height: 16px; margin-left: auto; fill: none; stroke: #777; stroke-width: 1.8; }
+.custom-select-menu { position: absolute; z-index: 10; top: calc(100% + 6px); right: 0; left: 0; max-height: 265px; overflow-y: auto; padding: 5px; border: 1px solid #deded8; background: #fff; box-shadow: 0 16px 34px rgba(23,23,23,.16); }
+.custom-select-option { display: flex; width: 100%; align-items: center; gap: 9px; border: 0; padding: 10px 9px; color: #4d4d47; background: #fff; font-size: 11px; line-height: 1.35; text-align: left; }
+.custom-select-option:hover, .custom-select-option:focus-visible, .custom-select-option.is-selected { color: #a51f25; background: #fff3f3; }
+.custom-select-check { margin-left: auto; color: var(--primary); font-size: 14px; font-weight: 900; }
+.dashboard-dialog-backdrop { position: fixed; z-index: 30; inset: 0; display: grid; place-items: center; padding: 24px; background: rgba(23,23,23,.36); backdrop-filter: blur(4px); }
+.dashboard-confirm-dialog { width: min(100%, 360px); padding: 26px; background: #fff; box-shadow: 0 24px 70px rgba(23,23,23,.22); }
+.dashboard-dialog-icon { display: grid; width: 38px; height: 38px; place-items: center; margin-bottom: 16px; border-radius: 10px; color: #fff; background: var(--primary); font-size: 22px; }
+.dashboard-confirm-dialog h2 { margin: 0; color: #222; font-size: 24px; letter-spacing: -.05em; }
+.dashboard-confirm-dialog p { margin: 9px 0 22px; color: #71716a; font-size: 12px; line-height: 1.5; }
+.dashboard-dialog-actions { display: flex; justify-content: flex-end; gap: 9px; }
+.dashboard-dialog-actions .primary-button { width: auto; padding: 11px 16px; border-radius: 0; font-size: 12px; }
+.dashboard-dialog-cancel { border: 1px solid #d9d9d3; padding: 10px 15px; color: #555; background: #fff; font-size: 12px; font-weight: 800; }
+.dashboard-dialog-cancel:hover, .dashboard-dialog-cancel:focus-visible { background: #f5f5f1; }
+.public-map-actions .primary-button { width: auto; }
+
+@media (max-width: 760px) {
+  .dashboard-nav { order: 3; width: 100%; justify-content: space-between; margin: 0; padding-top: 8px; border-top: 1px solid #eeeeea; }
+  .dashboard-workspace-header { flex-wrap: wrap; }
+  .dashboard-account-menu { right: 0; }
+  .dashboard-map-controls { top: 14px; left: 14px; }
+}
