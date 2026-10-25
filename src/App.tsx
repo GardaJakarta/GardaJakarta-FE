@@ -1,22 +1,29 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import type { ReactNode } from "react";
 import { useAuth } from "./context/useAuth";
 import LoginPage from "./pages/LoginPage";
 import MapPage from "./pages/MapPage";
 import RegisterPage from "./pages/RegisterPage";
+import ConnectionErrorPage from "./pages/ConnectionErrorPage";
+import NotFoundPage from "./pages/NotFoundPage";
+import ReportPage from "./pages/ReportPage";
 import type { AuthPortal } from "./types";
 import { portalPaths } from "./lib/portals";
 
 function ProtectedRoute({ children, portal }: { children: ReactNode; portal: AuthPortal }) {
-  const { user } = useAuth();
+  const { user, sessionError } = useAuth();
+  if (sessionError) return <ConnectionErrorPage message={sessionError} />;
   if (!user) return <Navigate to={portalPaths[portal].login} replace />;
   return user.role === portal ? children : <Navigate to={portalPaths[user.role].home} replace />;
 }
 
 export default function App() {
   const { user, isReady, sessionError } = useAuth();
+  const location = useLocation();
   if (!isReady) return <main className="session-state" role="status">Memeriksa sesi...</main>;
-  if (sessionError) return <main className="session-state"><h1>Koneksi belum tersedia</h1><p role="alert">{sessionError}</p><button className="primary-button" onClick={() => window.location.reload()}>Coba lagi</button></main>;
+  const knownPaths = ["/login", "/polisi/login", "/admin/login", "/register", "/map", "/report", "/polisi", "/admin", "/not-found"];
+  if (!knownPaths.includes(location.pathname)) return <Navigate to="/not-found" replace />;
+  if (sessionError && location.pathname !== "/not-found") return <ConnectionErrorPage message={sessionError} />;
   const home = user ? portalPaths[user.role].home : "/login";
 
   return (
@@ -26,9 +33,11 @@ export default function App() {
       <Route path="/admin/login" element={user ? <Navigate to={home} replace /> : <LoginPage key="admin" portal="admin" />} />
       <Route path="/register" element={user ? <Navigate to={home} replace /> : <RegisterPage />} />
       <Route path="/map" element={<ProtectedRoute portal="warga"><MapPage /></ProtectedRoute>} />
+      <Route path="/report" element={<ProtectedRoute portal="warga"><ReportPage /></ProtectedRoute>} />
       <Route path="/polisi" element={<ProtectedRoute portal="polisi"><MapPage /></ProtectedRoute>} />
       <Route path="/admin" element={<ProtectedRoute portal="admin"><MapPage /></ProtectedRoute>} />
-      <Route path="*" element={<Navigate to={home} replace />} />
+      <Route path="/not-found" element={<NotFoundPage />} />
+      <Route path="*" element={<Navigate to="/not-found" replace />} />
     </Routes>
   );
 }

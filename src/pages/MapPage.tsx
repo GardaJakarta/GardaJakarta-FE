@@ -44,7 +44,7 @@ export default function MapPage() {
           <h1>{content[role][0]}</h1>
           <p>{content[role][1]}</p>
           {error && <p className="form-error" role="alert">{error}</p>}
-          <a className="primary-button map-button" href="https://gardajakarta.my.id">Tentang Garda Jakarta</a>
+          {role === "warga" ? <Link className="primary-button map-button" to="/report">Buat laporan</Link> : <a className="primary-button map-button" href="https://gardajakarta.my.id">Tentang Garda Jakarta</a>}
           <button className="google-button account-google-button" type="button" disabled={linkingGoogle} onClick={() => void handleLinkGoogle()}>{linkingGoogle ? "Memproses..." : "Tautkan akun Google"}</button>
         </div>
         <div className="map-pin map-pin-one" /><div className="map-pin map-pin-two" /><div className="map-pin map-pin-three" />
