@@ -1,11 +1,13 @@
 import { authClient } from "./auth-client";
 import { portalPaths } from "./portals";
-import type { AuthPortal, User } from "../types";
+import type { AuthPortal, DashboardData, IncidentReport, PoliceUnit, ReportSeverity, ReportStatus, User } from "../types";
 
-function normalizeUser(user: { id: string; name: string; email: string; role?: string }): User {
+const apiBase = new URL(import.meta.env.VITE_API_URL || "/api", window.location.origin).href.replace(/\/$/, "");
+
+function normalizeUser(user: { id: string; name: string; email: string; image?: string | null; role?: string }): User {
   const roles = { WARGA: "warga", POLISI: "polisi", ADMIN: "admin" } as const;
   if (!user.role || !(user.role in roles)) throw new Error("Role akun tidak dikenali. Hubungi pengelola.");
-  return { id: user.id, name: user.name, email: user.email, role: roles[user.role as keyof typeof roles] };
+  return { id: user.id, name: user.name, email: user.email, image: user.image, role: roles[user.role as keyof typeof roles] };
 }
 
 function authError(error: { code?: string; message?: string } | null) {
@@ -17,7 +19,7 @@ function authError(error: { code?: string; message?: string } | null) {
     PASSWORD_TOO_LONG: "Password maksimal terdiri dari 128 karakter.",
     INVALID_EMAIL: "Alamat email belum valid.",
   };
-  return new Error(messages[error?.code || ""] || error?.message || "Permintaan belum berhasil. Coba lagi.");
+  return new Error(messages[error?.code || ""] || "Permintaan belum berhasil. Coba lagi.");
 }
 
 export async function register(input: { name: string; email: string; password: string }) {
@@ -58,4 +60,27 @@ export async function linkGoogle() {
     callbackURL: window.location.href,
   });
   if (error) throw authError(error);
+}
+
+async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(`${apiBase}${path}`, { ...init, credentials: "include", headers: { "Content-Type": "application/json", ...init?.headers } });
+  const payload = await response.json().catch(() => null) as { data?: T; error?: string } | null;
+  if (!response.ok || !payload?.data) throw new Error(payload?.error || "Permintaan belum berhasil.");
+  return payload.data;
+}
+
+export function getPublicMap() {
+  return requestJson<{ units: PoliceUnit[]; reports: IncidentReport[]; updatedAt: string }>("/public/map");
+}
+
+export function getDashboard() {
+  return requestJson<DashboardData>("/dashboard");
+}
+
+export function createReport(input: { category: string; description: string; severity: ReportSeverity; latitude: number; longitude: number }) {
+  return requestJson<IncidentReport>("/reports", { method: "POST", body: JSON.stringify(input) });
+}
+
+export function updatePoliceReportStatus(id: string, status: Exclude<ReportStatus, "PENDING">) {
+  return requestJson<IncidentReport>(`/police/reports/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) });
 }

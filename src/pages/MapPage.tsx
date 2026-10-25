@@ -12,11 +12,7 @@ export default function MapPage() {
   const [error, setError] = useState<string | null>(null);
   const [signingOut, setSigningOut] = useState(false);
   const [linkingGoogle, setLinkingGoogle] = useState(false);
-  const content = {
-    warga: ["Peta keamanan sedang disiapkan.", "Akun warga Anda sudah aktif. Peta, filter lokasi, dan pelaporan akan hadir pada tahap berikutnya."],
-    polisi: ["Ruang kerja petugas sedang disiapkan.", "Akses petugas Anda sudah terverifikasi. Antrian laporan, penugasan unit, dan catatan penanganan akan hadir pada tahap berikutnya."],
-    admin: ["Ruang pengelolaan sedang disiapkan.", "Akses admin Anda sudah terverifikasi. Moderasi laporan, pengelolaan unit, dan audit log akan hadir pada tahap berikutnya."],
-  } as const;
+  const content = { warga: ["Peta keamanan publik", "Lihat informasi laporan dan kantor polisi di Jakarta."], polisi: ["Dashboard petugas", "Kelola laporan yang masuk ke unit Anda."], admin: ["Dashboard admin", "Pantau laporan dan aktivitas operasional Garda Jakarta."] } as const;
   const handleLogout = async () => {
     setSigningOut(true);
     setError(null);
@@ -34,7 +30,7 @@ export default function MapPage() {
   return (
     <main className="map-page">
       <header className="map-header">
-        <Link className="map-brand" to={portalPaths[role].home} aria-label="Beranda Garda Jakarta"><AppLogo size={155} aria-label="Garda Jakarta" /></Link>
+        <Link className="map-brand" to="/dashboard" aria-label="Beranda Garda Jakarta"><AppLogo size={155} aria-label="Garda Jakarta" /></Link>
         <div className="map-user"><span>Halo, {user?.name}</span><button type="button" disabled={signingOut} onClick={() => void handleLogout()}>{signingOut ? "Memproses..." : "Keluar"}</button></div>
       </header>
       <section className="map-placeholder">
@@ -44,7 +40,7 @@ export default function MapPage() {
           <h1>{content[role][0]}</h1>
           <p>{content[role][1]}</p>
           {error && <p className="form-error" role="alert">{error}</p>}
-          {role === "warga" ? <Link className="primary-button map-button" to="/report">Buat laporan</Link> : <a className="primary-button map-button" href="https://gardajakarta.my.id">Tentang Garda Jakarta</a>}
+          {role === "warga" ? <Link className="primary-button map-button" to="/dashboard">Buat laporan</Link> : <Link className="primary-button map-button" to="/dashboard">Buka dashboard</Link>}
           <button className="google-button account-google-button" type="button" disabled={linkingGoogle} onClick={() => void handleLinkGoogle()}>{linkingGoogle ? "Memproses..." : "Tautkan akun Google"}</button>
         </div>
         <div className="map-pin map-pin-one" /><div className="map-pin map-pin-two" /><div className="map-pin map-pin-three" />
