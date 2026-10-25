@@ -1,5 +1,5 @@
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { useAuth } from "./context/useAuth";
 import LoginPage from "./pages/LoginPage";
 import MapPage from "./pages/MapPage";
@@ -17,9 +17,17 @@ function ProtectedRoute({ children, portal }: { children: ReactNode; portal: Aut
   return user.role === portal ? children : <Navigate to={portalPaths[user.role].home} replace />;
 }
 
+function LandingRedirect() {
+  useEffect(() => {
+    window.location.replace("https://gardajakarta.my.id");
+  }, []);
+  return <main className="session-state" role="status">Membuka Garda Jakarta...</main>;
+}
+
 export default function App() {
   const { user, isReady, sessionError } = useAuth();
   const location = useLocation();
+  if (location.pathname === "/") return <LandingRedirect />;
   if (!isReady) return <main className="session-state" role="status">Memeriksa sesi...</main>;
   const knownPaths = ["/login", "/polisi/login", "/admin/login", "/register", "/map", "/report", "/polisi", "/admin", "/not-found"];
   if (!knownPaths.includes(location.pathname)) return <Navigate to="/not-found" replace />;
