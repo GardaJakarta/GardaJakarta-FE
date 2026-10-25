@@ -31,7 +31,6 @@ export default function App() {
   if (!isReady) return <main className="session-state" role="status">Memeriksa sesi...</main>;
   const knownPaths = ["/login", "/polisi/login", "/admin/login", "/register", "/map", "/report", "/polisi", "/admin", "/not-found"];
   if (!knownPaths.includes(location.pathname)) return <Navigate to="/not-found" replace />;
-  if (sessionError && location.pathname !== "/not-found") return <ConnectionErrorPage message={sessionError} />;
   const home = user ? portalPaths[user.role].home : "/login";
 
   return (
