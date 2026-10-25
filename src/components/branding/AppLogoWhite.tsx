@@ -9,7 +9,7 @@ export default function AppLogo({ size = 310, ...props }: AppLogoProps) {
     <svg
       xmlns="http://www.w3.org/2000/svg"
       width={size}
-      height={120}
+      height="auto"
       viewBox="0 0 310 120"
       fill="none"
       role="img"
