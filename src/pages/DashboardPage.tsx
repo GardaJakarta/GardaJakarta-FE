@@ -83,7 +83,7 @@ export default function DashboardPage() {
           <div className="dashboard-map-toolbar"><div><span className="dashboard-kicker">{roleLabel}</span><h1>{title}</h1><p>{description}</p></div><Link className="dashboard-public-link" to="/map">Lihat peta publik</Link></div>
           {error && <p className="dashboard-error dashboard-error-floating" role="alert">{error}</p>}
           <GardaMap className="dashboard-full-map" units={data?.units || []} reports={mapReports} onMapClick={user?.role === "warga" ? handleMapClick : undefined} />
-          <div className="dashboard-map-key" aria-label="Keterangan peta"><span><i className="legend-dot legend-report" />Laporan</span><span><i className="legend-dot legend-police" />Kantor polisi</span></div>
+          <div className="dashboard-map-key" aria-label="Keterangan peta"><span><i className="legend-dot legend-report" />Laporan</span><span><i className="legend-dot legend-police" />Kantor polisi</span><span><i className="legend-dot legend-safety" />Area perhatian</span></div>
         </section>
 
         <aside className={`dashboard-side-panel dashboard-side-panel-${user?.role || "warga"}`}>

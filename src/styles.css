@@ -140,7 +140,7 @@ a:focus-visible, button:focus-visible { outline: 3px solid #e62428; outline-offs
 .public-map-shell { width: min(100%, 1440px); margin: auto; padding: clamp(28px, 5vw, 64px) clamp(22px, 5vw, 80px) 80px; }
 .public-map-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 30px; margin-bottom: 25px; }.public-map-heading h1 { max-width: 750px; margin: 0; font-size: clamp(34px, 6vw, 74px); line-height: .96; letter-spacing: -.07em; }.public-map-heading p:not(.eyebrow) { max-width: 600px; margin: 18px 0 0; color: #6c6c67; line-height: 1.7; }
 .public-map-actions { display: flex; align-items: center; gap: 18px; color: #777; font-size: 12px; font-weight: 700; }.public-map-actions .primary-button { display: inline-flex; width: auto; padding: 11px 14px; text-decoration: none; }
-.map-legend { display: flex; flex-wrap: wrap; gap: 15px; color: #777; font-size: 12px; font-weight: 700; }.map-legend span { display: inline-flex; align-items: center; gap: 7px; }.legend-dot { display: block; width: 10px; height: 10px; border-radius: 50%; }.legend-report { background: var(--primary); }.legend-police { background: #1b5e86; }
+.map-legend { display: flex; flex-wrap: wrap; gap: 15px; color: #777; font-size: 12px; font-weight: 700; }.map-legend span { display: inline-flex; align-items: center; gap: 7px; }.legend-dot { display: block; width: 10px; height: 10px; border-radius: 50%; }.legend-report { background: var(--primary); }.legend-police { background: #1b5e86; }.legend-safety { background: #d88324; }
 .public-map-canvas { position: relative; overflow: hidden; border: 1px solid #deded8; background: #edf0eb; }.public-map-canvas .garda-map { min-height: min(70vh, 700px); }.public-map-detail { position: absolute; top: 20px; right: 20px; width: min(300px, calc(100% - 40px)); padding: 22px; border: 1px solid #e6e6df; background: rgba(255,255,255,.96); box-shadow: 0 15px 40px rgba(23,23,23,.16); }.public-map-detail button { position: absolute; top: 10px; right: 10px; border: 0; background: transparent; color: #777; font-size: 22px; }.public-map-detail h2 { margin: 0; font-size: 26px; letter-spacing: -.05em; }.public-map-detail p:not(.eyebrow) { color: #777; font-size: 12px; }
 @media (max-width: 760px) {
   .auth-page { grid-template-columns: 1fr; }
@@ -213,9 +213,12 @@ a:focus-visible, button:focus-visible { outline: 3px solid #e62428; outline-offs
 .dashboard-queue-item span:not(.status-badge), .dashboard-queue-item small { color: #85857e; font-size: 10px; }
 .dashboard-queue-item p { margin: 0; color: #595952; font-size: 11px; line-height: 1.5; }
 .dashboard-queue-item select { width: 100%; border: 1px solid #deded8; border-radius: 0; padding: 8px 9px; color: #555; background: #fff; font-size: 11px; }
-.garda-map-marker { width: 34px; height: 34px; border-width: 2px; box-shadow: 0 5px 15px rgba(23,23,23,.26); }
+.garda-map-marker { width: 34px; height: 34px; border-width: 2px; box-shadow: 0 5px 15px rgba(23,23,23,.26); transition: transform .18s ease, box-shadow .18s ease; }
+.garda-map-marker:hover, .garda-map-marker:focus-visible { box-shadow: 0 7px 20px rgba(23,23,23,.32); transform: translateY(-2px) rotate(-45deg); }
 .garda-map-marker span { display: grid; place-items: center; width: 100%; height: 100%; }
 .garda-map-marker svg { width: 17px; height: 17px; fill: currentColor; }
+.garda-map-marker-report { border-radius: 50%; background: #e62428; transform: none; }
+.garda-map-marker-report:hover, .garda-map-marker-report:focus-visible { transform: translateY(-2px); }
 .garda-map-marker-report span { font-size: 16px; }
 .garda-map-popup { min-width: 220px; gap: 7px; padding: 2px; }
 .garda-map-popup img { height: 112px; border-radius: 5px; }
@@ -256,6 +259,7 @@ a:focus-visible, button:focus-visible { outline: 3px solid #e62428; outline-offs
 .public-report-item strong { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
 .public-report-item small { color: #85857e; font-size: 10px; }
 .public-selected-report p { margin: 0 0 12px; color: #6c6c67; font-size: 12px; }
+.public-selected-report .public-report-description { margin-top: 14px; color: #595952; line-height: 1.6; }
 .public-close-button { border: 0; padding: 0; color: #777; background: transparent; font-size: 24px; line-height: 1; }
 .public-police-list .dashboard-report-list article { padding: 13px 0; }
 .public-police-list .dashboard-report-list article small { color: #85857e; font-size: 10px; }
