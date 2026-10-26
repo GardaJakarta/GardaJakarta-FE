@@ -63,14 +63,15 @@ export async function linkGoogle() {
 }
 
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${apiBase}${path}`, { ...init, credentials: "include", headers: { "Content-Type": "application/json", ...init?.headers } });
+  // Public map data changes outside the FE session; never reuse a stale browser response.
+  const response = await fetch(`${apiBase}${path}`, { ...init, cache: "no-store", credentials: "include", headers: { "Content-Type": "application/json", "Cache-Control": "no-cache", ...init?.headers } });
   const payload = await response.json().catch(() => null) as { data?: T; error?: string } | null;
   if (!response.ok || !payload?.data) throw new Error(payload?.error || "Permintaan belum berhasil.");
   return payload.data;
 }
 
 export function getPublicMap() {
-  return requestJson<{ units: PoliceUnit[]; reports: IncidentReport[]; updatedAt: string }>("/public/map");
+  return requestJson<{ units: PoliceUnit[]; reports: IncidentReport[]; updatedAt: string }>(`/public/map?ts=${Date.now()}`);
 }
 
 export function getDashboard() {

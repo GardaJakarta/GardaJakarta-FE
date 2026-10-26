@@ -93,6 +93,8 @@ function draftMarkerElement() {
   element.tabIndex = 0;
   element.setAttribute("aria-label", "Geser lokasi laporan");
   element.setAttribute("aria-grabbed", "false");
+  element.addEventListener("pointerdown", (event) => event.stopPropagation());
+  element.addEventListener("mousedown", (event) => event.stopPropagation());
   element.innerHTML = '<span aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M12 21s7-6.1 7-12a7 7 0 1 0-14 0c0 5.9 7 12 7 12Z"/><circle cx="12" cy="9" r="2.4" fill="white"/></svg></span>';
   element.addEventListener("dragstart", (event) => event.preventDefault());
   return element;
@@ -207,7 +209,7 @@ function GardaMap({ units, reports, className, onMapClick, onSelectReport, onSel
     units.forEach((unit) => {
       const element = markerElement("police");
       element.addEventListener("click", (event) => { event.stopPropagation(); onSelectUnitRef.current?.(unit); });
-      const marker = new maplibregl.Marker({ element, anchor: "bottom" })
+      const marker = new maplibregl.Marker({ element, anchor: "center" })
         .setLngLat([unit.longitude, unit.latitude])
         .setPopup(new maplibregl.Popup({ offset: 18, closeButton: true }).setDOMContent(popupContent(unit.name, `${unit.district} · ${unit.address}`, unit.photoUrl)))
         .addTo(map);
@@ -252,7 +254,7 @@ function GardaMap({ units, reports, className, onMapClick, onSelectReport, onSel
     if (!draftMarkerRef.current) {
       const element = draftMarkerElement();
       element.addEventListener("click", (event) => event.stopPropagation());
-      const marker = new maplibregl.Marker({ element, anchor: "bottom", draggable: true })
+      const marker = new maplibregl.Marker({ element, anchor: "center", draggable: true })
         .setLngLat([draftLongitude, draftLatitude])
         .addTo(map);
       marker.on("dragstart", () => {
