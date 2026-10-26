@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import * as maplibregl from "maplibre-gl";
 import type { GeoJSONSource, Map as MapInstance, Marker } from "maplibre-gl";
 import maplibreWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?url";
@@ -15,6 +15,9 @@ type GardaMapProps = {
   onMapClick?: (coordinates: { latitude: number; longitude: number }) => void;
   onSelectReport?: (report: IncidentReport) => void;
   onSelectUnit?: (unit: PoliceUnit) => void;
+  draftLocation?: { latitude: number; longitude: number };
+  draftActive?: boolean;
+  onDraftLocationChange?: (coordinates: { latitude: number; longitude: number }) => void;
   interactive?: boolean;
 };
 
@@ -78,6 +81,24 @@ function markerElement(kind: "police" | "report", severity?: IncidentReport["sev
   return element;
 }
 
+function draftMarkerElement() {
+  const element = document.createElement("div");
+  element.className = "garda-map-marker garda-map-marker-draft";
+  element.style.touchAction = "none";
+  element.style.pointerEvents = "auto";
+  element.style.userSelect = "none";
+  element.style.cursor = "grab";
+  element.setAttribute("role", "button");
+  element.tabIndex = 0;
+  element.setAttribute("aria-label", "Geser lokasi laporan");
+  element.innerHTML = '<span aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M12 21s7-6.1 7-12a7 7 0 1 0-14 0c0 5.9 7 12 7 12Z"/><circle cx="12" cy="9" r="2.4" fill="white"/></svg></span>';
+  element.addEventListener("dragstart", (event) => event.preventDefault());
+  element.addEventListener("pointerdown", (event) => event.stopPropagation());
+  element.addEventListener("mousedown", (event) => event.stopPropagation());
+  element.addEventListener("touchstart", (event) => event.stopPropagation(), { passive: true });
+  return element;
+}
+
 function popupContent(title: string, subtitle: string, photoUrl?: string | null) {
   const wrapper = document.createElement("div");
   wrapper.className = "garda-map-popup";
@@ -98,10 +119,26 @@ function popupContent(title: string, subtitle: string, photoUrl?: string | null)
   return wrapper;
 }
 
-export default function GardaMap({ units, reports, className, onMapClick, onSelectReport, onSelectUnit, interactive = true }: GardaMapProps) {
+function GardaMap({ units, reports, className, onMapClick, onSelectReport, onSelectUnit, draftLocation, draftActive = false, onDraftLocationChange, interactive = true }: GardaMapProps) {
+  const draftLatitude = draftLocation?.latitude;
+  const draftLongitude = draftLocation?.longitude;
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapInstance | null>(null);
+  const [mapReady, setMapReady] = useState(false);
+  const draftActiveRef = useRef(false);
   const markersRef = useRef<Marker[]>([]);
+  const draftMarkerRef = useRef<Marker | null>(null);
+  const onMapClickRef = useRef(onMapClick);
+  const onSelectReportRef = useRef(onSelectReport);
+  const onSelectUnitRef = useRef(onSelectUnit);
+  const onDraftLocationChangeRef = useRef(onDraftLocationChange);
+
+  useEffect(() => {
+    onMapClickRef.current = onMapClick;
+    onSelectReportRef.current = onSelectReport;
+    onSelectUnitRef.current = onSelectUnit;
+    onDraftLocationChangeRef.current = onDraftLocationChange;
+  }, [onDraftLocationChange, onMapClick, onSelectReport, onSelectUnit]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -124,19 +161,27 @@ export default function GardaMap({ units, reports, className, onMapClick, onSele
       map.touchZoomRotate.disable();
       map.keyboard.disable();
     }
-    map.on("click", (event: maplibregl.MapMouseEvent) => onMapClick?.({ latitude: event.lngLat.lat, longitude: event.lngLat.lng }));
+    map.on("click", (event: maplibregl.MapMouseEvent) => {
+      const target = event.originalEvent.target as Element | null;
+      if (target?.closest(".garda-map-marker")) return;
+      onMapClickRef.current?.({ latitude: event.lngLat.lat, longitude: event.lngLat.lng });
+    });
+    map.once("load", () => setMapReady(true));
     mapRef.current = map;
     return () => {
+      setMapReady(false);
       markersRef.current.forEach((marker) => marker.remove());
       markersRef.current = [];
+      draftMarkerRef.current?.remove();
+      draftMarkerRef.current = null;
       map.remove();
       mapRef.current = null;
     };
-  }, [interactive, onMapClick]);
+  }, [interactive]);
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map) return;
+    if (!map || !mapReady) return;
     const syncSafetyZones = () => {
       if (!map.isStyleLoaded()) return;
       const data = safetyGeoJson(reports);
@@ -162,7 +207,7 @@ export default function GardaMap({ units, reports, className, onMapClick, onSele
     markersRef.current = [];
     units.forEach((unit) => {
       const element = markerElement("police");
-      element.addEventListener("click", (event) => { event.stopPropagation(); onSelectUnit?.(unit); });
+      element.addEventListener("click", (event) => { event.stopPropagation(); onSelectUnitRef.current?.(unit); });
       const marker = new maplibregl.Marker({ element, anchor: "bottom" })
         .setLngLat([unit.longitude, unit.latitude])
         .setPopup(new maplibregl.Popup({ offset: 18, closeButton: true }).setDOMContent(popupContent(unit.name, `${unit.district} · ${unit.address}`, unit.photoUrl)))
@@ -171,7 +216,7 @@ export default function GardaMap({ units, reports, className, onMapClick, onSele
     });
     reports.forEach((report) => {
       const element = markerElement("report", report.severity);
-      element.addEventListener("click", (event) => { event.stopPropagation(); onSelectReport?.(report); });
+      element.addEventListener("click", (event) => { event.stopPropagation(); onSelectReportRef.current?.(report); });
       const marker = new maplibregl.Marker({ element, anchor: "center" })
         .setLngLat([report.longitude, report.latitude])
         .setPopup(new maplibregl.Popup({ offset: 14 }).setDOMContent(popupContent(report.category, `${report.ticketNumber} · ${report.status}`)))
@@ -179,7 +224,65 @@ export default function GardaMap({ units, reports, className, onMapClick, onSele
       markersRef.current.push(marker);
     });
     return () => { map.off("load", syncSafetyZones); };
-  }, [onSelectReport, onSelectUnit, reports, units]);
+  }, [mapReady, reports, units]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady || !draftActive || draftLatitude === undefined || draftLongitude === undefined) {
+      draftActiveRef.current = draftActive;
+      return;
+    }
+    if (!draftActiveRef.current && window.innerWidth < 768) {
+      map.easeTo({
+        center: [draftLongitude, draftLatitude],
+        padding: { top: 76, right: 24, bottom: Math.round(window.innerHeight * 0.62), left: 24 },
+        duration: 300,
+      });
+    }
+    draftActiveRef.current = draftActive;
+  }, [draftActive, draftLatitude, draftLongitude, mapReady]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady) return;
+    if (!draftActive || draftLatitude === undefined || draftLongitude === undefined) {
+      draftMarkerRef.current?.remove();
+      draftMarkerRef.current = null;
+      return;
+    }
+    if (!draftMarkerRef.current) {
+      const element = draftMarkerElement();
+      element.addEventListener("click", (event) => event.stopPropagation());
+      const marker = new maplibregl.Marker({ element, anchor: "bottom", draggable: true })
+        .setLngLat([draftLongitude, draftLatitude])
+        .addTo(map);
+      marker.on("dragstart", () => { element.style.cursor = "grabbing"; });
+      marker.on("dragend", () => {
+        element.style.cursor = "grab";
+        const position = marker.getLngLat();
+        onDraftLocationChangeRef.current?.({ latitude: position.lat, longitude: position.lng });
+      });
+      draftMarkerRef.current = marker;
+    } else {
+      draftMarkerRef.current.setLngLat([draftLongitude, draftLatitude]);
+    }
+  }, [draftActive, draftLatitude, draftLongitude, mapReady]);
 
   return <div ref={containerRef} className={`garda-map ${className || ""}`} aria-label="Peta informasi keamanan Jakarta" />;
 }
+
+function areMapPropsEqual(previous: GardaMapProps, next: GardaMapProps) {
+  return previous.units === next.units
+    && previous.reports === next.reports
+    && previous.className === next.className
+    && previous.interactive === next.interactive
+    && previous.draftActive === next.draftActive
+    && previous.draftLocation?.latitude === next.draftLocation?.latitude
+    && previous.draftLocation?.longitude === next.draftLocation?.longitude
+    && previous.onMapClick === next.onMapClick
+    && previous.onSelectReport === next.onSelectReport
+    && previous.onSelectUnit === next.onSelectUnit
+    && previous.onDraftLocationChange === next.onDraftLocationChange;
+}
+
+export default memo(GardaMap, areMapPropsEqual);
