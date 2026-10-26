@@ -156,7 +156,7 @@ function CategoryMenu({ value, onChange }: { value: string; onChange: (value: st
   </div>;
 }
 
-function StatusFilterMenu({ value, onChange, mobile = false }: { value: StatusFilter; onChange: (value: StatusFilter) => void; mobile?: boolean }) {
+function StatusFilterMenu({ value, onChange, mobile = false, fullWidth = false }: { value: StatusFilter; onChange: (value: StatusFilter) => void; mobile?: boolean; fullWidth?: boolean }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -167,7 +167,7 @@ function StatusFilterMenu({ value, onChange, mobile = false }: { value: StatusFi
   }, [open]);
   const label = value === "ALL" ? "Semua status" : statusShortLabels[value];
   return <div ref={ref} className="relative min-w-0 sm:shrink-0">
-    <button type="button" onClick={() => setOpen((current) => !current)} className={`inline-flex ${mobile ? "h-9 w-full min-w-0 px-2" : "h-9 px-3"} items-center justify-center gap-1.5 rounded-full text-[10px] font-bold transition-colors ${value === "ALL" ? "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50" : "bg-slate-900 text-white"}`} aria-label={`Filter status laporan: ${label}`} aria-expanded={open} aria-haspopup="listbox"><FilterIcon /><span className="hidden sm:inline">Filter</span><span className="min-w-0 truncate sm:max-w-[100px]">{mobile ? "Filter" : label}</span><Chevron open={open} /></button>
+    <button type="button" onClick={() => setOpen((current) => !current)} className={`inline-flex ${mobile ? `h-9 min-w-0 ${fullWidth ? "w-full" : "px-2"}` : "h-9 px-3"} items-center justify-center gap-1.5 rounded-full text-[10px] font-bold transition-colors ${value === "ALL" ? "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50" : "bg-slate-900 text-white"}`} aria-label={`Filter status laporan: ${label}`} aria-expanded={open} aria-haspopup="listbox"><FilterIcon /><span className="hidden sm:inline">Filter</span><span className="min-w-0 truncate sm:max-w-[100px]">{mobile ? "Filter" : label}</span><Chevron open={open} /></button>
     {open && <div className="absolute left-0 top-[calc(100%+10px)] z-50 w-52 rounded-xl border border-slate-100 bg-white p-2 text-left shadow-[0_18px_44px_rgba(15,23,42,0.16)] md:bottom-[calc(100%+10px)] md:top-auto" role="listbox" aria-label="Filter status laporan"><p className="px-2 pb-2 pt-1 text-[10px] font-bold uppercase tracking-widest text-slate-400">Status laporan</p>{statusFilters.map((option) => <button key={option} type="button" role="option" aria-selected={value === option} onClick={() => { onChange(option); setOpen(false); }} className={`flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-xs font-bold transition-colors ${value === option ? "bg-red-50 text-[#b21e24]" : "text-slate-700 hover:bg-slate-50"}`}><span className={`grid h-4 w-4 place-items-center rounded-full border text-[10px] ${value === option ? "border-[#e62428] bg-[#e62428] text-white" : "border-slate-300 text-transparent"}`}>✓</span>{option === "ALL" ? "Semua status" : statusLabels[option]}</button>)}</div>}
   </div>;
 }
@@ -197,20 +197,20 @@ function DashboardControls({ mobile = false, view, citizen, showActions = true, 
     <svg className="h-4 w-4 shrink-0 text-[#e62428]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></svg>
     <input aria-label={view === "map" ? "Cari lokasi atau laporan" : "Cari isu"} value={search} onChange={(event) => onSearchChange(event.target.value)} placeholder={view === "map" ? "Cari lokasi..." : "Cari isu..."} className="min-w-0 w-full bg-transparent py-1.5 text-xs font-bold text-gray-900 outline-none placeholder:text-gray-400" />
   </div>;
-  const buttonHeight = mobile ? "h-9" : "h-9";
+  const buttonHeight = mobile ? "h-8" : "h-9";
   const pinButton = showActions && citizen && <button type="button" onClick={onPickLocation} className={`inline-flex ${buttonHeight} min-w-0 items-center justify-center gap-1.5 ${controlRadius} px-2 text-[10px] font-black transition-colors ${pinMode ? "bg-[#e62428] text-white shadow-sm" : "border border-gray-100 bg-white text-gray-600 hover:bg-gray-100"}`} aria-label="Tandai lokasi laporan"><PinIcon /><span className={mobile ? "truncate" : "hidden sm:inline"}>{pinMode ? "Pilih" : "Tandai"}</span></button>;
   const listButton = showActions && <button type="button" onClick={onToggleList} className={`inline-flex ${buttonHeight} min-w-0 items-center justify-center gap-1.5 ${controlRadius} px-2 text-[10px] font-black transition-colors ${listOpen ? "bg-gray-900 text-white" : "border border-gray-100 bg-white text-gray-600 hover:bg-gray-100"}`} aria-label="Buka daftar laporan"><ListIcon /><span className={mobile ? "truncate" : "hidden sm:inline"}>{citizen ? "Laporan" : role === "polisi" ? "Antrian" : "Monitoring"}</span>{activeFilter && <span className="grid h-4 min-w-4 place-items-center rounded-full bg-[#e62428] px-1 text-[9px] text-white">!</span>}</button>;
   const createButton = showActions && citizen && <button type="button" onClick={onCreateReport} className={`inline-flex ${buttonHeight} min-w-0 items-center justify-center gap-1.5 ${controlRadius} px-2 text-[10px] font-black text-white shadow-sm transition-colors ${reportOpen ? "bg-gray-900 hover:bg-gray-800" : "bg-[#e62428] hover:bg-[#c91d22]"}`} aria-label={reportOpen ? "Tutup form laporan" : "Buat laporan"}>{reportOpen ? <CloseIcon /> : <PlusIcon />}<span className={mobile ? "truncate" : "hidden sm:inline"}>{reportOpen ? "Tutup" : "Buat"}</span></button>;
 
   if (mobile) {
-    return <div className="relative flex w-full flex-col gap-2">
-      <div className="flex h-10 items-center rounded-full border border-gray-100 bg-gray-50 px-1.5 shadow-inner">{input}</div>
-      <div className={`grid min-w-0 gap-1.5 ${showActions ? (citizen ? "grid-cols-4" : "grid-cols-2") : "grid-cols-1"}`}>
-        <StatusFilterMenu mobile value={statusFilter} onChange={onStatusFilterChange} />
+    return <div className="relative flex w-full flex-col gap-1.5">
+      <div className="flex h-9 items-center rounded-full border border-gray-100 bg-gray-50 px-1 shadow-inner">{input}</div>
+      {showActions ? <div className={`grid min-w-0 gap-1.5 ${citizen ? "grid-cols-4" : "grid-cols-2"}`}>
+        <StatusFilterMenu mobile fullWidth value={statusFilter} onChange={onStatusFilterChange} />
         {citizen && pinButton}
         {listButton}
         {createButton}
-      </div>
+      </div> : <div className="flex justify-start"><StatusFilterMenu mobile value={statusFilter} onChange={onStatusFilterChange} /></div>}
     </div>;
   }
 
@@ -315,26 +315,43 @@ function ReportDetail({ report, role, isDesktop, onClose, onStatusChange, updati
 
 function ReportForm({ open, isDesktop, form, setForm, pinMode, setPinMode, submitting, onSubmit, onClose, onUseLocation, error }: { open: boolean; isDesktop: boolean; form: ReportFormState; setForm: Dispatch<SetStateAction<ReportFormState>>; pinMode: boolean; setPinMode: (value: boolean) => void; submitting: boolean; onSubmit: (event: FormEvent) => void; onClose: () => void; onUseLocation: () => void; error: string | null }) {
   const [sheetHeight, setSheetHeight] = useState(68);
-  const dragRef = useRef<{ startY: number; startHeight: number } | null>(null);
+  const [desktopOffset, setDesktopOffset] = useState(0);
+  const dragRef = useRef<{ startX: number; startY: number; startOffset: number; startHeight: number } | null>(null);
   const heightRef = useRef(sheetHeight);
+  const desktopOffsetRef = useRef(desktopOffset);
 
-  const startResize = (event: ReactPointerEvent<HTMLButtonElement | HTMLDivElement>) => {
-    if (isDesktop) return;
+  const startDrag = (event: ReactPointerEvent<HTMLButtonElement | HTMLDivElement>) => {
     event.preventDefault();
-    dragRef.current = { startY: event.clientY, startHeight: heightRef.current };
+    dragRef.current = { startX: event.clientX, startY: event.clientY, startOffset: desktopOffset, startHeight: sheetHeight };
     const move = (moveEvent: PointerEvent) => {
       const state = dragRef.current;
       if (!state) return;
+      if (isDesktop) {
+        const nextOffset = Math.max(-280, Math.min(280, state.startOffset + moveEvent.clientX - state.startX));
+        desktopOffsetRef.current = nextOffset;
+        setDesktopOffset(nextOffset);
+        return;
+      }
       const nextHeight = Math.max(34, Math.min(88, state.startHeight + ((state.startY - moveEvent.clientY) / window.innerHeight) * 100));
       heightRef.current = nextHeight;
       setSheetHeight(nextHeight);
     };
     const end = () => {
-      const value = heightRef.current;
+      const state = dragRef.current;
       dragRef.current = null;
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", end);
       window.removeEventListener("pointercancel", end);
+      if (!state) return;
+      if (isDesktop) {
+        if (desktopOffsetRef.current > 230) onClose();
+        else {
+          desktopOffsetRef.current = 0;
+          setDesktopOffset(0);
+        }
+        return;
+      }
+      const value = heightRef.current;
       if (value < 42) { onClose(); return; }
       const snapPoints = [56, 68, 86];
       const snap = snapPoints.reduce((nearest, point) => Math.abs(point - value) < Math.abs(nearest - value) ? point : nearest, snapPoints[0]);
@@ -346,12 +363,18 @@ function ReportForm({ open, isDesktop, form, setForm, pinMode, setPinMode, submi
     window.addEventListener("pointercancel", end);
   };
 
+  const startResize = (event: ReactPointerEvent<HTMLButtonElement | HTMLDivElement>) => {
+    if (isDesktop) return;
+    event.preventDefault();
+    startDrag(event);
+  };
+
   return <AnimatePresence>
     {open && <>
       {!isDesktop && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="pointer-events-none fixed inset-0 z-40 bg-gray-950/45 backdrop-blur-[2px]" aria-hidden="true" />}
-      <motion.aside initial={isDesktop ? { x: "100%", opacity: 0 } : { y: "100%", opacity: 0 }} animate={isDesktop ? { x: 0, opacity: 1 } : { y: 0, opacity: 1 }} exit={isDesktop ? { x: "100%", opacity: 0 } : { y: "100%", opacity: 0 }} transition={{ type: "spring", stiffness: 360, damping: 34 }} style={!isDesktop ? { height: `${sheetHeight}dvh` } : undefined} className={`${isDesktop ? "absolute right-6 top-24 z-50 h-[calc(100dvh-120px)] w-[400px] min-w-[320px] max-w-[calc(100vw-2rem)] rounded-sm" : "fixed inset-x-0 bottom-0 z-50 max-h-[88dvh] w-full rounded-t-2xl"} flex flex-col overflow-hidden bg-white shadow-[0_24px_72px_rgba(15,23,42,0.24)]`} aria-label="Form laporan baru">
+      <motion.aside initial={isDesktop ? { x: "100%", opacity: 0 } : { y: "100%", opacity: 0 }} animate={isDesktop ? { x: desktopOffset, opacity: 1 } : { y: 0, opacity: 1 }} exit={isDesktop ? { x: "100%", opacity: 0 } : { y: "100%", opacity: 0 }} transition={{ type: "spring", stiffness: 360, damping: 34 }} style={!isDesktop ? { height: `${sheetHeight}dvh` } : undefined} className={`${isDesktop ? "absolute right-6 top-24 z-50 h-[calc(100dvh-120px)] w-[400px] min-w-[320px] max-w-[calc(100vw-2rem)] rounded-sm" : "fixed inset-x-0 bottom-0 z-50 max-h-[88dvh] w-full rounded-t-2xl"} flex flex-col overflow-hidden bg-white shadow-[0_24px_72px_rgba(15,23,42,0.24)]`} aria-label="Form laporan baru">
         {!isDesktop && <button type="button" onPointerDown={startResize} onClick={() => { if (!dragRef.current) setSheetHeight((height) => height > 78 ? 68 : 86); }} className="flex w-full touch-none justify-center bg-white pb-2 pt-3" aria-label={sheetHeight > 78 ? "Perkecil panel laporan" : "Perbesar panel laporan"}><span className="h-1.5 w-12 rounded-full bg-gray-200" /></button>}
-        <div onPointerDown={!isDesktop ? startResize : undefined} className="flex items-center justify-between border-b border-gray-100 bg-white px-6 py-4 touch-none">
+        <div onPointerDown={startDrag} className={`flex items-center justify-between border-b border-gray-100 bg-white px-6 py-4 touch-none ${isDesktop ? "cursor-move active:cursor-grabbing" : ""}`}>
           <div><p className="text-[10px] font-black uppercase tracking-[.16em] text-[#e62428]">Laporan warga</p><h2 className="mt-1 font-heading text-xl font-black tracking-tight text-gray-900">Buat laporan</h2><p className="mt-1 text-xs font-semibold text-gray-400">Pilih titik dan ceritakan kejadian.</p></div>
           <button type="button" onClick={onClose} onPointerDown={(event) => event.stopPropagation()} className="grid h-8 w-8 place-items-center rounded-full text-xl leading-none text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-900" aria-label="Tutup form">×</button>
         </div>
@@ -471,16 +494,16 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
   const handleSignOut = async () => { try { await signOut(); window.location.assign(portalPaths[role].login); } catch { setError("Sesi belum dapat ditutup. Coba lagi."); } finally { setSignoutOpen(false); } };
 
   return <main className="dashboard-app relative h-[100dvh] min-h-[620px] overflow-hidden bg-[#f3f4f6] text-slate-900">
-    <header className="absolute left-1/2 top-3 z-50 flex w-[94%] max-w-5xl -translate-x-1/2 flex-col gap-2 rounded-[26px] bg-white px-3 py-2 shadow-[0_8px_32px_-8px_rgba(15,23,42,0.18)] ring-1 ring-gray-100 sm:top-4 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:rounded-full sm:px-4 sm:py-2.5">
-      <div className="flex w-full min-w-0 items-center justify-between gap-2 sm:flex-1">
-        <div className="flex min-w-0 shrink items-center gap-2 sm:gap-3">
-          <a href="https://gardajakarta.my.id" aria-label="Beranda Garda Jakarta" className="flex shrink-0 items-center"><AppLogo className="h-7 w-auto max-w-[82px] object-contain sm:h-9 sm:w-[135px]" size={145} aria-label="Garda Jakarta" /></a>
+    <header className="absolute left-1/2 top-2 z-50 flex w-[calc(100%-16px)] max-w-5xl -translate-x-1/2 flex-col gap-1.5 rounded-2xl bg-white px-2 py-1.5 shadow-[0_8px_32px_-8px_rgba(15,23,42,0.18)] ring-1 ring-gray-100 sm:top-4 sm:w-[94%] sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:rounded-full sm:px-4 sm:py-2.5">
+      <div className="flex w-full min-w-0 items-center justify-between gap-1.5 sm:flex-1 sm:gap-2">
+        <div className="flex min-w-0 shrink items-center gap-1.5 sm:gap-3">
+          <a href="https://gardajakarta.my.id" aria-label="Beranda Garda Jakarta" className="flex shrink-0 items-center"><AppLogo className="h-6 w-auto max-w-[70px] object-contain sm:h-9 sm:w-[135px]" size={145} aria-label="Garda Jakarta" /></a>
           <div className="flex shrink-0 rounded-full border border-gray-100 bg-gray-50 p-0.5 shadow-inner sm:p-1">
-            <button type="button" onClick={() => setView("map")} aria-pressed={view === "map"} className={`flex h-8 min-w-[52px] items-center justify-center gap-1 rounded-full px-2 text-[10px] font-black transition-colors sm:min-w-[74px] sm:gap-1.5 sm:px-3 sm:text-[11px] ${view === "map" ? "bg-gray-900 text-white shadow-sm" : "text-gray-500 hover:bg-white hover:text-gray-900"}`}><MapModeIcon /><span>Map</span></button>
-            <button type="button" onClick={() => { setView("feed"); setListOpen(false); setReportOpen(false); }} aria-pressed={view === "feed"} className={`flex h-8 min-w-[52px] items-center justify-center gap-1 rounded-full px-2 text-[10px] font-black transition-colors sm:min-w-[74px] sm:gap-1.5 sm:px-3 sm:text-[11px] ${view === "feed" ? "bg-gray-900 text-white shadow-sm" : "text-gray-500 hover:bg-white hover:text-gray-900"}`}><FeedModeIcon /><span>Feed</span></button>
+            <button type="button" onClick={() => setView("map")} aria-pressed={view === "map"} className={`flex h-7 min-w-[46px] items-center justify-center gap-1 rounded-full px-1.5 text-[9px] font-black transition-colors sm:h-8 sm:min-w-[74px] sm:gap-1.5 sm:px-3 sm:text-[11px] ${view === "map" ? "bg-gray-900 text-white shadow-sm" : "text-gray-500 hover:bg-white hover:text-gray-900"}`}><MapModeIcon /><span>Map</span></button>
+            <button type="button" onClick={() => { setView("feed"); setListOpen(false); setReportOpen(false); }} aria-pressed={view === "feed"} className={`flex h-7 min-w-[46px] items-center justify-center gap-1 rounded-full px-1.5 text-[9px] font-black transition-colors sm:h-8 sm:min-w-[74px] sm:gap-1.5 sm:px-3 sm:text-[11px] ${view === "feed" ? "bg-gray-900 text-white shadow-sm" : "text-gray-500 hover:bg-white hover:text-gray-900"}`}><FeedModeIcon /><span>Feed</span></button>
           </div>
         </div>
-        {publicMode ? <a href="/login" className="inline-flex h-8 shrink-0 items-center justify-center rounded-full bg-[#e62428] px-3 text-[10px] font-black leading-none text-white shadow-sm transition-colors hover:bg-[#c91d22] sm:h-9 sm:px-4 sm:text-[11px]">Masuk sebagai pelapor</a> : <div ref={accountRef} className="relative shrink-0">
+        {publicMode ? <a href="/login" className="inline-flex h-7 shrink-0 items-center justify-center rounded-lg bg-[#e62428] px-2.5 text-[9px] font-black leading-none text-white shadow-sm transition-colors hover:bg-[#c91d22] sm:h-9 sm:px-4 sm:text-[11px]">Masuk sebagai pelapor</a> : <div ref={accountRef} className="relative shrink-0">
           <button type="button" onClick={() => setAccountOpen((current) => !current)} className="inline-flex h-8 w-8 items-center justify-center rounded-full p-0 text-left hover:bg-gray-50 sm:h-auto sm:w-auto sm:gap-2 sm:justify-start sm:px-1.5 sm:py-1" aria-haspopup="menu" aria-expanded={accountOpen}>
             <Avatar name={user?.name || "Garda"} image={user?.image} size="h-8 w-8 sm:h-9 sm:w-9" />
             <span className="hidden max-w-[150px] sm:block"><strong className="block truncate text-[11px] font-bold text-gray-900">{user?.name}</strong><small className="mt-0.5 block text-[9px] font-bold text-[#e62428]">{roleLabel(role)}</small></span>
