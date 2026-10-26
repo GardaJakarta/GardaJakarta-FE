@@ -142,16 +142,16 @@ function CategoryMenu({ value, onChange }: { value: string; onChange: (value: st
     if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setOpen((current) => !current); }
   };
   return <div ref={ref} className="relative">
-    <button type="button" role="combobox" aria-expanded={open} aria-controls="report-category-options" onKeyDown={handleKeyDown} onClick={() => setOpen((current) => !current)} className={`flex min-h-12 w-full items-center gap-3 rounded-lg border bg-white px-3.5 text-left text-sm font-bold transition-colors focus:outline-none focus:ring-2 focus:ring-red-100 ${open ? "border-[#e62428]" : "border-gray-200"}`}>
-      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-red-50 text-[#e62428]">{selected ? <CategoryIcon kind={selected.icon} className="h-4 w-4" /> : <GardaMark className="h-4 w-4" />}</span>
+    <button type="button" role="combobox" aria-expanded={open} aria-controls="report-category-options" onKeyDown={handleKeyDown} onClick={() => setOpen((current) => !current)} className={`flex min-h-11 w-full items-center gap-3 rounded-sm border bg-white px-3 text-left text-sm font-bold transition-colors focus:outline-none focus:ring-2 focus:ring-red-100 ${open ? "border-[#e62428]" : "border-gray-200"}`}>
+      <span className="grid h-7 w-7 shrink-0 place-items-center rounded-sm bg-red-50 text-[#e62428]">{selected ? <CategoryIcon kind={selected.icon} className="h-4 w-4" /> : <GardaMark className="h-4 w-4" />}</span>
       <span className="min-w-0 flex-1 truncate text-gray-900">{selected?.value || "Pilih kategori kejadian"}</span>
       <Chevron open={open} />
     </button>
-    {open && <div id="report-category-options" role="listbox" className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 max-h-72 overflow-y-auto rounded-lg border border-gray-100 bg-white p-1.5 shadow-[0_18px_44px_rgba(15,23,42,0.16)]">
-      <div className="mb-1 flex items-center gap-2 border-b border-gray-100 px-2 pb-2 pt-1"><span className="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-red-50 text-[#e62428]"><GardaMark className="h-3.5 w-3.5" /></span><strong className="text-[10px] font-black uppercase tracking-widest text-gray-800">Kategori laporan</strong></div>
-      {categoryOptions.map((option) => <button key={option.value} type="button" role="option" aria-selected={value === option.value} onClick={() => { onChange(option.value); setOpen(false); }} className={`flex min-h-10 w-full items-center gap-2.5 rounded-md px-2 py-2 text-left transition-colors ${value === option.value ? "bg-red-50 text-[#b21e24]" : "text-gray-700 hover:bg-gray-50"}`}>
-        <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-md ${value === option.value ? "bg-[#e62428] text-white" : "bg-gray-100 text-gray-500"}`}><CategoryIcon kind={option.icon} className="h-3.5 w-3.5" /></span>
-        <strong className="min-w-0 truncate text-xs font-black leading-snug">{option.value}</strong>
+    {open && <div id="report-category-options" role="listbox" className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 max-h-72 overflow-y-auto rounded-sm border border-gray-100 bg-white p-1 shadow-[0_18px_44px_rgba(15,23,42,0.16)]">
+      <div className="mb-1 flex items-center gap-2 border-b border-gray-100 px-2 pb-2 pt-1"><span className="grid h-7 w-7 shrink-0 place-items-center rounded-sm bg-[#fff1ef] text-[#e62428]"><GardaMark className="h-4 w-4" /></span><strong className="text-[10px] font-black uppercase tracking-widest text-gray-800">Pilih kategori laporan</strong></div>
+      {categoryOptions.map((option) => <button key={option.value} type="button" role="option" aria-selected={value === option.value} onClick={() => { onChange(option.value); setOpen(false); }} className={`flex min-h-11 w-full items-center gap-3 rounded-sm px-2 py-2 text-left transition-colors ${value === option.value ? "bg-red-50 text-[#b21e24]" : "text-gray-700 hover:bg-gray-50"}`}>
+        <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-sm ${value === option.value ? "bg-[#e62428] text-white" : "bg-gray-100 text-gray-500"}`}><CategoryIcon kind={option.icon} className="h-4 w-4" /></span>
+        <strong className="min-w-0 truncate text-[11px] font-black leading-snug">{option.value}</strong>
       </button>)}
     </div>}
   </div>;
@@ -502,7 +502,7 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
   const handleSignOut = async () => { try { await signOut(); window.location.assign(portalPaths[role].login); } catch { setError("Sesi belum dapat ditutup. Coba lagi."); } finally { setSignoutOpen(false); } };
 
   return <main className="dashboard-app relative h-[100dvh] min-h-[620px] overflow-hidden bg-[#f3f4f6] text-slate-900">
-    <header className="absolute left-1/2 top-2 z-50 flex min-h-10 w-[calc(100%-1rem)] max-w-5xl -translate-x-1/2 items-center rounded-xl bg-white px-2 py-1 shadow-[0_8px_32px_-8px_rgba(15,23,42,0.18)] ring-1 ring-gray-100 sm:top-4 sm:min-h-0 sm:flex-row sm:justify-between sm:gap-3 sm:rounded-full sm:px-4 sm:py-2.5">
+    <header className="absolute left-1/2 top-1.5 z-50 flex min-h-9 w-[calc(100%-0.75rem)] max-w-5xl -translate-x-1/2 items-center rounded-lg bg-white px-1.5 py-0.5 shadow-[0_8px_32px_-8px_rgba(15,23,42,0.18)] ring-1 ring-gray-100 sm:top-4 sm:min-h-0 sm:flex-row sm:justify-between sm:gap-3 sm:rounded-full sm:px-4 sm:py-2.5">
       <div className="flex w-full min-w-0 items-center justify-between gap-2 sm:flex-1">
         <div className="flex min-w-0 shrink items-center gap-1 max-[359px]:gap-0.5 sm:gap-3">
           <a href="https://gardajakarta.my.id" aria-label="Beranda Garda Jakarta" className="flex shrink-0 items-center"><AppLogo className="h-5 w-auto max-w-[64px] object-contain max-[359px]:max-w-[54px] sm:h-9 sm:w-[135px]" size={145} aria-label="Garda Jakarta" /></a>
@@ -511,7 +511,7 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
             <button type="button" onClick={() => { setView("feed"); setListOpen(false); setReportOpen(false); }} aria-pressed={view === "feed"} className={`flex h-7 min-w-[46px] items-center justify-center gap-1 rounded-full px-1.5 text-[9px] font-black transition-colors max-[359px]:min-w-[32px] max-[359px]:px-1 max-[359px]:text-[8px] sm:h-8 sm:min-w-[74px] sm:gap-1.5 sm:px-3 sm:text-[11px] ${view === "feed" ? "bg-gray-900 text-white shadow-sm" : "text-gray-500 hover:bg-white hover:text-gray-900"}`}><FeedModeIcon /><span className="max-[359px]:hidden">Feed</span></button>
           </div>
         </div>
-        {publicMode ? <a href="/login" className="inline-flex h-8 shrink-0 items-center justify-center rounded-lg bg-[#e62428] px-3 text-[10px] font-black leading-none text-white shadow-sm transition-colors max-[359px]:px-2 max-[359px]:text-[9px] hover:bg-[#c91d22] sm:h-9 sm:px-4 sm:text-[11px]"><span className="max-[359px]:hidden">Masuk sebagai pelapor</span><span className="hidden max-[359px]:inline">Masuk</span></a> : <div ref={accountRef} className="relative shrink-0">
+        {publicMode ? <a href="/login" className="inline-flex h-8 shrink-0 items-center justify-center rounded-md bg-[#e62428] px-3 text-[10px] font-black leading-none text-white shadow-sm transition-colors max-[359px]:px-2 max-[359px]:text-[9px] hover:bg-[#c91d22] sm:h-9 sm:rounded-lg sm:px-4 sm:text-[11px]"><span className="max-[359px]:hidden">Masuk sebagai pelapor</span><span className="hidden max-[359px]:inline">Masuk</span></a> : <div ref={accountRef} className="relative shrink-0">
           <button type="button" onClick={() => setAccountOpen((current) => !current)} className="inline-flex h-7 w-7 items-center justify-center rounded-full p-0 text-left hover:bg-gray-50 sm:h-auto sm:w-auto sm:gap-2 sm:justify-start sm:px-1.5 sm:py-1" aria-haspopup="menu" aria-expanded={accountOpen}>
             <Avatar name={user?.name || "Garda"} image={user?.image} size="h-7 w-7 sm:h-9 sm:w-9" />
             <span className="hidden max-w-[150px] sm:block"><strong className="block truncate text-[11px] font-bold text-gray-900">{user?.name}</strong><small className="mt-0.5 block text-[9px] font-bold text-[#e62428]">{roleLabel(role)}</small></span>
