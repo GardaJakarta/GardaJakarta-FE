@@ -75,8 +75,10 @@ function markerElement(kind: "police" | "report", severity?: IncidentReport["sev
   element.type = "button";
   element.className = `garda-map-marker garda-map-marker-${kind} garda-map-marker-${severity?.toLowerCase() || "default"}`;
   element.setAttribute("aria-label", kind === "police" ? "Kantor polisi" : "Laporan keamanan");
-  // Reuse the Garda mark as the map glyph so map points feel part of the product brand.
-  element.innerHTML = '<span aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M19.2 13.2c0 5-3.1 8.2-7.2 9.1v-2.6c2.7-.8 4.6-2.9 4.6-6.4V8.4h2.6v4.8ZM12 3.8H4.8v7.8c0 3.5 2 5.7 4.6 6.4v2.6c-4.1-.9-7.2-4.1-7.2-9.1V1.2H12v2.6Zm7.2 2.6H12v8.8c-2.1 0-3.8-1.7-3.8-3.8V6.4H12V3.8h7.2v2.6Z"/></svg></span>';
+  const glyph = kind === "police"
+    ? '<path d="M19.2 13.2c0 5-3.1 8.2-7.2 9.1v-2.6c2.7-.8 4.6-2.9 4.6-6.4V8.4h2.6v4.8ZM12 3.8H4.8v7.8c0 3.5 2 5.7 4.6 6.4v2.6c-4.1-.9-7.2-4.1-7.2-9.1V1.2H12v2.6Zm7.2 2.6H12v8.8c-2.1 0-3.8-1.7-3.8-3.8V6.4H12V3.8h7.2v2.6Z"/>'
+    : '<path d="M12 3.5 20 7v5.2c0 4.3-3.2 7.8-8 8.9-4.8-1.1-8-4.6-8-8.9V7l8-3.5Z"/><path d="M12 8v4.5M12 15.5h.01" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>';
+  element.innerHTML = `<span aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false">${glyph}</svg></span>`;
   return element;
 }
 
@@ -90,11 +92,9 @@ function draftMarkerElement() {
   element.setAttribute("role", "button");
   element.tabIndex = 0;
   element.setAttribute("aria-label", "Geser lokasi laporan");
+  element.setAttribute("aria-grabbed", "false");
   element.innerHTML = '<span aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M12 21s7-6.1 7-12a7 7 0 1 0-14 0c0 5.9 7 12 7 12Z"/><circle cx="12" cy="9" r="2.4" fill="white"/></svg></span>';
   element.addEventListener("dragstart", (event) => event.preventDefault());
-  element.addEventListener("pointerdown", (event) => event.stopPropagation());
-  element.addEventListener("mousedown", (event) => event.stopPropagation());
-  element.addEventListener("touchstart", (event) => event.stopPropagation(), { passive: true });
   return element;
 }
 
@@ -255,9 +255,17 @@ function GardaMap({ units, reports, className, onMapClick, onSelectReport, onSel
       const marker = new maplibregl.Marker({ element, anchor: "bottom", draggable: true })
         .setLngLat([draftLongitude, draftLatitude])
         .addTo(map);
-      marker.on("dragstart", () => { element.style.cursor = "grabbing"; });
+      marker.on("dragstart", () => {
+        element.style.cursor = "grabbing";
+        element.setAttribute("aria-grabbed", "true");
+      });
+      marker.on("drag", () => {
+        const position = marker.getLngLat();
+        onDraftLocationChangeRef.current?.({ latitude: position.lat, longitude: position.lng });
+      });
       marker.on("dragend", () => {
         element.style.cursor = "grab";
+        element.setAttribute("aria-grabbed", "false");
         const position = marker.getLngLat();
         onDraftLocationChangeRef.current?.({ latitude: position.lat, longitude: position.lng });
       });
