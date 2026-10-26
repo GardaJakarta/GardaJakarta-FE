@@ -56,7 +56,7 @@ function ageLabel(value: string) {
 function Avatar({ name, image, size = "h-9 w-9" }: { name: string; image?: string | null; size?: string }) {
   return image
     ? <img className={`${size} rounded-full object-cover`} src={image} alt={`Foto profil ${name}`} referrerPolicy="no-referrer" />
-    : <span className={`grid ${size} place-items-center rounded-full bg-[#e62428] text-sm font-bold text-white`}>{name.slice(0, 1).toUpperCase()}</span>;
+    : <span className={`grid ${size} place-items-center rounded-full border border-red-100 bg-red-50 text-[#e62428]`} aria-hidden="true"><svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="3.5" /><path d="M4.5 20a7.5 7.5 0 0 1 15 0" /></svg></span>;
 }
 
 function StatusBadge({ status }: { status: ReportStatus }) {
@@ -95,6 +95,10 @@ function ListIcon() {
 
 function PlusIcon() {
   return <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>;
+}
+
+function CloseIcon() {
+  return <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg>;
 }
 
 type CategoryIconKind = "alert" | "shield" | "theft" | "traffic" | "people" | "other";
@@ -163,7 +167,7 @@ function StatusFilterMenu({ value, onChange, mobile = false }: { value: StatusFi
   }, [open]);
   const label = value === "ALL" ? "Semua status" : statusShortLabels[value];
   return <div ref={ref} className="relative min-w-0 sm:shrink-0">
-    <button type="button" onClick={() => setOpen((current) => !current)} className={`inline-flex ${mobile ? "h-8 w-full min-w-0 px-2" : "h-9 px-3"} items-center justify-center gap-1.5 rounded-full text-[10px] font-bold transition-colors ${value === "ALL" ? "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50" : "bg-slate-900 text-white"}`} aria-label={`Filter status laporan: ${label}`} aria-expanded={open} aria-haspopup="listbox"><FilterIcon /><span className="hidden sm:inline">Filter</span><span className="min-w-0 truncate sm:max-w-[100px]">{mobile ? "Filter" : label}</span><Chevron open={open} /></button>
+    <button type="button" onClick={() => setOpen((current) => !current)} className={`inline-flex ${mobile ? "h-9 w-full min-w-0 px-2" : "h-9 px-3"} items-center justify-center gap-1.5 rounded-full text-[10px] font-bold transition-colors ${value === "ALL" ? "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50" : "bg-slate-900 text-white"}`} aria-label={`Filter status laporan: ${label}`} aria-expanded={open} aria-haspopup="listbox"><FilterIcon /><span className="hidden sm:inline">Filter</span><span className="min-w-0 truncate sm:max-w-[100px]">{mobile ? "Filter" : label}</span><Chevron open={open} /></button>
     {open && <div className="absolute left-0 top-[calc(100%+10px)] z-50 w-52 rounded-xl border border-slate-100 bg-white p-2 text-left shadow-[0_18px_44px_rgba(15,23,42,0.16)] md:bottom-[calc(100%+10px)] md:top-auto" role="listbox" aria-label="Filter status laporan"><p className="px-2 pb-2 pt-1 text-[10px] font-bold uppercase tracking-widest text-slate-400">Status laporan</p>{statusFilters.map((option) => <button key={option} type="button" role="option" aria-selected={value === option} onClick={() => { onChange(option); setOpen(false); }} className={`flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-xs font-bold transition-colors ${value === option ? "bg-red-50 text-[#b21e24]" : "text-slate-700 hover:bg-slate-50"}`}><span className={`grid h-4 w-4 place-items-center rounded-full border text-[10px] ${value === option ? "border-[#e62428] bg-[#e62428] text-white" : "border-slate-300 text-transparent"}`}>✓</span>{option === "ALL" ? "Semua status" : statusLabels[option]}</button>)}</div>}
   </div>;
 }
@@ -172,6 +176,7 @@ type DashboardControlsProps = {
   mobile?: boolean;
   view: ViewMode;
   citizen: boolean;
+  showActions?: boolean;
   role: DashboardData["role"];
   search: string;
   onSearchChange: (value: string) => void;
@@ -183,22 +188,24 @@ type DashboardControlsProps = {
   onPickLocation: () => void;
   pinMode: boolean;
   activeFilter: boolean;
+  reportOpen: boolean;
 };
 
-function DashboardControls({ mobile = false, view, citizen, role, search, onSearchChange, statusFilter, onStatusFilterChange, listOpen, onToggleList, onCreateReport, onPickLocation, pinMode, activeFilter }: DashboardControlsProps) {
-  const input = <div className={`${mobile ? "h-full" : "min-h-10"} flex min-w-0 flex-1 items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1 transition-all focus-within:border-[#e62428] focus-within:ring-2 focus-within:ring-red-100`}>
+function DashboardControls({ mobile = false, view, citizen, showActions = true, role, search, onSearchChange, statusFilter, onStatusFilterChange, listOpen, onToggleList, onCreateReport, onPickLocation, pinMode, activeFilter, reportOpen }: DashboardControlsProps) {
+  const controlRadius = "rounded-full";
+  const input = <div className={`${mobile ? "h-full" : "min-h-10"} flex min-w-0 flex-1 items-center gap-2 ${controlRadius} border border-gray-200 bg-white px-3 py-1 transition-all focus-within:border-[#e62428] focus-within:ring-2 focus-within:ring-red-100`}>
     <svg className="h-4 w-4 shrink-0 text-[#e62428]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></svg>
-    <input aria-label={view === "map" ? "Cari lokasi atau laporan" : "Cari isu"} value={search} onChange={(event) => onSearchChange(event.target.value)} placeholder={view === "map" ? "Cari lokasi..." : "Cari isu..."} className="min-w-0 w-full bg-transparent py-1 text-base font-bold text-gray-900 outline-none placeholder:text-gray-400 sm:text-xs" />
+    <input aria-label={view === "map" ? "Cari lokasi atau laporan" : "Cari isu"} value={search} onChange={(event) => onSearchChange(event.target.value)} placeholder={view === "map" ? "Cari lokasi..." : "Cari isu..."} className="min-w-0 w-full bg-transparent py-1.5 text-xs font-bold text-gray-900 outline-none placeholder:text-gray-400" />
   </div>;
-  const buttonHeight = mobile ? "h-8" : "h-9";
-  const pinButton = citizen && <button type="button" onClick={onPickLocation} className={`inline-flex ${buttonHeight} min-w-0 items-center justify-center gap-1.5 rounded-full px-2 text-[10px] font-black transition-colors ${pinMode ? "bg-[#e62428] text-white shadow-sm" : "border border-gray-100 bg-white text-gray-600 hover:bg-gray-100"}`} aria-label="Tandai lokasi laporan"><PinIcon /><span className={mobile ? "truncate" : "hidden sm:inline"}>{pinMode ? "Pilih" : "Tandai"}</span></button>;
-  const listButton = <button type="button" onClick={onToggleList} className={`inline-flex ${buttonHeight} min-w-0 items-center justify-center gap-1.5 rounded-full px-2 text-[10px] font-black transition-colors ${listOpen ? "bg-gray-900 text-white" : "border border-gray-100 bg-white text-gray-600 hover:bg-gray-100"}`} aria-label="Buka daftar laporan"><ListIcon /><span className={mobile ? "truncate" : "hidden sm:inline"}>{citizen ? "Laporan" : role === "polisi" ? "Antrian" : "Monitoring"}</span>{activeFilter && <span className="grid h-4 min-w-4 place-items-center rounded-full bg-[#e62428] px-1 text-[9px] text-white">!</span>}</button>;
-  const createButton = citizen && <button type="button" onClick={onCreateReport} className={`inline-flex ${buttonHeight} min-w-0 items-center justify-center gap-1.5 rounded-full bg-[#e62428] px-2 text-[10px] font-black text-white shadow-sm transition-colors hover:bg-[#c91d22]`} aria-label="Buat laporan"><PlusIcon /><span className={mobile ? "truncate" : "hidden sm:inline"}>Buat</span></button>;
+  const buttonHeight = mobile ? "h-9" : "h-9";
+  const pinButton = showActions && citizen && <button type="button" onClick={onPickLocation} className={`inline-flex ${buttonHeight} min-w-0 items-center justify-center gap-1.5 ${controlRadius} px-2 text-[10px] font-black transition-colors ${pinMode ? "bg-[#e62428] text-white shadow-sm" : "border border-gray-100 bg-white text-gray-600 hover:bg-gray-100"}`} aria-label="Tandai lokasi laporan"><PinIcon /><span className={mobile ? "truncate" : "hidden sm:inline"}>{pinMode ? "Pilih" : "Tandai"}</span></button>;
+  const listButton = showActions && <button type="button" onClick={onToggleList} className={`inline-flex ${buttonHeight} min-w-0 items-center justify-center gap-1.5 ${controlRadius} px-2 text-[10px] font-black transition-colors ${listOpen ? "bg-gray-900 text-white" : "border border-gray-100 bg-white text-gray-600 hover:bg-gray-100"}`} aria-label="Buka daftar laporan"><ListIcon /><span className={mobile ? "truncate" : "hidden sm:inline"}>{citizen ? "Laporan" : role === "polisi" ? "Antrian" : "Monitoring"}</span>{activeFilter && <span className="grid h-4 min-w-4 place-items-center rounded-full bg-[#e62428] px-1 text-[9px] text-white">!</span>}</button>;
+  const createButton = showActions && citizen && <button type="button" onClick={onCreateReport} className={`inline-flex ${buttonHeight} min-w-0 items-center justify-center gap-1.5 ${controlRadius} px-2 text-[10px] font-black text-white shadow-sm transition-colors ${reportOpen ? "bg-gray-900 hover:bg-gray-800" : "bg-[#e62428] hover:bg-[#c91d22]"}`} aria-label={reportOpen ? "Tutup form laporan" : "Buat laporan"}>{reportOpen ? <CloseIcon /> : <PlusIcon />}<span className={mobile ? "truncate" : "hidden sm:inline"}>{reportOpen ? "Tutup" : "Buat"}</span></button>;
 
   if (mobile) {
     return <div className="relative flex w-full flex-col gap-2">
-      <div className="flex h-9 items-center rounded-full border border-gray-100 bg-gray-50 px-1 shadow-inner">{input}</div>
-      <div className={`grid min-w-0 gap-1 ${citizen ? "grid-cols-4" : "grid-cols-2"}`}>
+      <div className="flex h-10 items-center rounded-full border border-gray-100 bg-gray-50 px-1.5 shadow-inner">{input}</div>
+      <div className={`grid min-w-0 gap-1.5 ${showActions ? (citizen ? "grid-cols-4" : "grid-cols-2") : "grid-cols-1"}`}>
         <StatusFilterMenu mobile value={statusFilter} onChange={onStatusFilterChange} />
         {citizen && pinButton}
         {listButton}
@@ -211,10 +218,8 @@ function DashboardControls({ mobile = false, view, citizen, role, search, onSear
     {input}
     <span className="h-5 w-px shrink-0 bg-gray-200" aria-hidden="true" />
     <StatusFilterMenu value={statusFilter} onChange={onStatusFilterChange} />
-    {citizen && <><span className="h-5 w-px shrink-0 bg-gray-200" aria-hidden="true" />{pinButton}</>}
-    <span className="h-5 w-px shrink-0 bg-gray-200" aria-hidden="true" />
-    {listButton}
-    {createButton}
+    {showActions && citizen && <><span className="h-5 w-px shrink-0 bg-gray-200" aria-hidden="true" />{pinButton}</>}
+    {showActions && <><span className="h-5 w-px shrink-0 bg-gray-200" aria-hidden="true" />{listButton}{createButton}</>}
   </div>;
 }
 
@@ -231,6 +236,28 @@ function ReportCard({ report, selected, onSelect }: { report: IncidentReport; se
     <div className="mx-4 mb-3 flex min-h-[150px] items-center justify-center rounded-sm border border-dashed border-gray-200 bg-gray-50 text-gray-400 sm:mx-5"><div className="text-center"><PinIcon /><p className="mt-2 text-[10px] font-black uppercase tracking-widest">Tanpa foto</p><p className="mt-1 text-[10px] font-medium">Lokasi laporan tersedia di peta</p></div></div>
     <footer className="space-y-3 border-t border-gray-100 px-4 py-3.5 sm:px-5"><div className="grid gap-2 text-xs sm:grid-cols-2"><div className="min-w-0 rounded-sm bg-gray-50 px-3 py-2.5"><span className="block truncate font-bold text-gray-700">{report.policeUnit?.name || "Menunggu unit penanganan"}</span></div><div className="min-w-0 rounded-sm bg-gray-50 px-3 py-2.5"><span className="block truncate font-mono text-[10px] font-bold text-gray-600">{report.ticketNumber}</span></div></div><button type="button" onClick={onSelect} className="flex h-10 w-full items-center justify-center rounded-full bg-gray-900 px-4 text-xs font-black text-white transition-colors hover:bg-gray-800">Lihat detail</button></footer>
   </motion.article>;
+}
+
+function AdminReportsTable({ reports, selectedId, onSelect }: { reports: IncidentReport[]; selectedId: string | null; onSelect: (report: IncidentReport) => void }) {
+  return <div className="overflow-hidden rounded-sm border border-gray-100 bg-white shadow-[0_18px_44px_rgba(15,23,42,0.06)]">
+    <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-4 py-3.5 sm:px-5">
+      <div><h2 className="font-heading text-base font-black tracking-tight text-gray-950">Semua laporan</h2><p className="mt-1 text-[10px] font-bold text-gray-400">Pantau laporan yang masuk ke Garda Jakarta.</p></div>
+      <span className="rounded-full bg-gray-50 px-2.5 py-1 text-[10px] font-black text-gray-500">{reports.length} tiket</span>
+    </div>
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[720px] border-collapse text-left text-xs">
+        <thead><tr className="border-b border-gray-100 bg-gray-50/70 text-[10px] font-black uppercase tracking-widest text-gray-400"><th className="px-4 py-3 sm:px-5">Laporan</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Keparahan</th><th className="px-4 py-3">Unit</th><th className="px-4 py-3">Diperbarui</th><th className="px-4 py-3" /></tr></thead>
+        <tbody>{reports.length === 0 ? <tr><td colSpan={6} className="px-5 py-12 text-center text-xs font-semibold text-gray-400">Belum ada laporan yang sesuai.</td></tr> : reports.map((report) => <tr key={report.id} className={`border-b border-gray-100 last:border-0 transition-colors hover:bg-red-50/30 ${selectedId === report.id ? "bg-red-50/50" : ""}`}>
+          <td className="max-w-[300px] px-4 py-3 sm:px-5"><button type="button" onClick={() => onSelect(report)} className="block max-w-full text-left"><strong className="block truncate font-black text-gray-900">{report.category}</strong><span className="mt-1 block truncate font-mono text-[10px] font-bold text-gray-400">{report.ticketNumber}</span></button></td>
+          <td className="px-4 py-3"><StatusBadge status={report.status} /></td>
+          <td className="px-4 py-3"><SeverityBadge severity={report.severity} /></td>
+          <td className="max-w-[180px] px-4 py-3"><span className="block truncate font-bold text-gray-600">{report.policeUnit?.name || "Belum ditentukan"}</span><span className="mt-1 block truncate text-[10px] font-semibold text-gray-400">{report.policeUnit?.district || "Jakarta"}</span></td>
+          <td className="whitespace-nowrap px-4 py-3 text-[11px] font-semibold text-gray-500">{formatTime(report.updatedAt)}</td>
+          <td className="px-4 py-3"><button type="button" onClick={() => onSelect(report)} className="whitespace-nowrap rounded-full bg-gray-900 px-3 py-2 text-[10px] font-black text-white transition-colors hover:bg-gray-800">Detail</button></td>
+        </tr>)}</tbody>
+      </table>
+    </div>
+  </div>;
 }
 
 function ReportDetail({ report, role, isDesktop, onClose, onStatusChange, updating }: { report: IncidentReport; role: DashboardData["role"]; isDesktop: boolean; onClose: () => void; onStatusChange: (status: Exclude<ReportStatus, "PENDING">) => void; updating: boolean }) {
@@ -321,7 +348,8 @@ function ReportForm({ open, isDesktop, form, setForm, pinMode, setPinMode, submi
 
   return <AnimatePresence>
     {open && <>
-      <motion.aside initial={isDesktop ? { x: "100%", opacity: 0 } : { y: "100%", opacity: 0 }} animate={isDesktop ? { x: 0, opacity: 1 } : { y: 0, opacity: 1 }} exit={isDesktop ? { x: "100%", opacity: 0 } : { y: "100%", opacity: 0 }} transition={{ type: "spring", stiffness: 360, damping: 34 }} style={!isDesktop ? { height: `${sheetHeight}dvh` } : undefined} className={`${isDesktop ? "absolute right-6 top-[7vh] z-50 h-[calc(100dvh-120px)] w-[400px] min-w-[320px] max-w-[calc(100vw-2rem)] rounded-sm" : "fixed inset-x-0 bottom-0 z-50 max-h-[88dvh] w-full rounded-t-2xl"} flex flex-col overflow-hidden bg-white shadow-[0_24px_72px_rgba(15,23,42,0.24)]`} aria-label="Form laporan baru">
+      {!isDesktop && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="pointer-events-none fixed inset-0 z-40 bg-gray-950/45 backdrop-blur-[2px]" aria-hidden="true" />}
+      <motion.aside initial={isDesktop ? { x: "100%", opacity: 0 } : { y: "100%", opacity: 0 }} animate={isDesktop ? { x: 0, opacity: 1 } : { y: 0, opacity: 1 }} exit={isDesktop ? { x: "100%", opacity: 0 } : { y: "100%", opacity: 0 }} transition={{ type: "spring", stiffness: 360, damping: 34 }} style={!isDesktop ? { height: `${sheetHeight}dvh` } : undefined} className={`${isDesktop ? "absolute right-6 top-24 z-50 h-[calc(100dvh-120px)] w-[400px] min-w-[320px] max-w-[calc(100vw-2rem)] rounded-sm" : "fixed inset-x-0 bottom-0 z-50 max-h-[88dvh] w-full rounded-t-2xl"} flex flex-col overflow-hidden bg-white shadow-[0_24px_72px_rgba(15,23,42,0.24)]`} aria-label="Form laporan baru">
         {!isDesktop && <button type="button" onPointerDown={startResize} onClick={() => { if (!dragRef.current) setSheetHeight((height) => height > 78 ? 68 : 86); }} className="flex w-full touch-none justify-center bg-white pb-2 pt-3" aria-label={sheetHeight > 78 ? "Perkecil panel laporan" : "Perbesar panel laporan"}><span className="h-1.5 w-12 rounded-full bg-gray-200" /></button>}
         <div onPointerDown={!isDesktop ? startResize : undefined} className="flex items-center justify-between border-b border-gray-100 bg-white px-6 py-4 touch-none">
           <div><p className="text-[10px] font-black uppercase tracking-[.16em] text-[#e62428]">Laporan warga</p><h2 className="mt-1 font-heading text-xl font-black tracking-tight text-gray-900">Buat laporan</h2><p className="mt-1 text-xs font-semibold text-gray-400">Pilih titik dan ceritakan kejadian.</p></div>
@@ -341,15 +369,16 @@ function ReportForm({ open, isDesktop, form, setForm, pinMode, setPinMode, submi
 }
 
 function FeedView({ reports, role, stats, overview, onSelect, selectedId }: { reports: IncidentReport[]; role: DashboardData["role"]; stats: DashboardData["stats"]; overview?: DashboardData["adminOverview"]; onSelect: (report: IncidentReport) => void; selectedId: string | null }) {
-  const title = role === "warga" ? "Isu terkini" : role === "polisi" ? "Antrian unit" : "Monitoring laporan";
-  const description = role === "warga" ? "Lihat laporan keamanan warga dan detail kejadian di Jakarta." : role === "polisi" ? "Triage laporan dari wilayah unit Anda dan catat status penanganannya." : "Ringkasan laporan dan unit operasional Garda Jakarta.";
-  return <div className="absolute inset-0 z-10 overflow-y-auto bg-[#f3f4f6] px-3 pb-28 pt-40 sm:px-5 sm:pb-36 sm:pt-24 md:px-8 md:pt-28"><div className="mx-auto w-full max-w-2xl"><div className="z-0 mb-4 border-b border-gray-200/70 bg-[#f3f4f6] pb-3 sm:z-10 sm:-mx-5 sm:bg-[#f3f4f6]/95 sm:px-5 sm:pt-1 sm:backdrop-blur md:-mx-8 md:px-8"><div className="flex items-end justify-between gap-3"><div><h1 className="font-heading text-lg font-black tracking-tight text-gray-950">{title}</h1><p className="text-xs font-bold text-gray-400">{description}</p></div><span className="hidden rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-gray-500 sm:block">Feed</span></div></div>{role !== "warga" && <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4"><div className="rounded-sm border border-gray-100 bg-white p-3"><span className="text-[10px] font-bold text-gray-400">Total</span><strong className="mt-1 block text-xl font-black text-gray-900">{stats.total}</strong></div><div className="rounded-sm border border-gray-100 bg-white p-3"><span className="text-[10px] font-bold text-gray-400">Masuk</span><strong className="mt-1 block text-xl font-black text-gray-900">{stats.pending}</strong></div><div className="rounded-sm border border-gray-100 bg-white p-3"><span className="text-[10px] font-bold text-gray-400">Diproses</span><strong className="mt-1 block text-xl font-black text-gray-900">{stats.inProgress}</strong></div><div className="rounded-sm border border-gray-100 bg-white p-3"><span className="text-[10px] font-bold text-gray-400">Selesai</span><strong className="mt-1 block text-xl font-black text-gray-900">{stats.resolved}</strong></div></div>}{role === "admin" && overview && <div className="mb-4 grid gap-3"><div className="rounded-sm border border-gray-100 bg-white p-4"><div className="flex items-center justify-between gap-3"><div><h2 className="font-heading text-sm font-black text-gray-900">Ringkasan operasional</h2><p className="mt-1 text-[10px] font-bold text-gray-400">Data agregat untuk monitoring admin.</p></div><span className="rounded-full bg-gray-100 px-2.5 py-1 text-[9px] font-black text-gray-500">{overview.auditLogs} aktivitas</span></div><div className="mt-4 grid grid-cols-3 gap-2"><div className="rounded-sm bg-gray-50 p-3"><span className="block text-[9px] font-bold text-gray-400">Pengguna</span><strong className="mt-1 block text-lg font-black">{overview.users}</strong></div><div className="rounded-sm bg-gray-50 p-3"><span className="block text-[9px] font-bold text-gray-400">Unit polisi</span><strong className="mt-1 block text-lg font-black">{overview.units}</strong></div><div className="rounded-sm bg-gray-50 p-3"><span className="block text-[9px] font-bold text-gray-400">Audit log</span><strong className="mt-1 block text-lg font-black">{overview.auditLogs}</strong></div></div></div><div className="rounded-sm border border-gray-100 bg-white p-4"><h2 className="font-heading text-sm font-black text-gray-900">Kategori terbanyak</h2><div className="mt-3 grid gap-2">{overview.categories.length === 0 ? <p className="text-xs text-gray-400">Belum ada data kategori.</p> : overview.categories.map((category) => <div key={category.name} className="flex items-center justify-between gap-3 text-[11px]"><span className="truncate font-bold text-gray-600">{category.name}</span><span className="shrink-0 rounded-full bg-red-50 px-2 py-1 font-black text-red-700">{category.count}</span></div>)}</div></div></div>}<div className="flex flex-col gap-4">{reports.length === 0 ? <div className="mt-8 flex min-h-[260px] flex-col items-center justify-center px-6 text-center"><div className="mb-4 grid h-14 w-14 place-items-center rounded-full bg-gray-100 text-gray-400"><ListIcon /></div><p className="text-sm font-black text-gray-800">Belum ada isu yang cocok</p><p className="mt-1 max-w-xs text-xs font-medium leading-relaxed text-gray-400">Coba ubah kata kunci pencarian.</p></div> : reports.map((report) => <ReportCard key={report.id} report={report} selected={selectedId === report.id} onSelect={() => onSelect(report)} />)}</div></div></div>;
+  const title = role === "warga" ? "Isu Terkini" : role === "polisi" ? "Antrian unit" : "Monitoring laporan";
+  const description = role === "warga" ? `${reports.length} laporan warga` : role === "polisi" ? "Triage laporan dari wilayah unit Anda dan catat status penanganannya." : "Ringkasan laporan dan unit operasional Garda Jakarta.";
+  return <div className="absolute inset-0 z-10 overflow-y-auto bg-[#f3f4f6] px-3 pb-28 pt-52 sm:px-5 sm:pb-36 sm:pt-24 md:px-8 md:pt-28"><div className={`${role === "admin" ? "max-w-5xl" : "max-w-2xl"} mx-auto w-full`}><div className="z-0 mb-4 border-b border-gray-200/70 bg-[#f3f4f6] pb-3 sm:z-10 sm:-mx-5 sm:bg-[#f3f4f6]/95 sm:px-5 sm:pt-1 sm:backdrop-blur md:-mx-8 md:px-8"><div className="flex items-end justify-between gap-3"><div><h1 className="font-heading text-lg font-black tracking-tight text-gray-950">{title}</h1><p className="text-xs font-bold text-gray-400">{description}</p></div><span className="hidden rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-gray-500 sm:block">Feed</span></div></div>{role !== "warga" && <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4"><div className="rounded-sm border border-gray-100 bg-white p-3"><span className="text-[10px] font-bold text-gray-400">Total</span><strong className="mt-1 block text-xl font-black text-gray-900">{stats.total}</strong></div><div className="rounded-sm border border-gray-100 bg-white p-3"><span className="text-[10px] font-bold text-gray-400">Masuk</span><strong className="mt-1 block text-xl font-black text-gray-900">{stats.pending}</strong></div><div className="rounded-sm border border-gray-100 bg-white p-3"><span className="text-[10px] font-bold text-gray-400">Diproses</span><strong className="mt-1 block text-xl font-black text-gray-900">{stats.inProgress}</strong></div><div className="rounded-sm border border-gray-100 bg-white p-3"><span className="text-[10px] font-bold text-gray-400">Selesai</span><strong className="mt-1 block text-xl font-black text-gray-900">{stats.resolved}</strong></div></div>}{role === "admin" && overview && <div className="mb-4 grid gap-3 sm:grid-cols-[1.15fr_.85fr]"><div className="rounded-sm border border-gray-100 bg-white p-4"><div className="flex items-center justify-between gap-3"><div><h2 className="font-heading text-sm font-black text-gray-900">Ringkasan operasional</h2><p className="mt-1 text-[10px] font-bold text-gray-400">Data agregat untuk monitoring admin.</p></div><span className="rounded-full bg-gray-100 px-2.5 py-1 text-[9px] font-black text-gray-500">{overview.auditLogs} aktivitas</span></div><div className="mt-4 grid grid-cols-3 gap-2"><div className="rounded-sm bg-gray-50 p-3"><span className="block text-[9px] font-bold text-gray-400">Pengguna</span><strong className="mt-1 block text-lg font-black">{overview.users}</strong></div><div className="rounded-sm bg-gray-50 p-3"><span className="block text-[9px] font-bold text-gray-400">Unit polisi</span><strong className="mt-1 block text-lg font-black">{overview.units}</strong></div><div className="rounded-sm bg-gray-50 p-3"><span className="block text-[9px] font-bold text-gray-400">Audit log</span><strong className="mt-1 block text-lg font-black">{overview.auditLogs}</strong></div></div></div><div className="rounded-sm border border-gray-100 bg-white p-4"><h2 className="font-heading text-sm font-black text-gray-900">Kategori terbanyak</h2><div className="mt-3 grid gap-2">{overview.categories.length === 0 ? <p className="text-xs text-gray-400">Belum ada data kategori.</p> : overview.categories.map((category) => <div key={category.name} className="flex items-center justify-between gap-3 text-[11px]"><span className="truncate font-bold text-gray-600">{category.name}</span><span className="shrink-0 rounded-full bg-red-50 px-2 py-1 font-black text-red-700">{category.count}</span></div>)}</div></div></div>}{role === "admin" ? <AdminReportsTable reports={reports} selectedId={selectedId} onSelect={onSelect} /> : <div className="flex flex-col gap-4">{reports.length === 0 ? <div className="mt-8 flex min-h-[260px] flex-col items-center justify-center px-6 text-center"><div className="mb-4 grid h-14 w-14 place-items-center rounded-full bg-gray-100 text-gray-400"><ListIcon /></div><p className="text-sm font-black text-gray-800">Belum ada isu yang cocok</p><p className="mt-1 max-w-xs text-xs font-medium leading-relaxed text-gray-400">Coba ubah kata kunci pencarian.</p></div> : reports.map((report) => <ReportCard key={report.id} report={report} selected={selectedId === report.id} onSelect={() => onSelect(report)} />)}</div>}</div></div>;
 }
 
-export default function DashboardPage() {
+export default function DashboardPage({ publicMode = false }: { publicMode?: boolean }) {
   const { user, signOut } = useAuth();
-  const role = user?.role || "warga";
+  const role = publicMode ? "warga" : (user?.role || "warga");
   const citizen = role === "warga";
+  const canReport = citizen && !publicMode;
   const [isDesktop, setIsDesktop] = useState(() => window.innerWidth >= 768);
   const [data, setData] = useState<DashboardData | null>(null);
   const [publicMap, setPublicMap] = useState<{ units: PoliceUnit[]; reports: IncidentReport[]; updatedAt: string } | null>(null);
@@ -390,10 +419,13 @@ export default function DashboardPage() {
   }, [view]);
 
   const load = useCallback(async () => {
-    const [dashboardResult, publicResult] = await Promise.allSettled([getDashboard(), getPublicMap()]);
-    if (dashboardResult.status === "fulfilled") { setData(dashboardResult.value); setError(null); } else setError("Dashboard belum dapat dimuat. Periksa koneksi lalu coba lagi.");
+    const [dashboardResult, publicResult] = await Promise.allSettled([publicMode ? Promise.resolve(null) : getDashboard(), getPublicMap()]);
+    if (publicMode) { setData(null); setError(null); }
+    else if (dashboardResult.status === "fulfilled" && dashboardResult.value) { setData(dashboardResult.value); setError(null); }
+    else setError("Dashboard belum dapat dimuat. Periksa koneksi lalu coba lagi.");
     if (publicResult.status === "fulfilled") setPublicMap(publicResult.value);
-  }, []);
+    else if (publicMode) setError("Peta belum dapat dimuat. Periksa koneksi lalu coba lagi.");
+  }, [publicMode]);
   // Dashboard data is synchronized with the authenticated API session.
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { void load(); }, [load]);
@@ -415,8 +447,12 @@ export default function DashboardPage() {
   const selectedReport = useMemo(() => (citizen ? [...reports, ...publicReports] : reports).find((report) => report.id === selectedId) ?? null, [citizen, publicReports, reports, selectedId]);
   const activeFilter = statusFilter !== "ALL" || Boolean(search.trim());
 
-  const openReportForm = useCallback(() => { setView("map"); setSelectedId(null); setListOpen(false); setReportOpen(true); setPinMode(true); setError(null); }, []);
+  const openReportForm = useCallback(() => { if (!canReport) return; setView("map"); setSelectedId(null); setListOpen(false); setReportOpen(true); setPinMode(true); setError(null); }, [canReport]);
   const selectReport = useCallback((report: IncidentReport) => { setSelectedId(report.id); setListOpen(false); setReportOpen(false); }, []);
+  const toggleReportForm = useCallback(() => {
+    if (reportOpen) { setReportOpen(false); setPinMode(false); return; }
+    openReportForm();
+  }, [openReportForm, reportOpen]);
   const handleDraftLocationChange = useCallback((coordinates: { latitude: number; longitude: number }) => {
     setForm((current) => ({ ...current, ...coordinates }));
   }, []);
@@ -435,35 +471,35 @@ export default function DashboardPage() {
   const handleSignOut = async () => { try { await signOut(); window.location.assign(portalPaths[role].login); } catch { setError("Sesi belum dapat ditutup. Coba lagi."); } finally { setSignoutOpen(false); } };
 
   return <main className="dashboard-app relative h-[100dvh] min-h-[620px] overflow-hidden bg-[#f3f4f6] text-slate-900">
-    <header className="absolute left-1/2 top-2 z-50 flex w-[94%] max-w-5xl -translate-x-1/2 flex-col gap-1.5 rounded-2xl bg-white px-2.5 py-1.5 shadow-[0_8px_32px_-8px_rgba(15,23,42,0.18)] ring-1 ring-gray-100 sm:top-4 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:rounded-full sm:px-4 sm:py-2.5">
-      <div className="flex w-full min-w-0 items-center justify-between gap-1.5 sm:flex-1">
+    <header className="absolute left-1/2 top-3 z-50 flex w-[94%] max-w-5xl -translate-x-1/2 flex-col gap-2 rounded-[26px] bg-white px-3 py-2 shadow-[0_8px_32px_-8px_rgba(15,23,42,0.18)] ring-1 ring-gray-100 sm:top-4 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:rounded-full sm:px-4 sm:py-2.5">
+      <div className="flex w-full min-w-0 items-center justify-between gap-2 sm:flex-1">
         <div className="flex min-w-0 shrink items-center gap-2 sm:gap-3">
-          <a href="https://gardajakarta.my.id" aria-label="Beranda Garda Jakarta" className="flex shrink-0 items-center"><AppLogo className="h-7 w-auto object-contain sm:h-9 sm:w-[135px]" size={145} aria-label="Garda Jakarta" /></a>
+          <a href="https://gardajakarta.my.id" aria-label="Beranda Garda Jakarta" className="flex shrink-0 items-center"><AppLogo className="h-7 w-auto max-w-[82px] object-contain sm:h-9 sm:w-[135px]" size={145} aria-label="Garda Jakarta" /></a>
           <div className="flex shrink-0 rounded-full border border-gray-100 bg-gray-50 p-0.5 shadow-inner sm:p-1">
-            <button type="button" onClick={() => setView("map")} aria-pressed={view === "map"} className={`flex h-7 min-w-[48px] items-center justify-center gap-1 rounded-full px-1.5 text-[10px] font-black transition-colors sm:h-8 sm:min-w-[74px] sm:gap-1.5 sm:px-3 sm:text-[11px] ${view === "map" ? "bg-gray-900 text-white shadow-sm" : "text-gray-500 hover:bg-white hover:text-gray-900"}`}><MapModeIcon /><span>Map</span></button>
-            <button type="button" onClick={() => { setView("feed"); setListOpen(false); setReportOpen(false); }} aria-pressed={view === "feed"} className={`flex h-7 min-w-[48px] items-center justify-center gap-1 rounded-full px-1.5 text-[10px] font-black transition-colors sm:h-8 sm:min-w-[74px] sm:gap-1.5 sm:px-3 sm:text-[11px] ${view === "feed" ? "bg-gray-900 text-white shadow-sm" : "text-gray-500 hover:bg-white hover:text-gray-900"}`}><FeedModeIcon /><span>Feed</span></button>
+            <button type="button" onClick={() => setView("map")} aria-pressed={view === "map"} className={`flex h-8 min-w-[52px] items-center justify-center gap-1 rounded-full px-2 text-[10px] font-black transition-colors sm:min-w-[74px] sm:gap-1.5 sm:px-3 sm:text-[11px] ${view === "map" ? "bg-gray-900 text-white shadow-sm" : "text-gray-500 hover:bg-white hover:text-gray-900"}`}><MapModeIcon /><span>Map</span></button>
+            <button type="button" onClick={() => { setView("feed"); setListOpen(false); setReportOpen(false); }} aria-pressed={view === "feed"} className={`flex h-8 min-w-[52px] items-center justify-center gap-1 rounded-full px-2 text-[10px] font-black transition-colors sm:min-w-[74px] sm:gap-1.5 sm:px-3 sm:text-[11px] ${view === "feed" ? "bg-gray-900 text-white shadow-sm" : "text-gray-500 hover:bg-white hover:text-gray-900"}`}><FeedModeIcon /><span>Feed</span></button>
           </div>
         </div>
-        <div ref={accountRef} className="relative shrink-0">
-          <button type="button" onClick={() => setAccountOpen((current) => !current)} className="inline-flex items-center gap-1 rounded-full px-1 py-1 text-left hover:bg-gray-50 sm:gap-2 sm:px-1.5" aria-haspopup="menu" aria-expanded={accountOpen}>
-            <Avatar name={user?.name || "Garda"} image={user?.image} size="h-6 w-6 sm:h-9 sm:w-9" />
+        {publicMode ? <a href="/login" className="inline-flex h-8 shrink-0 items-center justify-center rounded-full bg-[#e62428] px-3 text-[10px] font-black leading-none text-white shadow-sm transition-colors hover:bg-[#c91d22] sm:h-9 sm:px-4 sm:text-[11px]">Masuk sebagai pelapor</a> : <div ref={accountRef} className="relative shrink-0">
+          <button type="button" onClick={() => setAccountOpen((current) => !current)} className="inline-flex h-8 w-8 items-center justify-center rounded-full p-0 text-left hover:bg-gray-50 sm:h-auto sm:w-auto sm:gap-2 sm:justify-start sm:px-1.5 sm:py-1" aria-haspopup="menu" aria-expanded={accountOpen}>
+            <Avatar name={user?.name || "Garda"} image={user?.image} size="h-8 w-8 sm:h-9 sm:w-9" />
             <span className="hidden max-w-[150px] sm:block"><strong className="block truncate text-[11px] font-bold text-gray-900">{user?.name}</strong><small className="mt-0.5 block text-[9px] font-bold text-[#e62428]">{roleLabel(role)}</small></span>
-            <Chevron open={accountOpen} />
+            <span className="hidden sm:block"><Chevron open={accountOpen} /></span>
           </button>
           {accountOpen && <div className="absolute right-0 top-[calc(100%+8px)] z-50 w-56 rounded-xl border border-gray-100 bg-white p-2 shadow-2xl" role="menu"><div className="border-b border-gray-100 px-3 py-2.5"><strong className="block truncate text-xs">{user?.name}</strong><span className="mt-1 block truncate text-[10px] text-gray-400">{user?.email}</span></div><button type="button" role="menuitem" onClick={() => { setAccountOpen(false); setSignoutOpen(true); }} className="mt-1 flex w-full items-center rounded-lg px-3 py-2.5 text-left text-xs font-bold text-red-700 hover:bg-red-50">Keluar</button></div>}
-        </div>
+        </div>}
       </div>
-      <div className="w-full border-t border-gray-100 pt-1 sm:hidden">
-        <DashboardControls mobile view={view} citizen={citizen} role={role} search={search} onSearchChange={setSearch} statusFilter={statusFilter} onStatusFilterChange={setStatusFilter} listOpen={listOpen} onToggleList={() => { setListOpen((current) => !current); setReportOpen(false); setSelectedId(null); }} onCreateReport={openReportForm} onPickLocation={() => { if (!reportOpen) openReportForm(); else setPinMode((current) => !current); }} pinMode={pinMode} activeFilter={activeFilter} />
+      <div className="w-full border-t border-gray-100 pt-2 sm:hidden">
+        <DashboardControls mobile view={view} citizen={citizen} showActions={!publicMode} role={role} search={search} onSearchChange={setSearch} statusFilter={statusFilter} onStatusFilterChange={setStatusFilter} listOpen={listOpen} onToggleList={() => { setListOpen((current) => !current); setReportOpen(false); setSelectedId(null); }} onCreateReport={toggleReportForm} onPickLocation={() => { if (!reportOpen) openReportForm(); else setPinMode((current) => !current); }} pinMode={pinMode} activeFilter={activeFilter} reportOpen={reportOpen} />
       </div>
     </header>
 
     <section className="absolute inset-0" aria-label="Dashboard peta keamanan Jakarta">
-      <GardaMap className="!h-full !min-h-0" units={mapUnits} reports={mapReports} draftLocation={form} draftActive={citizen && reportOpen} onDraftLocationChange={handleDraftLocationChange} onMapClick={citizen && reportOpen && pinMode ? mapClick : undefined} onSelectReport={selectReport} />
-      {view === "map" && <div className="pointer-events-none absolute bottom-5 left-0 right-0 z-20 hidden items-center justify-center px-4 sm:flex"><div className="pointer-events-auto w-full max-w-[700px]"><DashboardControls view={view} citizen={citizen} role={role} search={search} onSearchChange={setSearch} statusFilter={statusFilter} onStatusFilterChange={setStatusFilter} listOpen={listOpen} onToggleList={() => { setListOpen((current) => !current); setReportOpen(false); setSelectedId(null); }} onCreateReport={openReportForm} onPickLocation={() => { if (!reportOpen) openReportForm(); else setPinMode((current) => !current); }} pinMode={pinMode} activeFilter={activeFilter} /></div></div>}
+      <GardaMap className="!h-full !min-h-0" units={mapUnits} reports={mapReports} draftLocation={form} draftActive={canReport && reportOpen} onDraftLocationChange={handleDraftLocationChange} onMapClick={canReport && reportOpen && pinMode ? mapClick : undefined} onSelectReport={selectReport} />
+      {view === "map" && <div className="pointer-events-none absolute bottom-5 left-0 right-0 z-20 hidden items-center justify-center px-4 sm:flex"><div className="pointer-events-auto w-full max-w-[700px]"><DashboardControls view={view} citizen={citizen} showActions={!publicMode} role={role} search={search} onSearchChange={setSearch} statusFilter={statusFilter} onStatusFilterChange={setStatusFilter} listOpen={listOpen} onToggleList={() => { setListOpen((current) => !current); setReportOpen(false); setSelectedId(null); }} onCreateReport={toggleReportForm} onPickLocation={() => { if (!reportOpen) openReportForm(); else setPinMode((current) => !current); }} pinMode={pinMode} activeFilter={activeFilter} reportOpen={reportOpen} /></div></div>}
       {listOpen && <aside className="absolute bottom-[72px] left-3 right-3 z-30 max-h-[68dvh] overflow-hidden rounded-xl border border-slate-100 bg-white shadow-[0_22px_65px_rgba(15,23,42,0.2)] sm:bottom-auto sm:left-6 sm:right-auto sm:top-24 sm:w-[380px]" aria-label="Daftar laporan"><div className="border-b border-slate-100 px-4 pb-3 pt-4"><div className="flex items-start justify-between gap-3"><div><p className="text-[10px] font-bold uppercase tracking-widest text-[#e62428]">{citizen ? "Riwayat" : "Operasional"}</p><h2 className="mt-1 text-lg font-bold tracking-tight">{citizen ? "Laporan saya" : role === "polisi" ? "Antrian unit" : "Monitoring laporan"}</h2><p className="mt-1 text-[10px] font-bold text-slate-400">{filteredReports.length} laporan sesuai filter</p></div><button type="button" onClick={() => setListOpen(false)} className="grid h-7 w-7 place-items-center rounded-lg text-lg text-slate-400 hover:bg-slate-100" aria-label="Tutup daftar">×</button></div><div className="mt-3 grid grid-cols-4 gap-1 rounded-lg bg-slate-50 p-1 text-center"><div className="rounded-md bg-white py-1.5 shadow-sm"><strong className="block text-sm font-bold">{stats.total}</strong><span className="text-[8px] font-bold uppercase text-slate-400">Total</span></div><div className="py-1.5"><strong className="block text-sm font-bold">{stats.pending}</strong><span className="text-[8px] font-bold uppercase text-slate-400">Masuk</span></div><div className="py-1.5"><strong className="block text-sm font-bold">{stats.inProgress}</strong><span className="text-[8px] font-bold uppercase text-slate-400">Proses</span></div><div className="py-1.5"><strong className="block text-sm font-bold">{stats.resolved}</strong><span className="text-[8px] font-bold uppercase text-slate-400">Selesai</span></div></div></div><div className="max-h-[calc(68dvh-166px)] space-y-2 overflow-y-auto bg-slate-50/70 p-3">{filteredReports.length === 0 ? <p className="px-3 py-10 text-center text-xs font-semibold text-slate-400">Belum ada laporan yang sesuai.</p> : filteredReports.map((report) => <ReportCard key={report.id} report={report} selected={selectedId === report.id} onSelect={() => selectReport(report)} />)}</div></aside>}
       {selectedReport && !reportOpen && <ReportDetail report={selectedReport} role={role} isDesktop={isDesktop} onClose={() => setSelectedId(null)} onStatusChange={(status) => void updateStatus(selectedReport.id, status)} updating={updatingId === selectedReport.id} />}
-      <ReportForm open={reportOpen} isDesktop={isDesktop} form={form} setForm={setForm} pinMode={pinMode} setPinMode={setPinMode} submitting={submitting} onSubmit={(event) => void submit(event)} onClose={() => { setReportOpen(false); setPinMode(false); }} onUseLocation={useLocation} error={error} />
+      {canReport && <ReportForm open={reportOpen} isDesktop={isDesktop} form={form} setForm={setForm} pinMode={pinMode} setPinMode={setPinMode} submitting={submitting} onSubmit={(event) => void submit(event)} onClose={() => { setReportOpen(false); setPinMode(false); }} onUseLocation={useLocation} error={error} />}
       {notice && <div className="absolute left-1/2 top-20 z-30 w-[calc(100%-32px)] max-w-md -translate-x-1/2 rounded-lg bg-slate-900 px-4 py-3 text-center text-xs font-bold text-white shadow-xl sm:top-24" role="status">{notice}<button type="button" onClick={() => setNotice(null)} className="ml-3 rounded-md px-1 text-white/60 hover:bg-white/10 hover:text-white" aria-label="Tutup notifikasi">×</button></div>}
       {error && !reportOpen && <p className="absolute left-1/2 top-20 z-30 w-[calc(100%-32px)] max-w-md -translate-x-1/2 rounded-lg bg-red-50 px-4 py-3 text-center text-xs font-bold text-red-700 shadow-lg sm:top-24" role="alert">{error}</p>}
     </section>

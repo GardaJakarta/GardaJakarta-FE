@@ -75,9 +75,8 @@ function markerElement(kind: "police" | "report", severity?: IncidentReport["sev
   element.type = "button";
   element.className = `garda-map-marker garda-map-marker-${kind} garda-map-marker-${severity?.toLowerCase() || "default"}`;
   element.setAttribute("aria-label", kind === "police" ? "Kantor polisi" : "Laporan keamanan");
-  element.innerHTML = kind === "police"
-    ? '<span aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M12 2.2 20 5v6.1c0 5.1-3.4 8.9-8 10.7-4.6-1.8-8-5.6-8-10.7V5l8-2.8Z"/><path d="M8.4 9.2h7.2v5.8H8.4zM7.3 8h9.4v1.5H7.3z" fill="white"/></svg></span>'
-    : '<span aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M12 2.5a9.5 9.5 0 1 0 9.5 9.5A9.5 9.5 0 0 0 12 2.5Zm1.1 13.6h-2.2v-2.2h2.2Zm0-4.1h-2.2V7.8h2.2Z"/></svg></span>';
+  // Reuse the Garda mark as the map glyph so map points feel part of the product brand.
+  element.innerHTML = '<span aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M19.2 13.2c0 5-3.1 8.2-7.2 9.1v-2.6c2.7-.8 4.6-2.9 4.6-6.4V8.4h2.6v4.8ZM12 3.8H4.8v7.8c0 3.5 2 5.7 4.6 6.4v2.6c-4.1-.9-7.2-4.1-7.2-9.1V1.2H12v2.6Zm7.2 2.6H12v8.8c-2.1 0-3.8-1.7-3.8-3.8V6.4H12V3.8h7.2v2.6Z"/></svg></span>';
   return element;
 }
 

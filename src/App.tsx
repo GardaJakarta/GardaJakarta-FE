@@ -6,7 +6,6 @@ import RegisterPage from "./pages/RegisterPage";
 import ConnectionErrorPage from "./pages/ConnectionErrorPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import DashboardPage from "./pages/DashboardPage";
-import PublicMapPage from "./pages/PublicMapPage";
 import type { AuthPortal } from "./types";
 import { portalPaths } from "./lib/portals";
 
@@ -40,7 +39,7 @@ export default function App() {
       <Route path="/admin/login" element={user ? <Navigate to={home} replace /> : <LoginPage key="admin" portal="admin" />} />
       <Route path="/register" element={user ? <Navigate to={home} replace /> : <RegisterPage />} />
       <Route path="/dashboard" element={<ProtectedRoute portal={user?.role || "warga"}><DashboardPage /></ProtectedRoute>} />
-      <Route path="/map" element={<PublicMapPage />} />
+      <Route path="/map" element={<DashboardPage publicMode />} />
       <Route path="/polisi" element={<Navigate to="/dashboard" replace />} />
       <Route path="/admin" element={<Navigate to="/dashboard" replace />} />
       <Route path="/not-found" element={<NotFoundPage />} />
