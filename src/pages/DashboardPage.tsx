@@ -168,7 +168,7 @@ function StatusFilterMenu({ value, onChange, mobile = false, fullWidth = false }
   }, [open]);
   const label = value === "ALL" ? "Semua status" : statusShortLabels[value];
   return <div ref={ref} className="relative min-w-0 sm:shrink-0">
-    <button type="button" onClick={() => setOpen((current) => !current)} className={`inline-flex ${mobile ? `h-9 min-w-0 ${fullWidth ? "w-full" : "px-2"}` : "h-9 px-3"} items-center justify-center gap-1.5 rounded-full text-[10px] font-bold transition-colors ${value === "ALL" ? "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50" : "bg-slate-900 text-white"}`} aria-label={`Filter status laporan: ${label}`} aria-expanded={open} aria-haspopup="listbox"><FilterIcon /><span className="hidden sm:inline">Filter</span><span className="min-w-0 truncate sm:max-w-[100px]">{mobile ? "Filter" : label}</span><Chevron open={open} /></button>
+    <button type="button" onClick={() => setOpen((current) => !current)} className={`inline-flex ${mobile ? `h-8 min-w-0 ${fullWidth ? "w-full" : "px-2"}` : "h-9 px-3"} items-center justify-center gap-1.5 ${mobile ? "rounded-lg" : "rounded-full"} text-[10px] font-bold transition-colors ${value === "ALL" ? "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50" : "bg-slate-900 text-white"}`} aria-label={`Filter status laporan: ${label}`} aria-expanded={open} aria-haspopup="listbox"><FilterIcon /><span className="hidden sm:inline">Filter</span><span className="min-w-0 truncate sm:max-w-[100px]">{mobile ? "Filter" : label}</span><Chevron open={open} /></button>
     {open && <div className="absolute left-0 top-[calc(100%+10px)] z-50 w-52 rounded-xl border border-slate-100 bg-white p-2 text-left shadow-[0_18px_44px_rgba(15,23,42,0.16)] md:bottom-[calc(100%+10px)] md:top-auto" role="listbox" aria-label="Filter status laporan"><p className="px-2 pb-2 pt-1 text-[10px] font-bold uppercase tracking-widest text-slate-400">Status laporan</p>{statusFilters.map((option) => <button key={option} type="button" role="option" aria-selected={value === option} onClick={() => { onChange(option); setOpen(false); }} className={`flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-xs font-bold transition-colors ${value === option ? "bg-red-50 text-[#b21e24]" : "text-slate-700 hover:bg-slate-50"}`}><span className={`grid h-4 w-4 place-items-center rounded-full border text-[10px] ${value === option ? "border-[#e62428] bg-[#e62428] text-white" : "border-slate-300 text-transparent"}`}>✓</span>{option === "ALL" ? "Semua status" : statusLabels[option]}</button>)}</div>}
   </div>;
 }
@@ -193,7 +193,7 @@ type DashboardControlsProps = {
 };
 
 function DashboardControls({ mobile = false, view, citizen, showActions = true, role, search, onSearchChange, statusFilter, onStatusFilterChange, listOpen, onToggleList, onCreateReport, onPickLocation, pinMode, activeFilter, reportOpen }: DashboardControlsProps) {
-  const controlRadius = "rounded-full";
+  const controlRadius = mobile ? "rounded-lg" : "rounded-full";
   const input = <div className={`${mobile ? "h-8" : "min-h-10"} flex min-w-0 flex-1 items-center gap-2 ${controlRadius} border border-gray-200 bg-gray-50 px-3 py-1 transition-all focus-within:border-[#e62428] focus-within:bg-white focus-within:ring-2 focus-within:ring-red-100`}>
     <svg className="h-4 w-4 shrink-0 text-[#e62428]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></svg>
     <input aria-label={view === "map" ? "Cari lokasi atau laporan" : "Cari isu"} value={search} onChange={(event) => onSearchChange(event.target.value)} placeholder={view === "map" ? "Cari lokasi..." : "Cari isu..."} className="min-w-0 w-full bg-transparent py-1.5 text-xs font-bold text-gray-900 outline-none placeholder:text-gray-400" />
@@ -206,7 +206,7 @@ function DashboardControls({ mobile = false, view, citizen, showActions = true, 
   if (mobile) {
     return <div className="relative flex w-full flex-col gap-1.5">
       {showActions ? <>
-        <div className="flex h-9 items-center rounded-full border border-gray-100 bg-gray-50 px-1 shadow-inner">{input}</div>
+        <div className="flex h-9 items-center rounded-lg border border-gray-100 bg-gray-50 px-1 shadow-inner">{input}</div>
         <div className={`grid min-w-0 gap-1.5 ${citizen ? "grid-cols-4" : "grid-cols-2"}`}>
         <StatusFilterMenu mobile fullWidth value={statusFilter} onChange={onStatusFilterChange} />
         {citizen && pinButton}
@@ -502,16 +502,16 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
   const handleSignOut = async () => { try { await signOut(); window.location.assign(portalPaths[role].login); } catch { setError("Sesi belum dapat ditutup. Coba lagi."); } finally { setSignoutOpen(false); } };
 
   return <main className="dashboard-app relative h-[100dvh] min-h-[620px] overflow-hidden bg-[#f3f4f6] text-slate-900">
-    <header className="absolute left-1/2 top-1.5 z-50 flex min-h-10 w-[calc(100%-1.5rem)] max-w-5xl -translate-x-1/2 items-center rounded-2xl bg-white px-1.5 py-1 shadow-[0_8px_32px_-8px_rgba(15,23,42,0.18)] ring-1 ring-gray-100 sm:top-4 sm:min-h-0 sm:flex-row sm:justify-between sm:gap-3 sm:rounded-full sm:px-4 sm:py-2.5">
+    <header className="absolute left-1/2 top-2 z-50 flex min-h-10 w-[calc(100%-1rem)] max-w-5xl -translate-x-1/2 items-center rounded-xl bg-white px-2 py-1 shadow-[0_8px_32px_-8px_rgba(15,23,42,0.18)] ring-1 ring-gray-100 sm:top-4 sm:min-h-0 sm:flex-row sm:justify-between sm:gap-3 sm:rounded-full sm:px-4 sm:py-2.5">
       <div className="flex w-full min-w-0 items-center justify-between gap-2 sm:flex-1">
         <div className="flex min-w-0 shrink items-center gap-1 sm:gap-3">
-          <a href="https://gardajakarta.my.id" aria-label="Beranda Garda Jakarta" className="flex shrink-0 items-center"><AppLogo className="h-5 w-auto max-w-[68px] object-contain sm:h-9 sm:w-[135px]" size={145} aria-label="Garda Jakarta" /></a>
+          <a href="https://gardajakarta.my.id" aria-label="Beranda Garda Jakarta" className="flex shrink-0 items-center"><AppLogo className="h-5 w-auto max-w-[64px] object-contain sm:h-9 sm:w-[135px]" size={145} aria-label="Garda Jakarta" /></a>
           <div className="flex shrink-0 rounded-full border border-gray-100 bg-gray-50 p-0.5 shadow-inner sm:p-1">
-            <button type="button" onClick={() => setView("map")} aria-pressed={view === "map"} className={`flex h-6 min-w-[44px] items-center justify-center gap-1 rounded-full px-1 text-[8px] font-black transition-colors sm:h-8 sm:min-w-[74px] sm:gap-1.5 sm:px-3 sm:text-[11px] ${view === "map" ? "bg-gray-900 text-white shadow-sm" : "text-gray-500 hover:bg-white hover:text-gray-900"}`}><MapModeIcon /><span>Map</span></button>
-            <button type="button" onClick={() => { setView("feed"); setListOpen(false); setReportOpen(false); }} aria-pressed={view === "feed"} className={`flex h-6 min-w-[44px] items-center justify-center gap-1 rounded-full px-1 text-[8px] font-black transition-colors sm:h-8 sm:min-w-[74px] sm:gap-1.5 sm:px-3 sm:text-[11px] ${view === "feed" ? "bg-gray-900 text-white shadow-sm" : "text-gray-500 hover:bg-white hover:text-gray-900"}`}><FeedModeIcon /><span>Feed</span></button>
+            <button type="button" onClick={() => setView("map")} aria-pressed={view === "map"} className={`flex h-7 min-w-[46px] items-center justify-center gap-1 rounded-full px-1.5 text-[9px] font-black transition-colors sm:h-8 sm:min-w-[74px] sm:gap-1.5 sm:px-3 sm:text-[11px] ${view === "map" ? "bg-gray-900 text-white shadow-sm" : "text-gray-500 hover:bg-white hover:text-gray-900"}`}><MapModeIcon /><span>Map</span></button>
+            <button type="button" onClick={() => { setView("feed"); setListOpen(false); setReportOpen(false); }} aria-pressed={view === "feed"} className={`flex h-7 min-w-[46px] items-center justify-center gap-1 rounded-full px-1.5 text-[9px] font-black transition-colors sm:h-8 sm:min-w-[74px] sm:gap-1.5 sm:px-3 sm:text-[11px] ${view === "feed" ? "bg-gray-900 text-white shadow-sm" : "text-gray-500 hover:bg-white hover:text-gray-900"}`}><FeedModeIcon /><span>Feed</span></button>
           </div>
         </div>
-        {publicMode ? <a href="/login" className="inline-flex h-7 shrink-0 items-center justify-center rounded-lg bg-[#e62428] px-2.5 text-[9px] font-black leading-none text-white shadow-sm transition-colors hover:bg-[#c91d22] sm:h-9 sm:px-4 sm:text-[11px]">Masuk sebagai pelapor</a> : <div ref={accountRef} className="relative shrink-0">
+        {publicMode ? <a href="/login" className="inline-flex h-8 shrink-0 items-center justify-center rounded-lg bg-[#e62428] px-3 text-[10px] font-black leading-none text-white shadow-sm transition-colors hover:bg-[#c91d22] sm:h-9 sm:px-4 sm:text-[11px]">Masuk sebagai pelapor</a> : <div ref={accountRef} className="relative shrink-0">
           <button type="button" onClick={() => setAccountOpen((current) => !current)} className="inline-flex h-7 w-7 items-center justify-center rounded-full p-0 text-left hover:bg-gray-50 sm:h-auto sm:w-auto sm:gap-2 sm:justify-start sm:px-1.5 sm:py-1" aria-haspopup="menu" aria-expanded={accountOpen}>
             <Avatar name={user?.name || "Garda"} image={user?.image} size="h-7 w-7 sm:h-9 sm:w-9" />
             <span className="hidden max-w-[150px] sm:block"><strong className="block truncate text-[11px] font-bold text-gray-900">{user?.name}</strong><small className="mt-0.5 block text-[9px] font-bold text-[#e62428]">{roleLabel(role)}</small></span>

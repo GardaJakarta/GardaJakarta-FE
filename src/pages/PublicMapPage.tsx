@@ -36,9 +36,9 @@ export default function PublicMapPage() {
   const clearSelection = () => { setSelectedReport(null); setSelectedUnit(null); };
 
   return <main className="relative h-screen min-h-[560px] overflow-hidden bg-[#eef0ed] text-[#171717]">
-    <header className="absolute inset-x-0 top-0 z-20 flex h-11 items-center justify-between border-b border-black/5 bg-white/95 px-3 shadow-sm backdrop-blur-md sm:h-12 sm:px-4 md:h-16 md:px-7">
-      <Link className="shrink-0" to="https://gardajakarta.my.id" aria-label="Beranda Garda Jakarta"><AppLogo className="h-auto w-[82px] max-w-[42vw] sm:w-[92px] md:h-9 md:w-auto" size={145} aria-label="Garda Jakarta" /></Link>
-      <Link className="ml-auto inline-flex h-7 shrink-0 items-center justify-center rounded-lg bg-[#e62428] px-2.5 text-[9px] font-bold leading-none text-white transition-colors hover:bg-[#c91d22] sm:h-8 sm:px-3 sm:text-[10px] md:h-auto md:px-4 md:py-2 md:text-[11px]" to="/login">Masuk untuk melapor</Link>
+    <header className="absolute left-1/2 top-2 z-20 flex h-10 w-[calc(100%-1rem)] -translate-x-1/2 items-center justify-between rounded-xl border border-black/5 bg-white/95 px-2.5 shadow-[0_8px_28px_-10px_rgba(15,23,42,0.22)] backdrop-blur-md sm:top-3 sm:h-12 sm:w-[calc(100%-2rem)] sm:rounded-full sm:px-4 md:top-4 md:h-16 md:w-auto md:max-w-[calc(100%-3.5rem)] md:px-7">
+      <Link className="shrink-0" to="https://gardajakarta.my.id" aria-label="Beranda Garda Jakarta"><AppLogo className="h-auto w-[74px] max-w-[42vw] sm:w-[92px] md:h-9 md:w-auto" size={145} aria-label="Garda Jakarta" /></Link>
+      <Link className="ml-auto inline-flex h-8 shrink-0 items-center justify-center rounded-lg bg-[#e62428] px-3 text-[10px] font-bold leading-none text-white transition-colors hover:bg-[#c91d22] sm:h-8 sm:px-3 sm:text-[10px] md:h-auto md:px-4 md:py-2 md:text-[11px]" to="/login">Masuk untuk melapor</Link>
     </header>
     <section className="absolute inset-0 pt-11 sm:pt-12 md:pt-16" aria-label="Peta publik keamanan Jakarta">
       {error && <p className="absolute left-4 top-[76px] z-10 max-w-[calc(100%-32px)] border-l-4 border-[#e62428] bg-white px-4 py-3 text-xs font-bold text-[#a2191f] shadow-lg md:left-7 md:top-[128px]" role="alert">{error}</p>}
