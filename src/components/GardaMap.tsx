@@ -75,10 +75,8 @@ function markerElement(kind: "police" | "report", severity?: IncidentReport["sev
   element.type = "button";
   element.className = `garda-map-marker garda-map-marker-${kind} garda-map-marker-${severity?.toLowerCase() || "default"}`;
   element.setAttribute("aria-label", kind === "police" ? "Kantor polisi" : "Laporan keamanan");
-  const glyph = kind === "police"
-    ? '<path d="M19.2 13.2c0 5-3.1 8.2-7.2 9.1v-2.6c2.7-.8 4.6-2.9 4.6-6.4V8.4h2.6v4.8ZM12 3.8H4.8v7.8c0 3.5 2 5.7 4.6 6.4v2.6c-4.1-.9-7.2-4.1-7.2-9.1V1.2H12v2.6Zm7.2 2.6H12v8.8c-2.1 0-3.8-1.7-3.8-3.8V6.4H12V3.8h7.2v2.6Z"/>'
-    : '<path d="M12 3.5 20 7v5.2c0 4.3-3.2 7.8-8 8.9-4.8-1.1-8-4.6-8-8.9V7l8-3.5Z"/><path d="M12 8v4.5M12 15.5h.01" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>';
-  element.innerHTML = `<span aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false">${glyph}</svg></span>`;
+  const asset = kind === "police" ? "/markers/garda-police-mark.svg" : "/markers/garda-report-mark.svg";
+  element.innerHTML = `<span aria-hidden="true"><img src="${asset}" alt="" /></span>`;
   return element;
 }
 
@@ -93,7 +91,7 @@ function draftMarkerElement() {
   element.tabIndex = 0;
   element.setAttribute("aria-label", "Geser lokasi laporan");
   element.setAttribute("aria-grabbed", "false");
-  element.innerHTML = '<span aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M12 21s7-6.1 7-12a7 7 0 1 0-14 0c0 5.9 7 12 7 12Z"/><circle cx="12" cy="9" r="2.4" fill="white"/></svg></span>';
+  element.innerHTML = '<span aria-hidden="true"><img src="/markers/garda-draft-mark.svg" alt="" /></span>';
   element.addEventListener("dragstart", (event) => event.preventDefault());
   return element;
 }
@@ -125,7 +123,6 @@ function GardaMap({ units, reports, className, onMapClick, onSelectReport, onSel
   const mapRef = useRef<MapInstance | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const draftActiveRef = useRef(false);
-  const draftDraggingRef = useRef(false);
   const draftLocationRef = useRef({ latitude: draftLatitude, longitude: draftLongitude });
   const markersRef = useRef<Marker[]>([]);
   const draftMarkerRef = useRef<Marker | null>(null);
@@ -238,13 +235,7 @@ function GardaMap({ units, reports, className, onMapClick, onSelectReport, onSel
       draftActiveRef.current = draftActive;
       return;
     }
-    if (!draftActiveRef.current && window.innerWidth < 768) {
-      map.easeTo({
-        center: [location.longitude, location.latitude],
-        padding: { top: 76, right: 24, bottom: Math.round(window.innerHeight * 0.62), left: 24 },
-        duration: 300,
-      });
-    }
+    // Keep the existing viewport when the report sheet opens; the map remains mounted underneath it.
     draftActiveRef.current = draftActive;
   }, [draftActive, draftLatitude, draftLongitude, mapReady]);
 
@@ -252,7 +243,6 @@ function GardaMap({ units, reports, className, onMapClick, onSelectReport, onSel
     const map = mapRef.current;
     const location = draftLocationRef.current;
     if (!map || !mapReady || !draftActive || location.latitude === undefined || location.longitude === undefined) {
-      draftDraggingRef.current = false;
       draftMarkerRef.current?.remove();
       draftMarkerRef.current = null;
       return;
@@ -261,63 +251,39 @@ function GardaMap({ units, reports, className, onMapClick, onSelectReport, onSel
 
     const element = draftMarkerElement();
     element.addEventListener("click", (event) => event.stopPropagation());
-    const marker = new maplibregl.Marker({ element, anchor: "center", draggable: false })
+    const marker = new maplibregl.Marker({ element, anchor: "center", draggable: true })
       .setLngLat([location.longitude, location.latitude])
       .addTo(map);
-      let activePointerId = -1;
-      const updateDragPosition = (event: PointerEvent) => {
-        if (!draftDraggingRef.current || event.pointerId !== activePointerId) return;
-        event.preventDefault();
-        const bounds = map.getContainer().getBoundingClientRect();
-        const position = map.unproject([event.clientX - bounds.left, event.clientY - bounds.top]);
-        marker.setLngLat(position);
-        onDraftLocationChangeRef.current?.({ latitude: position.lat, longitude: position.lng });
-      };
-      const endDrag = () => {
-        if (!draftDraggingRef.current) return;
-        draftDraggingRef.current = false;
-        map.dragPan.enable();
-        if (element.hasPointerCapture?.(activePointerId)) element.releasePointerCapture(activePointerId);
-        activePointerId = -1;
-        element.style.cursor = "grab";
-        element.setAttribute("aria-grabbed", "false");
-        const position = marker.getLngLat();
-        onDraftLocationChangeRef.current?.({ latitude: position.lat, longitude: position.lng });
-      };
-      const startDrag = (event: PointerEvent) => {
-        event.preventDefault();
-        event.stopPropagation();
-        activePointerId = event.pointerId;
-        draftDraggingRef.current = true;
-        element.setPointerCapture?.(event.pointerId);
-        map.dragPan.disable();
-        element.style.cursor = "grabbing";
-        element.setAttribute("aria-grabbed", "true");
-      };
-      element.addEventListener("pointerdown", startDrag);
-      window.addEventListener("pointermove", updateDragPosition, { passive: false });
-      window.addEventListener("pointerup", endDrag);
-      window.addEventListener("pointercancel", endDrag);
-      element.addEventListener("lostpointercapture", endDrag);
-      element.addEventListener("pointerup", endDrag);
-      element.addEventListener("pointercancel", endDrag);
+    const handleDragStart = () => {
+      element.style.cursor = "grabbing";
+      element.setAttribute("aria-grabbed", "true");
+    };
+    const handleDrag = () => {
+      const position = marker.getLngLat();
+      onDraftLocationChangeRef.current?.({ latitude: position.lat, longitude: position.lng });
+    };
+    const handleDragEnd = () => {
+      element.style.cursor = "grab";
+      element.setAttribute("aria-grabbed", "false");
+      const position = marker.getLngLat();
+      onDraftLocationChangeRef.current?.({ latitude: position.lat, longitude: position.lng });
+    };
+    marker.on("dragstart", handleDragStart);
+    marker.on("drag", handleDrag);
+    marker.on("dragend", handleDragEnd);
     draftMarkerRef.current = marker;
 
     return () => {
-      element.removeEventListener("pointerdown", startDrag);
-      window.removeEventListener("pointermove", updateDragPosition);
-      window.removeEventListener("pointerup", endDrag);
-      window.removeEventListener("pointercancel", endDrag);
-      element.removeEventListener("lostpointercapture", endDrag);
-      element.removeEventListener("pointerup", endDrag);
-      element.removeEventListener("pointercancel", endDrag);
+      marker.off("dragstart", handleDragStart);
+      marker.off("drag", handleDrag);
+      marker.off("dragend", handleDragEnd);
       marker.remove();
       if (draftMarkerRef.current === marker) draftMarkerRef.current = null;
     };
   }, [draftActive, mapReady]);
 
   useEffect(() => {
-    if (!draftActive || draftDraggingRef.current || !draftMarkerRef.current || draftLatitude === undefined || draftLongitude === undefined) return;
+    if (!draftActive || !draftMarkerRef.current || draftLatitude === undefined || draftLongitude === undefined) return;
     draftMarkerRef.current.setLngLat([draftLongitude, draftLatitude]);
   }, [draftActive, draftLatitude, draftLongitude]);
 

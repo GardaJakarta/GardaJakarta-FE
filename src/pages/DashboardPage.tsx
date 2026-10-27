@@ -189,7 +189,7 @@ function StatusFilterMenu({ value, onChange, mobile = false, fullWidth = false }
   }, [open]);
   const label = value === "ALL" ? "Semua status" : statusShortLabels[value];
   return <div ref={ref} className="relative min-w-0 sm:shrink-0">
-    <button type="button" onClick={() => setOpen((current) => !current)} className={`inline-flex ${mobile ? `h-8 min-w-0 ${fullWidth ? "w-full" : "px-2"}` : "h-9 px-3"} items-center justify-center gap-1.5 rounded-full text-[10px] font-bold transition-colors ${value === "ALL" ? "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50" : "bg-slate-900 text-white"}`} aria-label={`Filter status laporan: ${label}`} aria-expanded={open} aria-haspopup="listbox"><FilterIcon /><span className="hidden sm:inline">Filter</span><span className="min-w-0 truncate sm:max-w-[100px]">{mobile ? "Filter" : label}</span><Chevron open={open} /></button>
+    <button type="button" onClick={() => setOpen((current) => !current)} className={`inline-flex ${mobile ? `h-9 min-w-0 ${fullWidth ? "w-full" : "px-2"}` : "h-9 px-3"} items-center justify-center gap-1.5 rounded-full text-[10px] font-bold transition-colors ${value === "ALL" ? "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50" : "bg-slate-900 text-white"}`} aria-label={`Filter status laporan: ${label}`} aria-expanded={open} aria-haspopup="listbox"><FilterIcon /><span className="hidden sm:inline">Filter</span><span className="min-w-0 truncate sm:max-w-[100px]">{mobile ? "Filter" : label}</span><Chevron open={open} /></button>
     {open && <div className="absolute left-0 top-[calc(100%+10px)] z-50 w-52 rounded-xl border border-slate-100 bg-white p-2 text-left shadow-[0_18px_44px_rgba(15,23,42,0.16)] md:bottom-[calc(100%+10px)] md:top-auto" role="listbox" aria-label="Filter status laporan"><p className="px-2 pb-2 pt-1 text-[10px] font-bold uppercase tracking-widest text-slate-400">Status laporan</p>{statusFilters.map((option) => <button key={option} type="button" role="option" aria-selected={value === option} onClick={() => { onChange(option); setOpen(false); }} className={`flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-xs font-bold transition-colors ${value === option ? "bg-red-50 text-[#b21e24]" : "text-slate-700 hover:bg-slate-50"}`}><span className={`grid h-4 w-4 place-items-center rounded-full border text-[10px] ${value === option ? "border-[#e62428] bg-[#e62428] text-white" : "border-slate-300 text-transparent"}`}>✓</span>{option === "ALL" ? "Semua status" : statusLabels[option]}</button>)}</div>}
   </div>;
 }
@@ -219,7 +219,7 @@ function DashboardControls({ mobile = false, view, citizen, showActions = true, 
     <svg className="h-4 w-4 shrink-0 text-[#e62428]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></svg>
     <input aria-label={view === "map" ? "Cari lokasi atau laporan" : "Cari isu"} value={search} onChange={(event) => onSearchChange(event.target.value)} placeholder={view === "map" ? "Cari lokasi..." : "Cari isu..."} className="min-w-0 w-full bg-transparent py-1.5 text-xs font-bold text-gray-900 outline-none placeholder:text-gray-400" />
   </div>;
-  const buttonHeight = mobile ? "h-8" : "h-9";
+  const buttonHeight = mobile ? "h-9" : "h-9";
   const pinButton = showActions && citizen && <button type="button" onClick={onPickLocation} className={`inline-flex ${buttonHeight} min-w-0 items-center justify-center gap-1.5 ${controlRadius} px-2 text-[10px] font-black transition-colors ${pinMode ? "bg-[#e62428] text-white shadow-sm" : "border border-gray-100 bg-white text-gray-600 hover:bg-gray-100"}`} aria-label="Tandai lokasi laporan"><PinIcon /><span className={mobile ? "truncate" : "hidden sm:inline"}>{pinMode ? "Pilih" : "Tandai"}</span></button>;
   const listButton = showActions && <button type="button" onClick={onToggleList} className={`inline-flex ${buttonHeight} min-w-0 items-center justify-center gap-1.5 ${controlRadius} px-2 text-[10px] font-black transition-colors ${listOpen ? "bg-gray-900 text-white" : "border border-gray-100 bg-white text-gray-600 hover:bg-gray-100"}`} aria-label="Buka daftar laporan"><ListIcon /><span className={mobile ? "truncate" : "hidden sm:inline"}>{citizen ? "Laporan" : role === "polisi" ? "Antrian" : "Monitoring"}</span>{activeFilter && <span className="grid h-4 min-w-4 place-items-center rounded-full bg-[#e62428] px-1 text-[9px] text-white">!</span>}</button>;
   const createButton = showActions && citizen && <button type="button" onClick={onCreateReport} className={`inline-flex ${buttonHeight} min-w-0 items-center justify-center gap-1.5 ${controlRadius} px-2 text-[10px] font-black text-white shadow-sm transition-colors ${reportOpen ? "bg-gray-900 hover:bg-gray-800" : "bg-[#e62428] hover:bg-[#c91d22]"}`} aria-label={reportOpen ? "Tutup form laporan" : "Buat laporan"}>{reportOpen ? <CloseIcon /> : <PlusIcon />}<span className={mobile ? "truncate" : "hidden sm:inline"}>{reportOpen ? "Tutup" : "Buat"}</span></button>;
@@ -227,17 +227,19 @@ function DashboardControls({ mobile = false, view, citizen, showActions = true, 
   if (mobile) {
     return <div className="relative flex w-full flex-col gap-1.5">
       {showActions ? <>
-        <div className="flex h-8 items-center rounded-full border border-gray-100 bg-gray-50 px-1 shadow-inner">{input}</div>
+        <div className="flex h-10 items-center rounded-full border border-gray-100 bg-gray-50 px-1.5 shadow-inner">{input}</div>
         <div className={`grid min-w-0 gap-1.5 ${citizen ? "grid-cols-4" : "grid-cols-2"}`}>
         <StatusFilterMenu mobile fullWidth value={statusFilter} onChange={onStatusFilterChange} />
         {citizen && pinButton}
         {listButton}
         {createButton}
         </div>
-      </> : <div className="flex items-center gap-1.5">
-        {input}
-        <StatusFilterMenu mobile value={statusFilter} onChange={onStatusFilterChange} />
-      </div>}
+      </> : <>
+        <div className="flex h-10 items-center rounded-full border border-gray-100 bg-gray-50 px-1.5 shadow-inner">{input}</div>
+        <div className="grid min-w-0 grid-cols-1">
+          <StatusFilterMenu mobile fullWidth value={statusFilter} onChange={onStatusFilterChange} />
+        </div>
+      </>}
     </div>;
   }
 
@@ -260,7 +262,7 @@ function ReportCard({ report, selected, onSelect }: { report: IncidentReport; se
       <div className="flex shrink-0 flex-col items-end gap-1.5"><StatusBadge status={report.status} /><SeverityBadge severity={report.severity} /></div>
     </header>
     <section className="px-4 pb-3 sm:px-5"><h3 className="text-base font-black leading-snug text-gray-950 sm:text-lg">{report.category}</h3>{report.description && <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-gray-600">{report.description}</p>}</section>
-    <div className="mx-4 mb-3 flex min-h-[108px] items-center justify-center overflow-hidden rounded-sm bg-[#fff4f4] text-[#e62428] sm:mx-5"><div className="flex flex-col items-center text-center"><span className="grid h-12 w-12 place-items-center rounded-xl bg-white text-[#e62428] shadow-sm"><CategoryIcon kind={categoryOptions.find((option) => option.value === report.category)?.icon || "other"} className="h-6 w-6" /></span><p className="mt-2 text-[10px] font-black uppercase tracking-widest">Lokasi di peta</p><p className="mt-1 text-[10px] font-medium text-gray-500">Buka detail untuk melihat titik laporan</p></div></div>
+    <div className="mx-4 mb-3 flex min-h-[150px] items-center justify-center overflow-hidden rounded-sm border border-dashed border-gray-200 bg-gray-50 text-gray-400 sm:mx-5"><div className="text-center"><span className="grid h-12 w-12 place-items-center rounded-full bg-white text-[#e62428] shadow-sm"><CategoryIcon kind={categoryOptions.find((option) => option.value === report.category)?.icon || "other"} className="h-6 w-6" /></span><p className="mt-2 text-[10px] font-black uppercase tracking-widest">Tanpa foto</p><p className="mt-1 text-[10px] font-medium text-gray-400">Detail lokasi tersedia di peta</p></div></div>
     <footer className="space-y-3 border-t border-gray-100 px-4 py-3.5 sm:px-5"><button type="button" onClick={onSelect} className="flex h-10 w-full items-center justify-center rounded-full bg-gray-900 px-4 text-xs font-black text-white transition-colors hover:bg-gray-800">Lihat detail</button><div className="grid gap-2 text-xs sm:grid-cols-2"><div className="flex min-w-0 items-center gap-2 rounded-sm bg-gray-50 px-3 py-2.5"><GardaMark className="h-4 w-4 shrink-0 text-[#e62428]" /><span className="truncate font-bold text-gray-700">{report.policeUnit?.name || "Menunggu unit penanganan"}</span></div><div className="flex min-w-0 items-center gap-2 rounded-sm bg-gray-50 px-3 py-2.5"><PinIcon /><span className="truncate font-mono text-[10px] font-bold text-gray-600">{report.ticketNumber}</span></div></div></footer>
   </motion.article>;
 }
@@ -532,7 +534,7 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
             <button type="button" onClick={() => { setView("feed"); setListOpen(false); setReportOpen(false); }} aria-pressed={view === "feed"} className={`flex h-7 min-w-[46px] items-center justify-center gap-1 rounded-full px-1.5 text-[9px] font-black transition-colors max-[359px]:min-w-[34px] max-[359px]:px-1 max-[359px]:text-[8px] sm:h-8 sm:min-w-[74px] sm:gap-1.5 sm:px-3 sm:text-[11px] ${view === "feed" ? "bg-gray-900 text-white shadow-sm" : "text-gray-500 hover:bg-white hover:text-gray-900"}`}><FeedModeIcon /><span className="max-[359px]:hidden">Feed</span></button>
           </div>
         </div>
-        {publicMode ? <a href="/login" className="inline-flex h-8 shrink-0 items-center justify-center whitespace-nowrap rounded-lg bg-[#e62428] px-2.5 text-[10px] font-black leading-none text-white shadow-sm transition-colors hover:bg-[#c91d22] sm:h-9 sm:px-4 sm:text-[11px]" aria-label="Masuk sebagai pelapor"><span className="sm:hidden">Masuk</span><span className="hidden sm:inline">Masuk sebagai pelapor</span></a> : <div ref={accountRef} className="relative shrink-0">
+        {publicMode ? <a href="/login" className="inline-flex h-8 shrink-0 items-center justify-center whitespace-nowrap rounded-full bg-[#e62428] px-3 text-[10px] font-black leading-none text-white shadow-sm transition-colors hover:bg-[#c91d22] sm:h-9 sm:px-4 sm:text-[11px]" aria-label="Masuk sebagai pelapor"><span className="sm:hidden">Masuk</span><span className="hidden sm:inline">Masuk sebagai pelapor</span></a> : <div ref={accountRef} className="relative shrink-0">
           <button type="button" onClick={() => setAccountOpen((current) => !current)} className="inline-flex h-7 w-7 items-center justify-center rounded-full p-0 text-left hover:bg-gray-50 sm:h-auto sm:w-auto sm:gap-2 sm:justify-start sm:px-1.5 sm:py-1" aria-haspopup="menu" aria-expanded={accountOpen}>
             <Avatar name={user?.name || "Garda"} image={user?.image} size="h-7 w-7 sm:h-9 sm:w-9" />
             <span className="hidden max-w-[150px] sm:block"><strong className="block truncate text-[11px] font-bold text-gray-900">{user?.name}</strong><small className="mt-0.5 block text-[9px] font-bold text-[#e62428]">{roleLabel(role)}</small></span>
