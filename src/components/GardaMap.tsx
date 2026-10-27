@@ -93,8 +93,6 @@ function draftMarkerElement() {
   element.tabIndex = 0;
   element.setAttribute("aria-label", "Geser lokasi laporan");
   element.setAttribute("aria-grabbed", "false");
-  element.addEventListener("pointerdown", (event) => event.stopPropagation());
-  element.addEventListener("mousedown", (event) => event.stopPropagation());
   element.innerHTML = '<span aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M12 21s7-6.1 7-12a7 7 0 1 0-14 0c0 5.9 7 12 7 12Z"/><circle cx="12" cy="9" r="2.4" fill="white"/></svg></span>';
   element.addEventListener("dragstart", (event) => event.preventDefault());
   return element;
@@ -127,12 +125,18 @@ function GardaMap({ units, reports, className, onMapClick, onSelectReport, onSel
   const mapRef = useRef<MapInstance | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const draftActiveRef = useRef(false);
+  const draftDraggingRef = useRef(false);
+  const draftLocationRef = useRef({ latitude: draftLatitude, longitude: draftLongitude });
   const markersRef = useRef<Marker[]>([]);
   const draftMarkerRef = useRef<Marker | null>(null);
   const onMapClickRef = useRef(onMapClick);
   const onSelectReportRef = useRef(onSelectReport);
   const onSelectUnitRef = useRef(onSelectUnit);
   const onDraftLocationChangeRef = useRef(onDraftLocationChange);
+
+  useEffect(() => {
+    draftLocationRef.current = { latitude: draftLatitude, longitude: draftLongitude };
+  }, [draftLatitude, draftLongitude]);
 
   useEffect(() => {
     onMapClickRef.current = onMapClick;
@@ -229,13 +233,14 @@ function GardaMap({ units, reports, className, onMapClick, onSelectReport, onSel
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !mapReady || !draftActive || draftLatitude === undefined || draftLongitude === undefined) {
+    const location = draftLocationRef.current;
+    if (!map || !mapReady || !draftActive || location.latitude === undefined || location.longitude === undefined) {
       draftActiveRef.current = draftActive;
       return;
     }
     if (!draftActiveRef.current && window.innerWidth < 768) {
       map.easeTo({
-        center: [draftLongitude, draftLatitude],
+        center: [location.longitude, location.latitude],
         padding: { top: 76, right: 24, bottom: Math.round(window.innerHeight * 0.62), left: 24 },
         duration: 300,
       });
@@ -245,37 +250,76 @@ function GardaMap({ units, reports, className, onMapClick, onSelectReport, onSel
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !mapReady) return;
-    if (!draftActive || draftLatitude === undefined || draftLongitude === undefined) {
+    const location = draftLocationRef.current;
+    if (!map || !mapReady || !draftActive || location.latitude === undefined || location.longitude === undefined) {
+      draftDraggingRef.current = false;
       draftMarkerRef.current?.remove();
       draftMarkerRef.current = null;
       return;
     }
-    if (!draftMarkerRef.current) {
-      const element = draftMarkerElement();
-      element.addEventListener("click", (event) => event.stopPropagation());
-      const marker = new maplibregl.Marker({ element, anchor: "center", draggable: true })
-        .setLngLat([draftLongitude, draftLatitude])
-        .addTo(map);
-      marker.on("dragstart", () => {
-        element.style.cursor = "grabbing";
-        element.setAttribute("aria-grabbed", "true");
-      });
-      marker.on("drag", () => {
-        const position = marker.getLngLat();
+    if (draftMarkerRef.current) return;
+
+    const element = draftMarkerElement();
+    element.addEventListener("click", (event) => event.stopPropagation());
+    const marker = new maplibregl.Marker({ element, anchor: "center", draggable: false })
+      .setLngLat([location.longitude, location.latitude])
+      .addTo(map);
+      let activePointerId = -1;
+      const updateDragPosition = (event: PointerEvent) => {
+        if (!draftDraggingRef.current || event.pointerId !== activePointerId) return;
+        event.preventDefault();
+        const bounds = map.getContainer().getBoundingClientRect();
+        const position = map.unproject([event.clientX - bounds.left, event.clientY - bounds.top]);
+        marker.setLngLat(position);
         onDraftLocationChangeRef.current?.({ latitude: position.lat, longitude: position.lng });
-      });
-      marker.on("dragend", () => {
+      };
+      const endDrag = () => {
+        if (!draftDraggingRef.current) return;
+        draftDraggingRef.current = false;
+        map.dragPan.enable();
+        if (element.hasPointerCapture?.(activePointerId)) element.releasePointerCapture(activePointerId);
+        activePointerId = -1;
         element.style.cursor = "grab";
         element.setAttribute("aria-grabbed", "false");
         const position = marker.getLngLat();
         onDraftLocationChangeRef.current?.({ latitude: position.lat, longitude: position.lng });
-      });
-      draftMarkerRef.current = marker;
-    } else {
-      draftMarkerRef.current.setLngLat([draftLongitude, draftLatitude]);
-    }
-  }, [draftActive, draftLatitude, draftLongitude, mapReady]);
+      };
+      const startDrag = (event: PointerEvent) => {
+        event.preventDefault();
+        event.stopPropagation();
+        activePointerId = event.pointerId;
+        draftDraggingRef.current = true;
+        element.setPointerCapture?.(event.pointerId);
+        map.dragPan.disable();
+        element.style.cursor = "grabbing";
+        element.setAttribute("aria-grabbed", "true");
+      };
+      element.addEventListener("pointerdown", startDrag);
+      window.addEventListener("pointermove", updateDragPosition, { passive: false });
+      window.addEventListener("pointerup", endDrag);
+      window.addEventListener("pointercancel", endDrag);
+      element.addEventListener("lostpointercapture", endDrag);
+      element.addEventListener("pointerup", endDrag);
+      element.addEventListener("pointercancel", endDrag);
+    draftMarkerRef.current = marker;
+
+    return () => {
+      element.removeEventListener("pointerdown", startDrag);
+      window.removeEventListener("pointermove", updateDragPosition);
+      window.removeEventListener("pointerup", endDrag);
+      window.removeEventListener("pointercancel", endDrag);
+      element.removeEventListener("lostpointercapture", endDrag);
+      element.removeEventListener("pointerup", endDrag);
+      element.removeEventListener("pointercancel", endDrag);
+      marker.remove();
+      if (draftMarkerRef.current === marker) draftMarkerRef.current = null;
+    };
+  }, [draftActive, mapReady]);
+
+  useEffect(() => {
+    if (!draftActive || draftDraggingRef.current || !draftMarkerRef.current || draftLatitude === undefined || draftLongitude === undefined) return;
+    draftMarkerRef.current.setLngLat([draftLongitude, draftLatitude]);
+  }, [draftActive, draftLatitude, draftLongitude]);
 
   return <div ref={containerRef} className={`garda-map ${className || ""}`} aria-label="Peta informasi keamanan Jakarta" />;
 }
