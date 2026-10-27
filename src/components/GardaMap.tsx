@@ -123,6 +123,7 @@ function GardaMap({ units, reports, className, onMapClick, onSelectReport, onSel
   const mapRef = useRef<MapInstance | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const draftActiveRef = useRef(false);
+  const draftDraggingRef = useRef(false);
   const draftLocationRef = useRef({ latitude: draftLatitude, longitude: draftLongitude });
   const markersRef = useRef<Marker[]>([]);
   const draftMarkerRef = useRef<Marker | null>(null);
@@ -258,23 +259,28 @@ function GardaMap({ units, reports, className, onMapClick, onSelectReport, onSel
       element.style.cursor = "grabbing";
       element.setAttribute("aria-grabbed", "true");
     };
-    const handleDrag = () => {
-      const position = marker.getLngLat();
-      onDraftLocationChangeRef.current?.({ latitude: position.lat, longitude: position.lng });
-    };
     const handleDragEnd = () => {
+      draftDraggingRef.current = false;
       element.style.cursor = "grab";
       element.setAttribute("aria-grabbed", "false");
       const position = marker.getLngLat();
       onDraftLocationChangeRef.current?.({ latitude: position.lat, longitude: position.lng });
     };
-    marker.on("dragstart", handleDragStart);
+    const handleDragStartWithState = () => {
+      draftDraggingRef.current = true;
+      handleDragStart();
+    };
+    const handleDrag = () => {
+      const position = marker.getLngLat();
+      onDraftLocationChangeRef.current?.({ latitude: position.lat, longitude: position.lng });
+    };
+    marker.on("dragstart", handleDragStartWithState);
     marker.on("drag", handleDrag);
     marker.on("dragend", handleDragEnd);
     draftMarkerRef.current = marker;
 
     return () => {
-      marker.off("dragstart", handleDragStart);
+      marker.off("dragstart", handleDragStartWithState);
       marker.off("drag", handleDrag);
       marker.off("dragend", handleDragEnd);
       marker.remove();
@@ -283,7 +289,7 @@ function GardaMap({ units, reports, className, onMapClick, onSelectReport, onSel
   }, [draftActive, mapReady]);
 
   useEffect(() => {
-    if (!draftActive || !draftMarkerRef.current || draftLatitude === undefined || draftLongitude === undefined) return;
+    if (!draftActive || draftDraggingRef.current || !draftMarkerRef.current || draftLatitude === undefined || draftLongitude === undefined) return;
     draftMarkerRef.current.setLngLat([draftLongitude, draftLatitude]);
   }, [draftActive, draftLatitude, draftLongitude]);
 

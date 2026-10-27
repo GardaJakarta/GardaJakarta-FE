@@ -5,6 +5,7 @@ import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
 import "./styles.css";
 import "@fontsource-variable/plus-jakarta-sans";
+import "@fontsource-variable/urbanist";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
