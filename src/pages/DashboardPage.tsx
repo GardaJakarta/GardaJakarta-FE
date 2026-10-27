@@ -234,12 +234,10 @@ function DashboardControls({ mobile = false, view, citizen, showActions = true, 
         {listButton}
         {createButton}
         </div>
-      </> : <>
-        <div className="flex h-10 items-center rounded-full border border-gray-100 bg-gray-50 px-1.5 shadow-inner">{input}</div>
-        <div className="grid min-w-0 grid-cols-1">
-          <StatusFilterMenu mobile fullWidth value={statusFilter} onChange={onStatusFilterChange} />
-        </div>
-      </>}
+      </> : <div className="flex min-w-0 items-center gap-1.5">
+        {input}
+        <StatusFilterMenu mobile value={statusFilter} onChange={onStatusFilterChange} />
+      </div>}
     </div>;
   }
 
