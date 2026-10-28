@@ -519,18 +519,18 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
   const handleSignOut = async () => { try { await signOut(); window.location.assign(portalPaths[role].login); } catch { setError("Sesi belum dapat ditutup. Coba lagi."); } finally { setSignoutOpen(false); } };
 
   return <main className="dashboard-app relative h-[100dvh] min-h-[620px] overflow-hidden bg-[#f3f4f6] text-slate-900">
-    <header className="absolute left-1/2 top-2 z-50 flex w-[94%] max-w-5xl -translate-x-1/2 flex-row items-center gap-0 rounded-[26px] bg-white px-2.5 py-2 shadow-lg sm:top-4 sm:justify-between sm:gap-3 sm:rounded-full sm:px-4 sm:py-2.5">
+    <header className="absolute left-1/2 top-1 z-50 flex w-[calc(100%-1rem)] max-w-5xl -translate-x-1/2 flex-row items-center gap-0 rounded-2xl bg-white px-2 py-1.5 shadow-lg sm:top-4 sm:justify-between sm:gap-3 sm:rounded-full sm:px-4 sm:py-2.5">
       <div className="flex w-full min-w-0 items-center justify-between gap-2 sm:flex-1">
         <div className="flex min-w-0 shrink items-center gap-1.5 sm:gap-3">
-          <a href="https://gardajakarta.my.id" aria-label="Beranda Garda Jakarta" className="group flex min-w-0 shrink-0 items-center"><AppLogo className="h-6 w-auto max-w-[72px] object-contain transition-opacity group-hover:opacity-80 sm:h-9 sm:max-w-none" size={145} aria-label="Garda Jakarta" /></a>
+          <a href="https://gardajakarta.my.id" aria-label="Beranda Garda Jakarta" className="group flex min-w-0 shrink-0 items-center"><AppLogo className="h-5 w-auto max-w-[66px] object-contain transition-opacity group-hover:opacity-80 sm:h-9 sm:max-w-none" size={145} aria-label="Garda Jakarta" /></a>
           {role !== "admin" && <div className="flex shrink-0 rounded-full border border-gray-100 bg-gray-50 p-0.5 shadow-inner sm:p-1">
-            <button type="button" onClick={() => setView("map")} aria-pressed={view === "map"} className={`flex h-7 min-w-[48px] items-center justify-center gap-1 rounded-full px-1.5 text-[9px] font-black transition-colors sm:h-8 sm:min-w-[74px] sm:gap-1.5 sm:px-3 sm:text-[11px] ${view === "map" ? "bg-gray-900 text-white shadow-sm" : "text-gray-500 hover:bg-white hover:text-gray-900"}`}><MapModeIcon /><span>Map</span></button>
-            <button type="button" onClick={() => { setView("feed"); setListOpen(false); setReportOpen(false); }} aria-pressed={view === "feed"} className={`flex h-7 min-w-[48px] items-center justify-center gap-1 rounded-full px-1.5 text-[9px] font-black transition-colors sm:h-8 sm:min-w-[74px] sm:gap-1.5 sm:px-3 sm:text-[11px] ${view === "feed" ? "bg-gray-900 text-white shadow-sm" : "text-gray-500 hover:bg-white hover:text-gray-900"}`}><FeedModeIcon /><span>Feed</span></button>
+            <button type="button" onClick={() => setView("map")} aria-pressed={view === "map"} className={`flex h-6 min-w-[44px] items-center justify-center gap-1 rounded-full px-1 text-[8px] font-black transition-colors sm:h-8 sm:min-w-[74px] sm:gap-1.5 sm:px-3 sm:text-[11px] ${view === "map" ? "bg-gray-900 text-white shadow-sm" : "text-gray-500 hover:bg-white hover:text-gray-900"}`}><MapModeIcon /><span>Map</span></button>
+            <button type="button" onClick={() => { setView("feed"); setListOpen(false); setReportOpen(false); }} aria-pressed={view === "feed"} className={`flex h-6 min-w-[44px] items-center justify-center gap-1 rounded-full px-1 text-[8px] font-black transition-colors sm:h-8 sm:min-w-[74px] sm:gap-1.5 sm:px-3 sm:text-[11px] ${view === "feed" ? "bg-gray-900 text-white shadow-sm" : "text-gray-500 hover:bg-white hover:text-gray-900"}`}><FeedModeIcon /><span>Feed</span></button>
           </div>}
         </div>
-        {publicMode ? <a href="/login" className="inline-flex h-7 shrink-0 items-center justify-center whitespace-nowrap rounded-full bg-[#e62428] px-2.5 text-[9px] font-black leading-none text-white shadow-sm transition-colors hover:bg-[#c91d22] sm:h-9 sm:px-4 sm:text-[11px]" aria-label="Masuk sebagai pelapor"><span className="sm:hidden">Masuk</span><span className="hidden sm:inline">Masuk sebagai pelapor</span></a> : <div ref={accountRef} className="relative shrink-0">
-          <button type="button" onClick={() => setAccountOpen((current) => !current)} className="inline-flex h-8 w-8 items-center justify-center rounded-full p-0 text-left hover:bg-gray-50 sm:h-auto sm:w-auto sm:gap-2 sm:justify-start sm:px-1.5 sm:py-1" aria-haspopup="menu" aria-expanded={accountOpen}>
-            <Avatar name={user?.name || "Garda"} image={user?.image} size="h-8 w-8 sm:h-9 sm:w-9" />
+        {publicMode ? <a href="/login" className="inline-flex h-7 shrink-0 items-center justify-center whitespace-nowrap rounded-full bg-[#e62428] px-2 text-[8px] font-black leading-none text-white shadow-sm transition-colors hover:bg-[#c91d22] sm:h-9 sm:px-4 sm:text-[11px]" aria-label="Masuk sebagai pelapor"><span className="sm:hidden">Masuk</span><span className="hidden sm:inline">Masuk sebagai pelapor</span></a> : <div ref={accountRef} className="relative shrink-0">
+          <button type="button" onClick={() => setAccountOpen((current) => !current)} className="inline-flex h-7 w-7 items-center justify-center rounded-full p-0 text-left hover:bg-gray-50 sm:h-auto sm:w-auto sm:gap-2 sm:justify-start sm:px-1.5 sm:py-1" aria-haspopup="menu" aria-expanded={accountOpen}>
+            <Avatar name={user?.name || "Garda"} image={user?.image} size="h-7 w-7 sm:h-9 sm:w-9" />
             <span className="hidden max-w-[150px] sm:block"><strong className="block truncate text-[11px] font-bold text-gray-900">{user?.name}</strong><small className="mt-0.5 block text-[9px] font-bold text-[#e62428]">{roleLabel(role)}</small></span>
             <span className="hidden sm:block"><Chevron open={accountOpen} /></span>
           </button>
@@ -539,7 +539,7 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
       </div>
     </header>
 
-    <div className="absolute left-1/2 top-[3.75rem] z-40 w-[94%] max-w-5xl -translate-x-1/2 rounded-[26px] bg-white p-1.5 shadow-lg sm:hidden">
+    <div className="absolute left-1/2 top-[3.05rem] z-40 w-[calc(100%-1rem)] max-w-5xl -translate-x-1/2 rounded-2xl bg-white p-1.5 shadow-lg sm:hidden">
       <DashboardControls mobile view={view} citizen={citizen} showActions={!publicMode} role={role} search={search} onSearchChange={setSearch} statusFilter={statusFilter} onStatusFilterChange={setStatusFilter} listOpen={listOpen} onToggleList={() => { setListOpen((current) => !current); setReportOpen(false); setSelectedId(null); }} onCreateReport={toggleReportForm} onPickLocation={() => { if (!reportOpen) openReportForm(); else setPinMode((current) => !current); }} pinMode={pinMode} activeFilter={activeFilter} reportOpen={reportOpen} />
     </div>
 
