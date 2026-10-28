@@ -255,6 +255,7 @@ function GardaMap({ units, reports, className, onMapClick, onSelectReport, onSel
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReady || !userLocation) return;
+    map.easeTo({ center: [userLocation.longitude, userLocation.latitude], duration: 550, essential: true });
     const marker = new maplibregl.Marker({ element: userLocationElement(), anchor: "center" }).setLngLat([userLocation.longitude, userLocation.latitude]).addTo(map);
     return () => { marker.remove(); };
   }, [mapReady, userLocation]);

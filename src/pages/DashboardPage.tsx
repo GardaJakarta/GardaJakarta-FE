@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type 
 import { AnimatePresence, motion, useDragControls } from "motion/react";
 import GardaMap from "../components/GardaMap";
 import AppLogo from "../components/branding/AppLogo";
+import ImagePreview from "../components/ImagePreview";
 import { useAuth } from "../context/useAuth";
 import { createReport, getDashboard, getPublicMap, getReportFeed, updatePoliceReportStatus } from "../lib/api";
 import { portalPaths } from "../lib/portals";
@@ -402,11 +403,16 @@ function MapInfoPanel({ title, eyebrow, children, onClose, isDesktop }: { title:
 }
 
 function PoliceMapDetail({ unit, isDesktop, onClose }: { unit: PoliceUnit; isDesktop: boolean; onClose: () => void }) {
+  const [previewOpen, setPreviewOpen] = useState(false);
   return <MapInfoPanel title={unit.name} eyebrow="Kantor polisi" isDesktop={isDesktop} onClose={onClose}>
-    {unit.photoUrl && <img src={unit.photoUrl} alt={unit.name} className="h-40 w-full rounded-lg object-cover" referrerPolicy="no-referrer" />}
+    {unit.photoUrl && <><button type="button" className="group relative block w-full overflow-hidden rounded-lg" onClick={() => setPreviewOpen(true)} aria-label={`Lihat foto ${unit.name}`}><img src={unit.photoUrl} alt={unit.name} className="h-40 w-full object-cover transition-transform group-hover:scale-[1.02]" referrerPolicy="no-referrer" /><span className="absolute bottom-2 right-2 rounded-md bg-slate-950/70 px-2 py-1 text-[10px] font-bold text-white">Lihat foto</span></button>{previewOpen && <ImagePreview src={unit.photoUrl} alt={unit.name} onClose={() => setPreviewOpen(false)} />}</>}
     <div><span className="block text-[10px] font-bold uppercase tracking-widest text-slate-400">Wilayah</span><strong className="mt-1 block text-slate-900">{unit.district}</strong></div>
     <div><span className="block text-[10px] font-bold uppercase tracking-widest text-slate-400">Alamat</span><p className="mt-1 leading-relaxed">{unit.address}</p></div>
     {unit.phone && <div><span className="block text-[10px] font-bold uppercase tracking-widest text-slate-400">Telepon</span><a className="mt-1 block font-bold text-[#e62428]" href={`tel:${unit.phone}`}>{unit.phone}</a></div>}
+    <a className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[#e62428] px-4 text-xs font-black text-white transition-colors hover:bg-[#c91d22]" href={`https://www.google.com/maps/dir/?api=1&destination=${unit.latitude},${unit.longitude}`} target="_blank" rel="noreferrer">
+      Arahkan ke kantor polisi
+      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6" /></svg>
+    </a>
   </MapInfoPanel>;
 }
 
@@ -414,7 +420,7 @@ function SafetyMapDetail({ zone, isDesktop, onClose, onSelectReport }: { zone: S
   return <MapInfoPanel title="Indeks keamanan area" eyebrow="Area laporan" isDesktop={isDesktop} onClose={onClose}>
     <div className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-3"><span className="font-bold text-slate-600">Perhatian {zone.level}</span><strong className="text-lg text-slate-950">{zone.score}/4</strong></div>
     <p className="font-semibold text-slate-500">{zone.reports.length} laporan berada di area ini.</p>
-    <div className="grid gap-2">{zone.reports.map((report) => <button key={report.id} type="button" onClick={() => onSelectReport(report)} className="rounded-lg border border-slate-100 bg-white px-3 py-3 text-left shadow-sm hover:border-red-100 hover:bg-red-50"><strong className="block text-xs text-slate-900">{report.category}</strong><span className="mt-1 block font-mono text-[10px] text-slate-400">{report.ticketNumber}</span><span className="mt-1 block text-[10px] font-bold text-slate-500">{statusShortLabels[report.status]}</span></button>)}</div>
+    <div className="grid gap-2">{zone.reports.length ? zone.reports.map((report) => <button key={report.id} type="button" onClick={() => onSelectReport(report)} className="rounded-lg border border-slate-100 bg-white px-3 py-3 text-left shadow-sm hover:border-red-100 hover:bg-red-50"><strong className="block text-xs text-slate-900">{report.category}</strong><span className="mt-1 block font-mono text-[10px] text-slate-400">{report.ticketNumber}</span><span className="mt-1 block text-[10px] font-bold text-slate-500">{statusShortLabels[report.status]} · titik laporan {report.latitude.toFixed(3)}, {report.longitude.toFixed(3)}</span></button>) : <p className="rounded-lg bg-slate-50 px-3 py-3 text-xs font-semibold text-slate-500">Belum ada laporan terhubung di area ini.</p>}</div>
   </MapInfoPanel>;
 }
 
@@ -548,7 +554,7 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
   }, [view]);
 
   useEffect(() => {
-    if (publicMode || !citizen || !publicMap?.reports.length || !navigator.geolocation) return;
+    if (publicMode || !citizen || !publicMap?.reports.length || !navigator.geolocation || typeof navigator.geolocation.watchPosition !== "function") return;
     const highRiskReports = publicMap.reports.filter((report) => ["P0", "P1"].includes(report.severity) && report.status !== "RESOLVED" && report.status !== "REJECTED");
     if (!highRiskReports.length) return;
     let disposed = false;
@@ -572,7 +578,10 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
 
   useEffect(() => {
     if (!navigator.geolocation) return;
-    const watchId = navigator.geolocation.watchPosition((position) => setUserLocation({ latitude: position.coords.latitude, longitude: position.coords.longitude }), () => undefined, { enableHighAccuracy: false, maximumAge: 60_000, timeout: 10_000 });
+    const updateLocation = (position: GeolocationPosition) => setUserLocation({ latitude: position.coords.latitude, longitude: position.coords.longitude });
+    if (typeof navigator.geolocation.getCurrentPosition === "function") navigator.geolocation.getCurrentPosition(updateLocation, () => undefined, { enableHighAccuracy: false, maximumAge: 60_000, timeout: 10_000 });
+    if (typeof navigator.geolocation.watchPosition !== "function") return;
+    const watchId = navigator.geolocation.watchPosition(updateLocation, () => undefined, { enableHighAccuracy: false, maximumAge: 60_000, timeout: 10_000 });
     return () => navigator.geolocation.clearWatch(watchId);
   }, []);
 
@@ -618,6 +627,7 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
 
   const openReportForm = useCallback(() => { if (!canReport) return; setView("map"); setSelectedId(null); setListOpen(false); setReportOpen(true); setPinMode(true); setError(null); }, [canReport]);
   const selectReport = useCallback((report: IncidentReport) => { setSelectedId(report.id); setListOpen(false); setReportOpen(false); }, []);
+  const selectReportFromMap = useCallback((report: IncidentReport) => { setFocusLocation({ latitude: report.latitude, longitude: report.longitude }); selectReport(report); }, [selectReport]);
   const toggleReportForm = useCallback(() => {
     if (reportOpen) { setReportOpen(false); setPinMode(false); return; }
     openReportForm();
@@ -681,14 +691,14 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
 
     <section className="absolute inset-0" aria-label={view === "map" ? "Dashboard peta keamanan Jakarta" : "Feed laporan keamanan Jakarta"}>
       {view === "map" && <>
-        <GardaMap className="!h-full !min-h-0" units={mapUnits} reports={mapReports} userLocation={userLocation} focusLocation={focusLocation} draftLocation={form} draftActive={canReport && reportOpen} onDraftLocationChange={handleDraftLocationChange} onMapClick={canReport && reportOpen && pinMode ? mapClick : undefined} onSelectReport={(report) => { setSelectedUnit(null); setSelectedZone(null); selectReport(report); }} onSelectUnit={(unit) => { setSelectedId(null); setSelectedZone(null); setSelectedUnit(unit); }} onSelectSafetyZone={(zone) => { setSelectedId(null); setSelectedUnit(null); setSelectedZone(zone); }} showSafetyZones={!publicMode} />
+        <GardaMap className="!h-full !min-h-0" units={mapUnits} reports={mapReports} userLocation={userLocation} focusLocation={focusLocation} draftLocation={form} draftActive={canReport && reportOpen} onDraftLocationChange={handleDraftLocationChange} onMapClick={canReport && reportOpen && pinMode ? mapClick : undefined} onSelectReport={(report) => { setSelectedUnit(null); setSelectedZone(null); selectReportFromMap(report); }} onSelectUnit={(unit) => { setSelectedId(null); setSelectedZone(null); setSelectedUnit(unit); }} onSelectSafetyZone={(zone) => { setSelectedId(null); setSelectedUnit(null); setSelectedZone(zone); }} showSafetyZones={!publicMode} />
         <div className="pointer-events-none absolute bottom-5 left-0 right-0 z-20 hidden items-center justify-center px-4 sm:flex"><div className="pointer-events-auto w-full max-w-[700px]"><DashboardControls view={view} citizen={citizen} showActions={!publicMode} role={role} search={search} onSearchChange={setSearch} onSearchSubmit={searchLocation} statusFilter={statusFilter} onStatusFilterChange={setStatusFilter} listOpen={listOpen} onToggleList={() => { setListOpen((current) => !current); setReportOpen(false); setSelectedId(null); }} onCreateReport={toggleReportForm} onPickLocation={() => { if (!reportOpen) openReportForm(); else setPinMode((current) => !current); }} pinMode={pinMode} activeFilter={activeFilter} reportOpen={reportOpen} /></div></div>
       </>}
       {view === "map" && <>
         {listOpen && <aside className="absolute bottom-[72px] left-3 right-3 z-30 max-h-[68dvh] overflow-hidden rounded-xl border border-slate-100 bg-white shadow-[0_22px_65px_rgba(15,23,42,0.2)] sm:bottom-auto sm:left-6 sm:right-auto sm:top-24 sm:w-[380px]" aria-label="Daftar laporan"><div className="border-b border-slate-100 px-4 pb-3 pt-4"><div className="flex items-start justify-between gap-3"><div><p className="text-[10px] font-bold uppercase tracking-widest text-[#e62428]">{citizen ? "Riwayat" : "Operasional"}</p><h2 className="mt-1 text-lg font-bold tracking-tight">{citizen ? "Laporan saya" : role === "polisi" ? "Antrian unit" : "Monitoring laporan"}</h2><p className="mt-1 text-[10px] font-bold text-slate-400">{filteredReports.length} laporan sesuai filter</p></div><button type="button" onClick={() => setListOpen(false)} className="grid h-7 w-7 place-items-center rounded-lg text-lg text-slate-400 hover:bg-slate-100" aria-label="Tutup daftar">×</button></div><div className="mt-3 grid grid-cols-4 gap-1 rounded-lg bg-slate-50 p-1 text-center"><div className="rounded-md bg-white py-1.5 shadow-sm"><strong className="block text-sm font-bold">{stats.total}</strong><span className="text-[8px] font-bold uppercase text-slate-400">Total</span></div><div className="py-1.5"><strong className="block text-sm font-bold">{stats.pending}</strong><span className="text-[8px] font-bold uppercase text-slate-400">Masuk</span></div><div className="py-1.5"><strong className="block text-sm font-bold">{stats.inProgress}</strong><span className="text-[8px] font-bold uppercase text-slate-400">Proses</span></div><div className="py-1.5"><strong className="block text-sm font-bold">{stats.resolved}</strong><span className="text-[8px] font-bold uppercase text-slate-400">Selesai</span></div></div></div><div className="max-h-[calc(68dvh-166px)] space-y-2 overflow-y-auto bg-slate-50/70 p-3">{filteredReports.length === 0 ? <p className="px-3 py-10 text-center text-xs font-semibold text-slate-400">Belum ada laporan yang sesuai.</p> : filteredReports.map((report) => <ReportCard key={report.id} report={report} selected={selectedId === report.id} onSelect={() => selectReport(report)} />)}</div></aside>}
         {selectedReport && !reportOpen && <ReportDetail report={selectedReport} role={role} isDesktop={isDesktop} onClose={() => setSelectedId(null)} onStatusChange={(status) => void updateStatus(selectedReport.id, status)} updating={updatingId === selectedReport.id} />}
         {selectedUnit && !reportOpen && <PoliceMapDetail unit={selectedUnit} isDesktop={isDesktop} onClose={() => setSelectedUnit(null)} />}
-        {selectedZone && !reportOpen && <SafetyMapDetail zone={selectedZone} isDesktop={isDesktop} onClose={() => setSelectedZone(null)} onSelectReport={(report) => { setSelectedZone(null); selectReport(report); }} />}
+        {selectedZone && !reportOpen && <SafetyMapDetail zone={selectedZone} isDesktop={isDesktop} onClose={() => setSelectedZone(null)} onSelectReport={(report) => { setSelectedZone(null); setFocusLocation({ latitude: report.latitude, longitude: report.longitude }); selectReport(report); }} />}
         {canReport && <ReportForm open={reportOpen} isDesktop={isDesktop} form={form} setForm={setForm} pinMode={pinMode} setPinMode={setPinMode} submitting={submitting} onSubmit={(event) => void submit(event)} onClose={() => { setReportOpen(false); setPinMode(false); }} onUseLocation={useLocation} error={error} />}
       </>}
       {notice && <div className="absolute left-1/2 top-[6.5rem] z-30 w-[calc(100%-32px)] max-w-md -translate-x-1/2 rounded-lg bg-slate-900 px-4 py-3 text-center text-xs font-bold text-white shadow-xl sm:top-24" role="status">{notice}<button type="button" onClick={() => setNotice(null)} className="ml-3 rounded-md px-1 text-white/60 hover:bg-white/10 hover:text-white" aria-label="Tutup notifikasi">×</button></div>}

@@ -15,7 +15,7 @@ Frontend React + Vite untuk aplikasi `app.gardajakarta.my.id`. Dashboard memakai
 - Petugas polisi dapat melihat antrian unit, membuka detail laporan, dan memperbarui status sesuai unitnya.
 - Admin operasional mendapat tampilan monitoring dan ringkasan agregat tanpa menampilkan data pelapor pada peta publik.
 - Logo, favicon, font Plus Jakarta Sans, warna, dan headline memakai aset resmi Garda Jakarta dari landing.
-- Ilustrasi auth memakai artwork unDraw yang dibundel lokal di `public/illustrations`.
+- Ilustrasi auth memakai artwork SVG custom Garda Jakarta yang dibundel lokal di `public/illustrations`.
 
 Referensi pola form: [Height](https://mobbin.com/screens/d239582f-ad2a-4c53-a257-5fa698fc1e78) dan [n8n](https://mobbin.com/screens/9c2f0990-b099-4801-bb97-61d53d6d5f8d) di Mobbin. Identitas visual mengikuti landing Garda Jakarta.
 
@@ -66,7 +66,7 @@ Konfigurasi service tersimpan di Railway: build `npm run build`, start `npm star
 | `src/context` | Bootstrap dan state session |
 | `src/lib/api.ts` | Client request dengan `credentials: include` |
 | `src/styles.css` | Token visual landing dan layout auth/portal |
-| `public/illustrations` | Artwork unDraw dan kredit sumber |
+| `public/illustrations` | Artwork SVG custom Garda Jakarta |
 
 ## Batasan tahap awal
 

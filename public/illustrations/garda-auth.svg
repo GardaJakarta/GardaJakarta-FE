@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 720" role="img" aria-labelledby="title desc">
+  <title id="title">Garda Jakarta menjaga kota</title>
+  <desc id="desc">Ilustrasi peta Jakarta dengan penanda keamanan dan perisai Garda Jakarta</desc>
+  <rect width="960" height="720" rx="32" fill="#e62428"/>
+  <path d="M0 560 180 438l148 70 168-112 186 76 278-168v416H0Z" fill="#c91d22" opacity=".65"/>
+  <path d="M0 594 176 474l142 72 178-122 192 76 272-170" fill="none" stroke="#ff746d" stroke-width="8" opacity=".55"/>
+  <g fill="#fff" opacity=".9"><circle cx="92" cy="92" r="8"/><circle cx="120" cy="92" r="8"/><circle cx="148" cy="92" r="8"/><circle cx="92" cy="120" r="8"/><circle cx="120" cy="120" r="8"/><circle cx="148" cy="120" r="8"/><circle cx="92" cy="148" r="8"/><circle cx="120" cy="148" r="8"/><circle cx="148" cy="148" r="8"/></g>
+  <g transform="translate(132 150)">
+    <rect width="520" height="360" rx="24" fill="#f8f5ee"/>
+    <path d="M40 84h440M40 168h440M40 252h440M112 32v296M224 32v296M348 32v296" stroke="#d9d5cd" stroke-width="4"/>
+    <path d="m50 286 130-90 84 40 112-92 106 68" fill="none" stroke="#3c876c" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M192 86c0-34 27-61 61-61s61 27 61 61c0 50-61 108-61 108s-61-58-61-108Z" fill="#e62428"/>
+    <circle cx="253" cy="85" r="23" fill="#fff"/>
+    <path d="m246 85 7 7 14-16" fill="none" stroke="#e62428" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="112" cy="288" r="16" fill="#f0c94c"/><circle cx="418" cy="128" r="16" fill="#e62428"/>
+  </g>
+  <g transform="translate(620 178)">
+    <path d="M120 0 232 42v99c0 83-47 140-112 171C55 281 8 224 8 141V42L120 0Z" fill="#171f30"/>
+    <path d="M120 32 202 62v76c0 60-31 103-82 130-51-27-82-70-82-130V62l82-30Z" fill="#f8f5ee"/>
+    <path d="M120 70v140M70 120h100" stroke="#e62428" stroke-width="18" stroke-linecap="round"/>
+  </g>
+  <path d="M608 622h232" stroke="#fff" stroke-width="10" stroke-linecap="round" opacity=".9"/>
+  <path d="M608 650h142" stroke="#ffb0aa" stroke-width="8" stroke-linecap="round"/>
+</svg>

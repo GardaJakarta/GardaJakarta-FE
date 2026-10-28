@@ -56,7 +56,7 @@ export default function AuthShell({
   return (
     <main className={`auth-page auth-page-${mode}`}>
       <section className="auth-panel auth-panel-brand">
-        <img className="auth-banner" src="/banner.png" alt="Garda Jakarta" />
+        <img className="auth-banner" src="/illustrations/garda-auth.svg" alt="Ilustrasi Garda Jakarta menjaga kota" />
       </section>
       <motion.section
         className="auth-panel auth-panel-form"

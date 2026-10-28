@@ -149,7 +149,8 @@ a:focus-visible, button:focus-visible { outline: 3px solid #e62428; outline-offs
 .dashboard-table td { padding: 15px 18px; border-bottom: 1px solid #ededE8; vertical-align: top; }
 .dashboard-table td small { display: block; margin-top: 5px; color: #888; }
 .dashboard-table select { min-width: 125px; padding: 8px 9px; font-size: 11px; }
-.status-badge { display: inline-flex; padding: 5px 8px; border-radius: 999px; font-size: 10px; font-weight: 800; white-space: nowrap; }
+.status-badge { display: inline-flex; align-items: center; gap: 5px; padding: 5px 8px; border-radius: 999px; font-size: 10px; font-weight: 800; white-space: nowrap; }
+.status-badge > span { display: inline-grid; width: 13px; height: 13px; place-items: center; border-radius: 50%; background: currentColor; color: #fff; font-size: 9px; line-height: 1; }
 .status-pending { color: #8a5a00; background: #fff1c9; }.status-verified { color: #135d86; background: #ddf2ff; }.status-in_progress { color: #8b4b08; background: #ffead0; }.status-resolved { color: #176741; background: #dcf7e8; }.status-rejected { color: #922029; background: #ffe3e3; }
 .dashboard-empty { padding: 28px; color: #85857e; font-size: 13px; }
 .dashboard-report-list { display: grid; }
