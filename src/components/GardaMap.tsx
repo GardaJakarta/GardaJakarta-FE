@@ -17,6 +17,7 @@ type GardaMapProps = {
   onSelectUnit?: (unit: PoliceUnit) => void;
   onSelectSafetyZone?: (zone: { reports: IncidentReport[]; level: string; score: number }) => void;
   userLocation?: { latitude: number; longitude: number } | null;
+  followUser?: boolean;
   focusLocation?: { latitude: number; longitude: number } | null;
   draftLocation?: { latitude: number; longitude: number };
   draftActive?: boolean;
@@ -119,7 +120,7 @@ function userLocationElement() {
   return element;
 }
 
-function GardaMap({ units, reports, className, onMapClick, onSelectReport, onSelectUnit, onSelectSafetyZone, userLocation, focusLocation, draftLocation, draftActive = false, onDraftLocationChange, interactive = true, showSafetyZones = true }: GardaMapProps) {
+function GardaMap({ units, reports, className, onMapClick, onSelectReport, onSelectUnit, onSelectSafetyZone, userLocation, followUser = true, focusLocation, draftLocation, draftActive = false, onDraftLocationChange, interactive = true, showSafetyZones = true }: GardaMapProps) {
   const draftLatitude = draftLocation?.latitude;
   const draftLongitude = draftLocation?.longitude;
   const containerRef = useRef<HTMLDivElement>(null);
@@ -129,6 +130,7 @@ function GardaMap({ units, reports, className, onMapClick, onSelectReport, onSel
   const draftLocationRef = useRef({ latitude: draftLatitude, longitude: draftLongitude });
   const markersRef = useRef<Marker[]>([]);
   const draftMarkerRef = useRef<Marker | null>(null);
+  const userMarkerRef = useRef<Marker | null>(null);
   const onMapClickRef = useRef(onMapClick);
   const onSelectReportRef = useRef(onSelectReport);
   const onSelectUnitRef = useRef(onSelectUnit);
@@ -173,6 +175,7 @@ function GardaMap({ units, reports, className, onMapClick, onSelectReport, onSel
     map.on("click", (event: maplibregl.MapMouseEvent) => {
       const target = event.originalEvent.target as Element | null;
       if (target?.closest(".garda-map-marker")) return;
+      if (map.getLayer(SAFETY_FILL_ID) && map.queryRenderedFeatures(event.point, { layers: [SAFETY_FILL_ID] }).length > 0) return;
       onMapClickRef.current?.({ latitude: event.lngLat.lat, longitude: event.lngLat.lng });
     });
     map.once("load", () => setMapReady(true));
@@ -183,6 +186,8 @@ function GardaMap({ units, reports, className, onMapClick, onSelectReport, onSel
       markersRef.current = [];
       draftMarkerRef.current?.remove();
       draftMarkerRef.current = null;
+      userMarkerRef.current?.remove();
+      userMarkerRef.current = null;
       map.remove();
       mapRef.current = null;
     };
@@ -255,10 +260,10 @@ function GardaMap({ units, reports, className, onMapClick, onSelectReport, onSel
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReady || !userLocation) return;
-    map.easeTo({ center: [userLocation.longitude, userLocation.latitude], duration: 550, essential: true });
-    const marker = new maplibregl.Marker({ element: userLocationElement(), anchor: "center" }).setLngLat([userLocation.longitude, userLocation.latitude]).addTo(map);
-    return () => { marker.remove(); };
-  }, [mapReady, userLocation]);
+    if (followUser) map.easeTo({ center: [userLocation.longitude, userLocation.latitude], duration: 550, essential: true });
+    if (!userMarkerRef.current) userMarkerRef.current = new maplibregl.Marker({ element: userLocationElement(), anchor: "center" }).setLngLat([userLocation.longitude, userLocation.latitude]).addTo(map);
+    else userMarkerRef.current.setLngLat([userLocation.longitude, userLocation.latitude]);
+  }, [followUser, mapReady, userLocation]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -338,6 +343,7 @@ function areMapPropsEqual(previous: GardaMapProps, next: GardaMapProps) {
     && previous.onSelectSafetyZone === next.onSelectSafetyZone
     && previous.userLocation?.latitude === next.userLocation?.latitude
     && previous.userLocation?.longitude === next.userLocation?.longitude
+    && previous.followUser === next.followUser
     && previous.focusLocation?.latitude === next.focusLocation?.latitude
     && previous.focusLocation?.longitude === next.focusLocation?.longitude
     && previous.onDraftLocationChange === next.onDraftLocationChange;
