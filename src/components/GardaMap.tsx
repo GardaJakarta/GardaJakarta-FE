@@ -19,6 +19,7 @@ type GardaMapProps = {
   draftActive?: boolean;
   onDraftLocationChange?: (coordinates: { latitude: number; longitude: number }) => void;
   interactive?: boolean;
+  showSafetyZones?: boolean;
 };
 
 const SAFETY_SOURCE_ID = "garda-safety-zones";
@@ -54,7 +55,9 @@ function buildSafetyZones(reports: IncidentReport[]) {
   }));
 }
 
-function safetyGeoJson(reports: IncidentReport[]): GeoJSON.FeatureCollection<GeoJSON.Polygon, { level: string; count: number; score: number }> {
+type SafetyProperties = { level: string; count: number; score: number; reports: string };
+
+function safetyGeoJson(reports: IncidentReport[]): GeoJSON.FeatureCollection<GeoJSON.Polygon, SafetyProperties> {
   return {
     type: "FeatureCollection",
     features: buildSafetyZones(reports).map((zone) => {
@@ -65,7 +68,16 @@ function safetyGeoJson(reports: IncidentReport[]): GeoJSON.FeatureCollection<Geo
         const angle = (Math.PI * 2 * index) / 6;
         return [longitude + Math.cos(angle) * radius, latitude + Math.sin(angle) * radius * 0.82] as [number, number];
       });
-      return { type: "Feature", properties: { level: safetyLevel(score), count: zone.reports.length, score: Number(score.toFixed(1)) }, geometry: { type: "Polygon", coordinates: [coordinates] } };
+      return {
+        type: "Feature",
+        properties: {
+          level: safetyLevel(score),
+          count: zone.reports.length,
+          score: Number(score.toFixed(1)),
+          reports: JSON.stringify(zone.reports.map((report) => ({ ticketNumber: report.ticketNumber, category: report.category, status: report.status }))),
+        },
+        geometry: { type: "Polygon", coordinates: [coordinates] },
+      };
     }),
   };
 }
@@ -116,7 +128,25 @@ function popupContent(title: string, subtitle: string, photoUrl?: string | null)
   return wrapper;
 }
 
-function GardaMap({ units, reports, className, onMapClick, onSelectReport, onSelectUnit, draftLocation, draftActive = false, onDraftLocationChange, interactive = true }: GardaMapProps) {
+function safetyPopupContent(properties: SafetyProperties) {
+  const wrapper = popupContent("Indeks keamanan area", `${properties.count} laporan · perhatian ${properties.level} · skor ${properties.score}/4`);
+  const reports = (() => {
+    try { return JSON.parse(properties.reports) as Array<{ ticketNumber: string; category: string; status: string }>; } catch { return []; }
+  })();
+  if (reports.length) {
+    const list = document.createElement("ul");
+    list.className = "mt-2 grid gap-1 border-t border-slate-200 pt-2 pl-4 text-[10px] leading-snug text-slate-600";
+    reports.forEach((report) => {
+      const item = document.createElement("li");
+      item.textContent = `${report.category} · ${report.ticketNumber} · ${report.status}`;
+      list.appendChild(item);
+    });
+    wrapper.appendChild(list);
+  }
+  return wrapper;
+}
+
+function GardaMap({ units, reports, className, onMapClick, onSelectReport, onSelectUnit, draftLocation, draftActive = false, onDraftLocationChange, interactive = true, showSafetyZones = true }: GardaMapProps) {
   const draftLatitude = draftLocation?.latitude;
   const draftLongitude = draftLocation?.longitude;
   const containerRef = useRef<HTMLDivElement>(null);
@@ -186,6 +216,12 @@ function GardaMap({ units, reports, className, onMapClick, onSelectReport, onSel
     if (!map || !mapReady) return;
     const syncSafetyZones = () => {
       if (!map.isStyleLoaded()) return;
+      if (!showSafetyZones) {
+        if (map.getLayer(SAFETY_FILL_ID)) map.removeLayer(SAFETY_FILL_ID);
+        if (map.getLayer(SAFETY_OUTLINE_ID)) map.removeLayer(SAFETY_OUTLINE_ID);
+        if (map.getSource(SAFETY_SOURCE_ID)) map.removeSource(SAFETY_SOURCE_ID);
+        return;
+      }
       const data = safetyGeoJson(reports);
       const source = map.getSource(SAFETY_SOURCE_ID) as GeoJSONSource | undefined;
       if (source) source.setData(data);
@@ -196,8 +232,8 @@ function GardaMap({ units, reports, className, onMapClick, onSelectReport, onSel
         map.on("click", SAFETY_FILL_ID, (event) => {
           const feature = event.features?.[0];
           if (!feature) return;
-          const properties = feature.properties as { level: string; count: number; score: number };
-          new maplibregl.Popup({ offset: 12 }).setLngLat(event.lngLat).setDOMContent(popupContent("Indeks keamanan area", `${properties.count} laporan · perhatian ${properties.level} · skor ${properties.score}/4`)).addTo(map);
+          const properties = feature.properties as SafetyProperties;
+          new maplibregl.Popup({ offset: 12 }).setLngLat(event.lngLat).setDOMContent(safetyPopupContent(properties)).addTo(map);
         });
         map.on("mouseenter", SAFETY_FILL_ID, () => { map.getCanvas().style.cursor = "pointer"; });
         map.on("mouseleave", SAFETY_FILL_ID, () => { map.getCanvas().style.cursor = ""; });
@@ -209,24 +245,32 @@ function GardaMap({ units, reports, className, onMapClick, onSelectReport, onSel
     markersRef.current = [];
     units.forEach((unit) => {
       const element = markerElement("police");
-      element.addEventListener("click", (event) => { event.stopPropagation(); onSelectUnitRef.current?.(unit); });
       const marker = new maplibregl.Marker({ element, anchor: "center" })
         .setLngLat([unit.longitude, unit.latitude])
         .setPopup(new maplibregl.Popup({ offset: 18, closeButton: true }).setDOMContent(popupContent(unit.name, `${unit.district} · ${unit.address}`, unit.photoUrl)))
         .addTo(map);
+      element.addEventListener("click", (event) => {
+        event.stopPropagation();
+        onSelectUnitRef.current?.(unit);
+        marker.togglePopup();
+      });
       markersRef.current.push(marker);
     });
     reports.forEach((report) => {
       const element = markerElement("report", report.severity);
-      element.addEventListener("click", (event) => { event.stopPropagation(); onSelectReportRef.current?.(report); });
       const marker = new maplibregl.Marker({ element, anchor: "center" })
         .setLngLat([report.longitude, report.latitude])
         .setPopup(new maplibregl.Popup({ offset: 14 }).setDOMContent(popupContent(report.category, `${report.ticketNumber} · ${report.status}`)))
         .addTo(map);
+      element.addEventListener("click", (event) => {
+        event.stopPropagation();
+        onSelectReportRef.current?.(report);
+        marker.togglePopup();
+      });
       markersRef.current.push(marker);
     });
     return () => { map.off("load", syncSafetyZones); };
-  }, [mapReady, reports, units]);
+  }, [mapReady, reports, showSafetyZones, units]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -290,6 +334,7 @@ function areMapPropsEqual(previous: GardaMapProps, next: GardaMapProps) {
     && previous.reports === next.reports
     && previous.className === next.className
     && previous.interactive === next.interactive
+    && previous.showSafetyZones === next.showSafetyZones
     && previous.draftActive === next.draftActive
     && previous.draftLocation?.latitude === next.draftLocation?.latitude
     && previous.draftLocation?.longitude === next.draftLocation?.longitude

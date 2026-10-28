@@ -187,22 +187,17 @@ a:focus-visible, button:focus-visible { outline: 3px solid #e62428; outline-offs
 }
 
 
-/* MapLibre DOM marker and popup primitives. The layered circles match the LaporPak marker language. */
-.garda-map-marker { position: relative; display: grid; width: 42px; height: 42px; place-items: center; border: 0; border-radius: 999px; color: #fff; background: transparent; box-shadow: none; cursor: pointer; }
-.garda-map-marker::before { position: absolute; inset: 2px; border-radius: 999px; background: rgba(31,107,146,.2); content: ""; }
-.garda-map-marker span { position: relative; z-index: 1; display: grid; width: 30px; height: 30px; place-items: center; border: 2px solid #fff; border-radius: 999px; background: #1f6b92; box-shadow: 0 6px 16px rgba(23,23,23,.26); transition: transform .18s ease, box-shadow .18s ease; }
-.garda-map-marker:hover span, .garda-map-marker:focus-visible span { transform: translateY(-2px) scale(1.04); box-shadow: 0 8px 20px rgba(23,23,23,.3); }
-.garda-map-marker svg { width: 16px; height: 16px; fill: currentColor; }
-.garda-map-marker img { display: block; width: 16px; height: 16px; }
-.garda-map-marker-report::before { background: rgba(230,36,40,.2); }
+/* Garda's map pins use a tilted shield tile so map markers stay branded without generic bubble halos. */
+.garda-map-marker { position: relative; display: grid; width: 44px; height: 48px; place-items: center; border: 0; color: #fff; background: transparent; box-shadow: none; cursor: pointer; }
+.garda-map-marker span { position: relative; z-index: 1; display: grid; width: 34px; height: 34px; place-items: center; border: 2px solid #fff; border-radius: 13px 13px 13px 4px; background: #1f6b92; box-shadow: 0 7px 16px rgba(23,23,23,.25); transform: rotate(-45deg); transition: transform .18s ease, box-shadow .18s ease; }
+.garda-map-marker:hover span, .garda-map-marker:focus-visible span { transform: rotate(-45deg) translateY(-2px) scale(1.05); box-shadow: 0 9px 20px rgba(23,23,23,.3); }
+.garda-map-marker svg { width: 16px; height: 16px; fill: currentColor; transform: rotate(45deg); }
+.garda-map-marker img { display: block; width: 17px; height: 17px; transform: rotate(45deg); }
 .garda-map-marker-report span { background: #e62428; }
-.garda-map-marker-p0::before { background: rgba(153,27,27,.22); }
 .garda-map-marker-p0 span { background: #991b1b; }
-.garda-map-marker-p1::before { background: rgba(196,87,25,.22); }
 .garda-map-marker-p1 span { background: #c45719; }
-.garda-map-marker-draft { width: 48px; height: 48px; pointer-events: auto; touch-action: none; cursor: grab; user-select: none; }
-.garda-map-marker-draft::before { inset: 1px; background: rgba(230,36,40,.2); }
-.garda-map-marker-draft span { width: 34px; height: 34px; background: #e62428; box-shadow: 0 8px 20px rgba(230,36,40,.34); }
+.garda-map-marker-draft { width: 48px; height: 52px; pointer-events: auto; touch-action: none; cursor: grab; user-select: none; }
+.garda-map-marker-draft span { width: 38px; height: 38px; background: #e62428; box-shadow: 0 8px 20px rgba(230,36,40,.34); }
 .garda-map-marker-draft:active { cursor: grabbing; }
 .garda-map-marker-draft svg { width: 20px; height: 20px; fill: none; }
 .garda-map-marker-draft img { display: block; width: 20px; height: 20px; }
@@ -210,3 +205,4 @@ a:focus-visible, button:focus-visible { outline: 3px solid #e62428; outline-offs
 .garda-map-popup img { width: 100%; height: 112px; border-radius: 5px; object-fit: cover; }
 .garda-map-popup strong { font-size: 13px; line-height: 1.25; }
 .garda-map-popup span { color: #777; font-size: 11px; }
+
