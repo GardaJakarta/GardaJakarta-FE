@@ -15,6 +15,9 @@ type GardaMapProps = {
   onMapClick?: (coordinates: { latitude: number; longitude: number }) => void;
   onSelectReport?: (report: IncidentReport) => void;
   onSelectUnit?: (unit: PoliceUnit) => void;
+  onSelectSafetyZone?: (zone: { reports: IncidentReport[]; level: string; score: number }) => void;
+  userLocation?: { latitude: number; longitude: number } | null;
+  focusLocation?: { latitude: number; longitude: number } | null;
   draftLocation?: { latitude: number; longitude: number };
   draftActive?: boolean;
   onDraftLocationChange?: (coordinates: { latitude: number; longitude: number }) => void;
@@ -108,45 +111,15 @@ function draftMarkerElement() {
   return element;
 }
 
-function popupContent(title: string, subtitle: string, photoUrl?: string | null) {
-  const wrapper = document.createElement("div");
-  wrapper.className = "garda-map-popup";
-  if (photoUrl) {
-    const image = document.createElement("img");
-    image.src = photoUrl;
-    image.alt = title;
-    image.loading = "lazy";
-    image.referrerPolicy = "no-referrer";
-    image.addEventListener("error", () => image.remove());
-    wrapper.appendChild(image);
-  }
-  const heading = document.createElement("strong");
-  heading.textContent = title;
-  const copy = document.createElement("span");
-  copy.textContent = subtitle;
-  wrapper.append(heading, copy);
-  return wrapper;
+function userLocationElement() {
+  const element = document.createElement("div");
+  element.className = "garda-user-location";
+  element.setAttribute("aria-label", "Lokasi Anda");
+  element.innerHTML = '<span aria-hidden="true"></span>';
+  return element;
 }
 
-function safetyPopupContent(properties: SafetyProperties) {
-  const wrapper = popupContent("Indeks keamanan area", `${properties.count} laporan · perhatian ${properties.level} · skor ${properties.score}/4`);
-  const reports = (() => {
-    try { return JSON.parse(properties.reports) as Array<{ ticketNumber: string; category: string; status: string }>; } catch { return []; }
-  })();
-  if (reports.length) {
-    const list = document.createElement("ul");
-    list.className = "mt-2 grid gap-1 border-t border-slate-200 pt-2 pl-4 text-[10px] leading-snug text-slate-600";
-    reports.forEach((report) => {
-      const item = document.createElement("li");
-      item.textContent = `${report.category} · ${report.ticketNumber} · ${report.status}`;
-      list.appendChild(item);
-    });
-    wrapper.appendChild(list);
-  }
-  return wrapper;
-}
-
-function GardaMap({ units, reports, className, onMapClick, onSelectReport, onSelectUnit, draftLocation, draftActive = false, onDraftLocationChange, interactive = true, showSafetyZones = true }: GardaMapProps) {
+function GardaMap({ units, reports, className, onMapClick, onSelectReport, onSelectUnit, onSelectSafetyZone, userLocation, focusLocation, draftLocation, draftActive = false, onDraftLocationChange, interactive = true, showSafetyZones = true }: GardaMapProps) {
   const draftLatitude = draftLocation?.latitude;
   const draftLongitude = draftLocation?.longitude;
   const containerRef = useRef<HTMLDivElement>(null);
@@ -159,6 +132,8 @@ function GardaMap({ units, reports, className, onMapClick, onSelectReport, onSel
   const onMapClickRef = useRef(onMapClick);
   const onSelectReportRef = useRef(onSelectReport);
   const onSelectUnitRef = useRef(onSelectUnit);
+  const onSelectSafetyZoneRef = useRef(onSelectSafetyZone);
+  const reportsRef = useRef(reports);
   const onDraftLocationChangeRef = useRef(onDraftLocationChange);
 
   useEffect(() => {
@@ -169,8 +144,10 @@ function GardaMap({ units, reports, className, onMapClick, onSelectReport, onSel
     onMapClickRef.current = onMapClick;
     onSelectReportRef.current = onSelectReport;
     onSelectUnitRef.current = onSelectUnit;
+    onSelectSafetyZoneRef.current = onSelectSafetyZone;
+    reportsRef.current = reports;
     onDraftLocationChangeRef.current = onDraftLocationChange;
-  }, [onDraftLocationChange, onMapClick, onSelectReport, onSelectUnit]);
+  }, [onDraftLocationChange, onMapClick, onSelectReport, onSelectSafetyZone, onSelectUnit, reports]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -233,7 +210,14 @@ function GardaMap({ units, reports, className, onMapClick, onSelectReport, onSel
           const feature = event.features?.[0];
           if (!feature) return;
           const properties = feature.properties as SafetyProperties;
-          new maplibregl.Popup({ offset: 12 }).setLngLat(event.lngLat).setDOMContent(safetyPopupContent(properties)).addTo(map);
+          let zoneReports: IncidentReport[] = [];
+          try {
+            const raw = properties.reports as unknown;
+            const summaries = Array.isArray(raw) ? raw as Array<{ ticketNumber: string }> : JSON.parse(String(raw)) as Array<{ ticketNumber: string }>;
+            const tickets = new Set(summaries.map((summary) => summary.ticketNumber));
+            zoneReports = reportsRef.current.filter((report) => tickets.has(report.ticketNumber));
+          } catch { /* Ignore malformed map properties. */ }
+          onSelectSafetyZoneRef.current?.({ reports: zoneReports, level: properties.level, score: properties.score });
         });
         map.on("mouseenter", SAFETY_FILL_ID, () => { map.getCanvas().style.cursor = "pointer"; });
         map.on("mouseleave", SAFETY_FILL_ID, () => { map.getCanvas().style.cursor = ""; });
@@ -247,12 +231,10 @@ function GardaMap({ units, reports, className, onMapClick, onSelectReport, onSel
       const element = markerElement("police");
       const marker = new maplibregl.Marker({ element, anchor: "center" })
         .setLngLat([unit.longitude, unit.latitude])
-        .setPopup(new maplibregl.Popup({ offset: 18, closeButton: true }).setDOMContent(popupContent(unit.name, `${unit.district} · ${unit.address}`, unit.photoUrl)))
         .addTo(map);
       element.addEventListener("click", (event) => {
         event.stopPropagation();
         onSelectUnitRef.current?.(unit);
-        marker.togglePopup();
       });
       markersRef.current.push(marker);
     });
@@ -260,17 +242,28 @@ function GardaMap({ units, reports, className, onMapClick, onSelectReport, onSel
       const element = markerElement("report", report.severity);
       const marker = new maplibregl.Marker({ element, anchor: "center" })
         .setLngLat([report.longitude, report.latitude])
-        .setPopup(new maplibregl.Popup({ offset: 14 }).setDOMContent(popupContent(report.category, `${report.ticketNumber} · ${report.status}`)))
         .addTo(map);
       element.addEventListener("click", (event) => {
         event.stopPropagation();
         onSelectReportRef.current?.(report);
-        marker.togglePopup();
       });
       markersRef.current.push(marker);
     });
     return () => { map.off("load", syncSafetyZones); };
   }, [mapReady, reports, showSafetyZones, units]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady || !userLocation) return;
+    const marker = new maplibregl.Marker({ element: userLocationElement(), anchor: "center" }).setLngLat([userLocation.longitude, userLocation.latitude]).addTo(map);
+    return () => { marker.remove(); };
+  }, [mapReady, userLocation]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady || !focusLocation) return;
+    map.flyTo({ center: [focusLocation.longitude, focusLocation.latitude], zoom: Math.max(map.getZoom(), 14), essential: true });
+  }, [focusLocation, mapReady]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -341,6 +334,11 @@ function areMapPropsEqual(previous: GardaMapProps, next: GardaMapProps) {
     && previous.onMapClick === next.onMapClick
     && previous.onSelectReport === next.onSelectReport
     && previous.onSelectUnit === next.onSelectUnit
+    && previous.onSelectSafetyZone === next.onSelectSafetyZone
+    && previous.userLocation?.latitude === next.userLocation?.latitude
+    && previous.userLocation?.longitude === next.userLocation?.longitude
+    && previous.focusLocation?.latitude === next.focusLocation?.latitude
+    && previous.focusLocation?.longitude === next.focusLocation?.longitude
     && previous.onDraftLocationChange === next.onDraftLocationChange;
 }
 

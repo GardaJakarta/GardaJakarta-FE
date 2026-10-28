@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type FormEvent, type PointerEvent as ReactPointerEvent, type SetStateAction } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type FormEvent, type PointerEvent as ReactPointerEvent, type ReactNode, type SetStateAction } from "react";
 import { AnimatePresence, motion, useDragControls } from "motion/react";
 import GardaMap from "../components/GardaMap";
 import AppLogo from "../components/branding/AppLogo";
 import { useAuth } from "../context/useAuth";
-import { createReport, getDashboard, getPublicMap, updatePoliceReportStatus } from "../lib/api";
+import { createReport, getDashboard, getPublicMap, getReportFeed, updatePoliceReportStatus } from "../lib/api";
 import { portalPaths } from "../lib/portals";
 import type { DashboardData, IncidentReport, PoliceUnit, ReportSeverity, ReportStatus } from "../types";
 
@@ -33,6 +33,7 @@ const categories = [
 ];
 const statusFilters: StatusFilter[] = ["ALL", "PENDING", "VERIFIED", "IN_PROGRESS", "RESOLVED", "REJECTED"];
 const EMPTY_REPORTS: DashboardData["reports"] = [];
+type SafetySelection = { reports: IncidentReport[]; level: string; score: number };
 
 function roleLabel(role: DashboardData["role"] | undefined) {
   return role === "polisi" ? "Petugas polisi" : role === "admin" ? "Admin operasional" : "Warga";
@@ -237,6 +238,7 @@ type DashboardControlsProps = {
   role: DashboardData["role"];
   search: string;
   onSearchChange: (value: string) => void;
+  onSearchSubmit?: () => void;
   statusFilter: StatusFilter;
   onStatusFilterChange: (value: StatusFilter) => void;
   listOpen: boolean;
@@ -248,11 +250,11 @@ type DashboardControlsProps = {
   reportOpen: boolean;
 };
 
-function DashboardControls({ mobile = false, view, citizen, showActions = true, role, search, onSearchChange, statusFilter, onStatusFilterChange, listOpen, onToggleList, onCreateReport, onPickLocation, pinMode, activeFilter, reportOpen }: DashboardControlsProps) {
+function DashboardControls({ mobile = false, view, citizen, showActions = true, role, search, onSearchChange, onSearchSubmit, statusFilter, onStatusFilterChange, listOpen, onToggleList, onCreateReport, onPickLocation, pinMode, activeFilter, reportOpen }: DashboardControlsProps) {
   const controlRadius = "rounded-lg";
   const input = <div className={`${mobile ? "h-8" : "min-h-10"} flex min-w-0 flex-1 items-center gap-2 ${controlRadius} border border-gray-200 bg-gray-50 px-3 py-1 transition-all focus-within:border-[#e62428] focus-within:bg-white focus-within:ring-2 focus-within:ring-red-100`}>
     <svg className="h-4 w-4 shrink-0 text-[#e62428]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></svg>
-    <input aria-label={view === "map" ? "Cari lokasi atau laporan" : "Cari isu"} value={search} onChange={(event) => onSearchChange(event.target.value)} placeholder={view === "map" ? "Cari lokasi..." : "Cari isu..."} className="min-w-0 w-full bg-transparent py-1.5 text-xs font-bold text-gray-900 outline-none placeholder:text-gray-400" />
+    <input aria-label={view === "map" ? "Cari lokasi atau laporan" : "Cari isu"} value={search} onChange={(event) => onSearchChange(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") onSearchSubmit?.(); }} placeholder={view === "map" ? "Cari lokasi atau laporan..." : "Cari isu..."} className="min-w-0 w-full bg-transparent py-1.5 text-xs font-bold text-gray-900 outline-none placeholder:text-gray-400" />
   </div>;
   const buttonHeight = mobile ? "h-8" : "h-9";
   const pinButton = showActions && citizen && <button type="button" onClick={onPickLocation} className={`inline-flex ${buttonHeight} min-w-0 items-center justify-center gap-1.5 ${controlRadius} px-2 text-[10px] font-black transition-colors ${pinMode ? "bg-[#e62428] text-white shadow-sm" : "border border-gray-100 bg-white text-gray-600 hover:bg-gray-100"}`} aria-label="Tandai lokasi laporan"><PinIcon /><span className={mobile ? "truncate" : "hidden sm:inline"}>{pinMode ? "Pilih" : "Tandai"}</span></button>;
@@ -321,6 +323,21 @@ function AdminReportsTable({ reports, selectedId, onSelect }: { reports: Inciden
   </div>;
 }
 
+function InfiniteReportList({ reports, selectedId, onSelect, hasMore, loading, onLoadMore }: { reports: IncidentReport[]; selectedId: string | null; onSelect: (report: IncidentReport) => void; hasMore: boolean; loading: boolean; onLoadMore: () => void }) {
+  const [visibleCount, setVisibleCount] = useState(10);
+  const visibleReports = reports.slice(0, visibleCount);
+  return <div className="flex max-h-[calc(100dvh-290px)] flex-col gap-4 overflow-y-auto pr-1" onScroll={(event) => {
+    const target = event.currentTarget;
+    if (target.scrollTop + target.clientHeight >= target.scrollHeight - 160) {
+      if (visibleCount < reports.length) setVisibleCount((current) => Math.min(current + 10, reports.length));
+      else if (hasMore && !loading) onLoadMore();
+    }
+  }}>
+    {reports.length === 0 ? <div className="mt-8 flex min-h-[260px] flex-col items-center justify-center px-6 text-center"><div className="mb-4 grid h-14 w-14 place-items-center rounded-full bg-gray-100 text-gray-400"><ListIcon /></div><p className="text-sm font-black text-gray-800">Belum ada isu yang cocok</p></div> : visibleReports.map((report) => <ReportCard key={report.id} report={report} selected={selectedId === report.id} onSelect={() => onSelect(report)} />)}
+    {(visibleCount < reports.length || hasMore || loading) && <div className="flex items-center justify-center gap-2 py-3 text-[10px] font-bold text-slate-400" role="status"><span className="garda-loader h-3 w-3" /> {loading ? "Memuat laporan berikutnya..." : "Gulir untuk memuat laporan berikutnya"}</div>}
+  </div>;
+}
+
 function ReportDetail({ report, role, isDesktop, onClose, onStatusChange, updating }: { report: IncidentReport; role: DashboardData["role"]; isDesktop: boolean; onClose: () => void; onStatusChange: (status: Exclude<ReportStatus, "PENDING">) => void; updating: boolean }) {
   // Keep the draft pin visible above the mobile sheet so it can be dragged directly.
   const [sheetHeight, setSheetHeight] = useState(45);
@@ -373,6 +390,32 @@ function ReportDetail({ report, role, isDesktop, onClose, onStatusChange, updati
   };
   const canUpdate = role === "polisi" && report.status !== "RESOLVED" && report.status !== "REJECTED";
   return <aside style={{ transform: isDesktop ? `translateX(${desktopOffset}px)` : undefined, height: isDesktop ? undefined : `${sheetHeight}dvh` }} className={`${isDesktop ? "absolute right-6 top-[7vh] h-[calc(100dvh-120px)] min-h-[400px] w-[400px] min-w-[320px] max-w-[calc(100vw-2rem)] rounded-sm" : "fixed bottom-0 left-0 right-0 max-h-[88dvh] w-full rounded-t-2xl rounded-b-none"} z-40 overflow-y-auto border border-slate-100 bg-white p-6 shadow-[0_22px_65px_rgba(15,23,42,0.2)]`} aria-live="polite">{!isDesktop && <div onPointerDown={startDrag} className="-mx-6 -mt-6 mb-4 flex h-8 touch-none cursor-grab items-center justify-center border-b border-slate-100 active:cursor-grabbing"><span className="h-1.5 w-11 rounded-full bg-slate-200" /></div>}<button type="button" onClick={onClose} className="absolute right-4 top-4 grid h-7 w-7 place-items-center rounded-full text-lg leading-none text-slate-400 hover:bg-slate-100 hover:text-slate-800" aria-label="Tutup detail">×</button><div onPointerDown={startDrag} className={`flex items-start justify-between gap-4 border-b border-slate-100 pb-4 touch-none ${isDesktop ? "cursor-move active:cursor-grabbing" : ""}`}><div className="pr-8"><div className="flex flex-wrap items-center gap-2"><StatusBadge status={report.status} /><SeverityBadge severity={report.severity} /></div><h2 className="mt-3 text-xl font-bold leading-tight tracking-tight text-slate-950">{report.category}</h2><p className="mt-1 text-[11px] font-semibold text-slate-400">{report.ticketNumber} · diperbarui {formatTime(report.updatedAt)}</p></div></div><div className="mt-5 grid gap-3 text-xs"><div><span className="block text-[10px] font-bold uppercase tracking-widest text-slate-400">Wilayah penanganan</span><strong className="mt-1 block text-slate-800">{report.policeUnit?.name || "Belum ditentukan"}</strong><span className="mt-0.5 block text-slate-500">{report.policeUnit?.district || "Akan ditentukan oleh petugas"}</span></div><div><span className="block text-[10px] font-bold uppercase tracking-widest text-slate-400">Lokasi laporan</span><span className="mt-1 block text-slate-600">Area dianonimkan pada tampilan publik · {report.latitude.toFixed(3)}, {report.longitude.toFixed(3)}</span></div>{report.description && <div><span className="block text-[10px] font-bold uppercase tracking-widest text-slate-400">Kronologi</span><p className="mt-1 whitespace-pre-wrap leading-relaxed text-slate-600">{report.description}</p></div>}</div>{canUpdate && <div className="mt-5 border-t border-slate-100 pt-4"><label className="grid gap-1.5 text-xs font-bold text-slate-700">Perbarui status<select disabled={updating} value={report.status} onChange={(event) => void onStatusChange(event.target.value as Exclude<ReportStatus, "PENDING">)} className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold outline-none transition-colors focus:border-[#e62428] focus:ring-4 focus:ring-red-100"><option value="PENDING" disabled>{statusLabels.PENDING}</option><option value="VERIFIED">{statusLabels.VERIFIED}</option><option value="IN_PROGRESS">{statusLabels.IN_PROGRESS}</option><option value="RESOLVED">{statusLabels.RESOLVED}</option><option value="REJECTED">{statusLabels.REJECTED}</option></select></label><p className="mt-2 text-[10px] leading-relaxed text-slate-400">Perubahan status dicatat sebagai aktivitas operasional.</p></div>}{role === "admin" && <p className="mt-5 border-t border-slate-100 pt-4 text-[10px] leading-relaxed text-slate-400">Data pelapor dan koordinat presisi hanya tersedia sesuai permission. Peta publik menampilkan area yang sudah dianonimkan.</p>}</aside>;
+}
+
+function MapInfoPanel({ title, eyebrow, children, onClose, isDesktop }: { title: string; eyebrow: string; children: ReactNode; onClose: () => void; isDesktop: boolean }) {
+  return <aside className={`${isDesktop ? "absolute right-6 top-24 w-[360px] rounded-xl" : "fixed bottom-0 left-0 right-0 rounded-t-2xl"} z-40 max-h-[72dvh] overflow-y-auto border border-slate-100 bg-white p-5 shadow-[0_22px_65px_rgba(15,23,42,0.2)]`} aria-live="polite">
+    <button type="button" onClick={onClose} className="absolute right-4 top-4 grid h-8 w-8 place-items-center rounded-full text-xl leading-none text-slate-400 hover:bg-slate-100" aria-label="Tutup detail peta">×</button>
+    <p className="pr-10 text-[10px] font-black uppercase tracking-[.16em] text-[#e62428]">{eyebrow}</p>
+    <h2 className="mt-1 pr-10 font-heading text-xl font-black tracking-tight text-slate-950">{title}</h2>
+    <div className="mt-4 grid gap-3 text-xs text-slate-600">{children}</div>
+  </aside>;
+}
+
+function PoliceMapDetail({ unit, isDesktop, onClose }: { unit: PoliceUnit; isDesktop: boolean; onClose: () => void }) {
+  return <MapInfoPanel title={unit.name} eyebrow="Kantor polisi" isDesktop={isDesktop} onClose={onClose}>
+    {unit.photoUrl && <img src={unit.photoUrl} alt={unit.name} className="h-40 w-full rounded-lg object-cover" referrerPolicy="no-referrer" />}
+    <div><span className="block text-[10px] font-bold uppercase tracking-widest text-slate-400">Wilayah</span><strong className="mt-1 block text-slate-900">{unit.district}</strong></div>
+    <div><span className="block text-[10px] font-bold uppercase tracking-widest text-slate-400">Alamat</span><p className="mt-1 leading-relaxed">{unit.address}</p></div>
+    {unit.phone && <div><span className="block text-[10px] font-bold uppercase tracking-widest text-slate-400">Telepon</span><a className="mt-1 block font-bold text-[#e62428]" href={`tel:${unit.phone}`}>{unit.phone}</a></div>}
+  </MapInfoPanel>;
+}
+
+function SafetyMapDetail({ zone, isDesktop, onClose, onSelectReport }: { zone: SafetySelection; isDesktop: boolean; onClose: () => void; onSelectReport: (report: IncidentReport) => void }) {
+  return <MapInfoPanel title="Indeks keamanan area" eyebrow="Area laporan" isDesktop={isDesktop} onClose={onClose}>
+    <div className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-3"><span className="font-bold text-slate-600">Perhatian {zone.level}</span><strong className="text-lg text-slate-950">{zone.score}/4</strong></div>
+    <p className="font-semibold text-slate-500">{zone.reports.length} laporan berada di area ini.</p>
+    <div className="grid gap-2">{zone.reports.map((report) => <button key={report.id} type="button" onClick={() => onSelectReport(report)} className="rounded-lg border border-slate-100 bg-white px-3 py-3 text-left shadow-sm hover:border-red-100 hover:bg-red-50"><strong className="block text-xs text-slate-900">{report.category}</strong><span className="mt-1 block font-mono text-[10px] text-slate-400">{report.ticketNumber}</span><span className="mt-1 block text-[10px] font-bold text-slate-500">{statusShortLabels[report.status]}</span></button>)}</div>
+  </MapInfoPanel>;
 }
 
 function ReportForm({ open, isDesktop, form, setForm, pinMode, setPinMode, submitting, onSubmit, onClose, onUseLocation, error }: { open: boolean; isDesktop: boolean; form: ReportFormState; setForm: Dispatch<SetStateAction<ReportFormState>>; pinMode: boolean; setPinMode: (value: boolean) => void; submitting: boolean; onSubmit: (event: FormEvent) => void; onClose: () => void; onUseLocation: () => void; error: string | null }) {
@@ -444,11 +487,11 @@ function ReportForm({ open, isDesktop, form, setForm, pinMode, setPinMode, submi
   </AnimatePresence>;
 }
 
-function FeedView({ reports, role, stats, overview, onSelect, selectedId, selectedReport, isDesktop, onCloseDetail, onStatusChange, updating }: { reports: IncidentReport[]; role: DashboardData["role"]; stats: DashboardData["stats"]; overview?: DashboardData["adminOverview"]; onSelect: (report: IncidentReport) => void; selectedId: string | null; selectedReport: IncidentReport | null; isDesktop: boolean; onCloseDetail: () => void; onStatusChange: (status: Exclude<ReportStatus, "PENDING">) => void; updating: boolean }) {
+function FeedView({ reports, role, stats, overview, onSelect, selectedId, selectedReport, isDesktop, onCloseDetail, onStatusChange, updating, hasMore, loadingMore, onLoadMore }: { reports: IncidentReport[]; role: DashboardData["role"]; stats: DashboardData["stats"]; overview?: DashboardData["adminOverview"]; onSelect: (report: IncidentReport) => void; selectedId: string | null; selectedReport: IncidentReport | null; isDesktop: boolean; onCloseDetail: () => void; onStatusChange: (status: Exclude<ReportStatus, "PENDING">) => void; updating: boolean; hasMore: boolean; loadingMore: boolean; onLoadMore: () => void }) {
   const title = role === "warga" ? "Isu Terkini" : role === "polisi" ? "Antrian unit" : "Monitoring laporan";
   const description = role === "warga" ? `${reports.length} laporan warga` : role === "polisi" ? "Triage laporan dari wilayah unit Anda dan catat status penanganannya." : "Ringkasan laporan dan unit operasional Garda Jakarta.";
   const statCards = [["Total", stats.total, "total", "bg-red-50 text-[#e62428]"], ["Masuk", stats.pending, "pending", "bg-amber-50 text-amber-700"], ["Diproses", stats.inProgress, "progress", "bg-sky-50 text-sky-700"], ["Selesai", stats.resolved, "done", "bg-emerald-50 text-emerald-700"]] as const;
-  return <div className="absolute inset-0 z-10 overflow-y-auto bg-[#f3f4f6] px-3 pb-28 pt-40 sm:px-5 sm:pb-36 sm:pt-24 md:px-8 md:pt-28"><div className={`${role === "admin" ? "max-w-5xl" : "max-w-2xl"} mx-auto w-full`}><div className="mb-4 border-b border-gray-200/70 bg-[#f3f4f6] pb-3"><h1 className="font-heading text-lg font-black tracking-tight text-gray-950">{title}</h1><p className="text-xs font-bold text-gray-400">{description}</p></div>{role !== "warga" && <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">{statCards.map(([label, count, icon, color]) => <div key={label} className="rounded-sm border border-gray-100 bg-white p-3"><span className={`mb-2 grid h-8 w-8 place-items-center rounded-xl ${color}`}><StatIcon kind={icon} /></span><span className="text-[10px] font-bold text-gray-400">{label}</span><strong className="mt-1 block text-xl font-black text-gray-900">{count}</strong></div>)}</div>}{role === "admin" && overview && <div className="mb-4 grid gap-3 sm:grid-cols-[1.15fr_.85fr]"><div className="rounded-sm border border-gray-100 bg-white p-4"><h2 className="font-heading text-sm font-black text-gray-900">Ringkasan operasional</h2><div className="mt-4 grid grid-cols-3 gap-2"><div className="rounded-sm bg-gray-50 p-3"><span className="block text-[9px] font-bold text-gray-400">Pengguna</span><strong className="mt-1 block text-lg font-black">{overview.users}</strong></div><div className="rounded-sm bg-gray-50 p-3"><span className="block text-[9px] font-bold text-gray-400">Unit polisi</span><strong className="mt-1 block text-lg font-black">{overview.units}</strong></div><div className="rounded-sm bg-gray-50 p-3"><span className="block text-[9px] font-bold text-gray-400">Audit log</span><strong className="mt-1 block text-lg font-black">{overview.auditLogs}</strong></div></div></div><div className="rounded-sm border border-gray-100 bg-white p-4"><h2 className="font-heading text-sm font-black text-gray-900">Kategori terbanyak</h2><div className="mt-3 grid gap-2">{overview.categories.map((category) => <div key={category.name} className="flex items-center justify-between gap-3 text-[11px]"><span className="truncate font-bold text-gray-600">{category.name}</span><span className="rounded-full bg-red-50 px-2 py-1 font-black text-red-700">{category.count}</span></div>)}</div></div></div>}{role === "admin" ? <AdminReportsTable reports={reports} selectedId={selectedId} onSelect={onSelect} /> : <div className="flex flex-col gap-4">{reports.length === 0 ? <div className="mt-8 flex min-h-[260px] flex-col items-center justify-center px-6 text-center"><div className="mb-4 grid h-14 w-14 place-items-center rounded-full bg-gray-100 text-gray-400"><ListIcon /></div><p className="text-sm font-black text-gray-800">Belum ada isu yang cocok</p></div> : reports.map((report) => <ReportCard key={report.id} report={report} selected={selectedId === report.id} onSelect={() => onSelect(report)} />)}</div>}</div>{selectedReport && <ReportDetail report={selectedReport} role={role} isDesktop={isDesktop} onClose={onCloseDetail} onStatusChange={onStatusChange} updating={updating} />}</div>;
+  return <div className="absolute inset-0 z-10 overflow-y-auto bg-[#f3f4f6] px-3 pb-28 pt-40 sm:px-5 sm:pb-36 sm:pt-24 md:px-8 md:pt-28"><div className={`${role === "admin" ? "max-w-5xl" : "max-w-2xl"} mx-auto w-full`}><div className="mb-4 border-b border-gray-200/70 bg-[#f3f4f6] pb-3"><h1 className="font-heading text-lg font-black tracking-tight text-gray-950">{title}</h1><p className="text-xs font-bold text-gray-400">{description}</p></div>{role !== "warga" && <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">{statCards.map(([label, count, icon, color]) => <div key={label} className="rounded-sm border border-gray-100 bg-white p-3"><span className={`mb-2 grid h-8 w-8 place-items-center rounded-xl ${color}`}><StatIcon kind={icon} /></span><span className="text-[10px] font-bold text-gray-400">{label}</span><strong className="mt-1 block text-xl font-black text-gray-900">{count}</strong></div>)}</div>}{role === "admin" && overview && <div className="mb-4 grid gap-3 sm:grid-cols-[1.15fr_.85fr]"><div className="rounded-sm border border-gray-100 bg-white p-4"><h2 className="font-heading text-sm font-black text-gray-900">Ringkasan operasional</h2><div className="mt-4 grid grid-cols-3 gap-2"><div className="rounded-sm bg-gray-50 p-3"><span className="block text-[9px] font-bold text-gray-400">Pengguna</span><strong className="mt-1 block text-lg font-black">{overview.users}</strong></div><div className="rounded-sm bg-gray-50 p-3"><span className="block text-[9px] font-bold text-gray-400">Unit polisi</span><strong className="mt-1 block text-lg font-black">{overview.units}</strong></div><div className="rounded-sm bg-gray-50 p-3"><span className="block text-[9px] font-bold text-gray-400">Audit log</span><strong className="mt-1 block text-lg font-black">{overview.auditLogs}</strong></div></div></div><div className="rounded-sm border border-gray-100 bg-white p-4"><h2 className="font-heading text-sm font-black text-gray-900">Kategori terbanyak</h2><div className="mt-3 grid gap-2">{overview.categories.map((category) => <div key={category.name} className="flex items-center justify-between gap-3 text-[11px]"><span className="truncate font-bold text-gray-600">{category.name}</span><span className="rounded-full bg-red-50 px-2 py-1 font-black text-red-700">{category.count}</span></div>)}</div></div></div>}{role === "admin" ? <AdminReportsTable reports={reports} selectedId={selectedId} onSelect={onSelect} /> : <InfiniteReportList reports={reports} selectedId={selectedId} onSelect={onSelect} hasMore={hasMore} loading={loadingMore} onLoadMore={onLoadMore} />}</div>{selectedReport && <ReportDetail report={selectedReport} role={role} isDesktop={isDesktop} onClose={onCloseDetail} onStatusChange={onStatusChange} updating={updating} />}</div>;
 }
 export default function DashboardPage({ publicMode = false }: { publicMode?: boolean }) {
   const { user, signOut } = useAuth();
@@ -476,6 +519,13 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
   const [accountOpen, setAccountOpen] = useState(false);
   const [signoutOpen, setSignoutOpen] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [feedPage, setFeedPage] = useState(1);
+  const [feedHasMore, setFeedHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [selectedUnit, setSelectedUnit] = useState<PoliceUnit | null>(null);
+  const [selectedZone, setSelectedZone] = useState<SafetySelection | null>(null);
+  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [focusLocation, setFocusLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const accountRef = useRef<HTMLDivElement>(null);
   const notifiedRiskReportsRef = useRef(new Set<string>());
   const [form, setForm] = useState<ReportFormState>({ category: "", description: "", severity: "P2", latitude: -6.1754, longitude: 106.8272 });
@@ -520,10 +570,16 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
     return () => { disposed = true; navigator.geolocation.clearWatch(watchId); };
   }, [citizen, publicMap, publicMode]);
 
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    const watchId = navigator.geolocation.watchPosition((position) => setUserLocation({ latitude: position.coords.latitude, longitude: position.coords.longitude }), () => undefined, { enableHighAccuracy: false, maximumAge: 60_000, timeout: 10_000 });
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, []);
+
   const load = useCallback(async () => {
     const [dashboardResult, publicResult] = await Promise.allSettled([publicMode ? Promise.resolve(null) : getDashboard(), getPublicMap()]);
     if (publicMode) { setData(null); setError(null); }
-    else if (dashboardResult.status === "fulfilled" && dashboardResult.value) { setData(dashboardResult.value); setError(null); }
+    else if (dashboardResult.status === "fulfilled" && dashboardResult.value) { setData(dashboardResult.value); setFeedPage(1); setFeedHasMore(dashboardResult.value.reports.length >= 30); setError(null); }
     else setError("Dashboard belum dapat dimuat. Periksa koneksi lalu coba lagi.");
     if (publicResult.status === "fulfilled") setPublicMap(publicResult.value);
     else if (publicMode) setError("Peta belum dapat dimuat. Periksa koneksi lalu coba lagi.");
@@ -544,10 +600,21 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
   const filteredReports = useMemo(() => reports.filter(matches), [matches, reports]);
   const publicReports = useMemo(() => (publicMap?.reports ?? []).filter((report) => report.status !== "REJECTED" && matches(report)), [matches, publicMap?.reports]);
   const mapReports = citizen ? publicReports : filteredReports;
-  const mapUnits = citizen ? (publicMap?.units ?? data?.units ?? []) : (data?.units ?? []);
+  const mapUnits = useMemo(() => citizen ? (publicMap?.units ?? data?.units ?? []) : (data?.units ?? []), [citizen, data?.units, publicMap?.units]);
   const feedReports = citizen ? publicReports : filteredReports;
   const selectedReport = useMemo(() => (citizen ? [...reports, ...publicReports] : reports).find((report) => report.id === selectedId) ?? null, [citizen, publicReports, reports, selectedId]);
   const activeFilter = statusFilter !== "ALL" || Boolean(search.trim());
+  const loadMoreFeed = useCallback(async () => {
+    if (citizen || loadingMore || !feedHasMore) return;
+    setLoadingMore(true);
+    try {
+      const next = await getReportFeed(feedPage + 1, 10);
+      setData((current) => current ? { ...current, reports: [...current.reports, ...next.reports] } : current);
+      setFeedPage(next.page);
+      setFeedHasMore(next.hasMore);
+    } catch { setNotice("Laporan berikutnya belum dapat dimuat."); }
+    finally { setLoadingMore(false); }
+  }, [citizen, feedHasMore, feedPage, loadingMore]);
 
   const openReportForm = useCallback(() => { if (!canReport) return; setView("map"); setSelectedId(null); setListOpen(false); setReportOpen(true); setPinMode(true); setError(null); }, [canReport]);
   const selectReport = useCallback((report: IncidentReport) => { setSelectedId(report.id); setListOpen(false); setReportOpen(false); }, []);
@@ -559,6 +626,22 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
     setForm((current) => ({ ...current, ...coordinates }));
   }, []);
   const mapClick = useCallback((coordinates: { latitude: number; longitude: number }) => { setForm((current) => ({ ...current, ...coordinates })); setPinMode(false); }, []);
+  const searchLocation = useCallback(async () => {
+    const query = search.trim().toLowerCase();
+    if (!query) return;
+    const unit = mapUnits.find((candidate) => [candidate.name, candidate.district, candidate.address].some((value) => value.toLowerCase().includes(query)));
+    if (unit) { setFocusLocation({ latitude: unit.latitude, longitude: unit.longitude }); setSelectedUnit(unit); return; }
+    const report = mapReports.find((candidate) => [candidate.category, candidate.ticketNumber, candidate.policeUnit?.name, candidate.policeUnit?.district].filter(Boolean).some((value) => value!.toLowerCase().includes(query)));
+    if (report) { setFocusLocation({ latitude: report.latitude, longitude: report.longitude }); setSelectedId(report.id); setSelectedUnit(null); return; }
+    try {
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=id&q=${encodeURIComponent(search.trim())}`);
+      const result = await response.json() as Array<{ lat: string; lon: string; display_name: string }>;
+      const location = result[0];
+      if (!location) { setNotice("Lokasi belum ditemukan. Coba nama tempat atau wilayah yang lebih spesifik."); return; }
+      setFocusLocation({ latitude: Number(location.lat), longitude: Number(location.lon) });
+      setNotice(`Menampilkan ${location.display_name.split(",").slice(0, 2).join(", ")}.`);
+    } catch { setNotice("Pencarian lokasi belum tersedia. Coba lagi sebentar."); }
+  }, [mapReports, mapUnits, search]);
   const useLocation = useCallback(() => {
     if (!navigator.geolocation) { setError("Perangkat ini tidak mendukung lokasi otomatis. Pilih titik langsung di peta."); return; }
     navigator.geolocation.getCurrentPosition((position) => { setForm((current) => ({ ...current, latitude: position.coords.latitude, longitude: position.coords.longitude })); setPinMode(false); setNotice("Lokasi perangkat sudah dipilih."); }, () => setError("Lokasi perangkat belum tersedia. Pilih titik langsung di peta."), { timeout: 5000 });
@@ -592,24 +675,26 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
         </div>}
       </div>
       <div className="w-full sm:hidden">
-        <DashboardControls mobile view={view} citizen={citizen} showActions={!publicMode} role={role} search={search} onSearchChange={setSearch} statusFilter={statusFilter} onStatusFilterChange={setStatusFilter} listOpen={listOpen} onToggleList={() => { setListOpen((current) => !current); setReportOpen(false); setSelectedId(null); }} onCreateReport={toggleReportForm} onPickLocation={() => { if (!reportOpen) openReportForm(); else setPinMode((current) => !current); }} pinMode={pinMode} activeFilter={activeFilter} reportOpen={reportOpen} />
+        <DashboardControls mobile view={view} citizen={citizen} showActions={!publicMode} role={role} search={search} onSearchChange={setSearch} onSearchSubmit={searchLocation} statusFilter={statusFilter} onStatusFilterChange={setStatusFilter} listOpen={listOpen} onToggleList={() => { setListOpen((current) => !current); setReportOpen(false); setSelectedId(null); }} onCreateReport={toggleReportForm} onPickLocation={() => { if (!reportOpen) openReportForm(); else setPinMode((current) => !current); }} pinMode={pinMode} activeFilter={activeFilter} reportOpen={reportOpen} />
       </div>
     </header>
 
     <section className="absolute inset-0" aria-label={view === "map" ? "Dashboard peta keamanan Jakarta" : "Feed laporan keamanan Jakarta"}>
       {view === "map" && <>
-        <GardaMap className="!h-full !min-h-0" units={mapUnits} reports={mapReports} draftLocation={form} draftActive={canReport && reportOpen} onDraftLocationChange={handleDraftLocationChange} onMapClick={canReport && reportOpen && pinMode ? mapClick : undefined} onSelectReport={selectReport} showSafetyZones={!publicMode} />
-        <div className="pointer-events-none absolute bottom-5 left-0 right-0 z-20 hidden items-center justify-center px-4 sm:flex"><div className="pointer-events-auto w-full max-w-[700px]"><DashboardControls view={view} citizen={citizen} showActions={!publicMode} role={role} search={search} onSearchChange={setSearch} statusFilter={statusFilter} onStatusFilterChange={setStatusFilter} listOpen={listOpen} onToggleList={() => { setListOpen((current) => !current); setReportOpen(false); setSelectedId(null); }} onCreateReport={toggleReportForm} onPickLocation={() => { if (!reportOpen) openReportForm(); else setPinMode((current) => !current); }} pinMode={pinMode} activeFilter={activeFilter} reportOpen={reportOpen} /></div></div>
+        <GardaMap className="!h-full !min-h-0" units={mapUnits} reports={mapReports} userLocation={userLocation} focusLocation={focusLocation} draftLocation={form} draftActive={canReport && reportOpen} onDraftLocationChange={handleDraftLocationChange} onMapClick={canReport && reportOpen && pinMode ? mapClick : undefined} onSelectReport={(report) => { setSelectedUnit(null); setSelectedZone(null); selectReport(report); }} onSelectUnit={(unit) => { setSelectedId(null); setSelectedZone(null); setSelectedUnit(unit); }} onSelectSafetyZone={(zone) => { setSelectedId(null); setSelectedUnit(null); setSelectedZone(zone); }} showSafetyZones={!publicMode} />
+        <div className="pointer-events-none absolute bottom-5 left-0 right-0 z-20 hidden items-center justify-center px-4 sm:flex"><div className="pointer-events-auto w-full max-w-[700px]"><DashboardControls view={view} citizen={citizen} showActions={!publicMode} role={role} search={search} onSearchChange={setSearch} onSearchSubmit={searchLocation} statusFilter={statusFilter} onStatusFilterChange={setStatusFilter} listOpen={listOpen} onToggleList={() => { setListOpen((current) => !current); setReportOpen(false); setSelectedId(null); }} onCreateReport={toggleReportForm} onPickLocation={() => { if (!reportOpen) openReportForm(); else setPinMode((current) => !current); }} pinMode={pinMode} activeFilter={activeFilter} reportOpen={reportOpen} /></div></div>
       </>}
       {view === "map" && <>
         {listOpen && <aside className="absolute bottom-[72px] left-3 right-3 z-30 max-h-[68dvh] overflow-hidden rounded-xl border border-slate-100 bg-white shadow-[0_22px_65px_rgba(15,23,42,0.2)] sm:bottom-auto sm:left-6 sm:right-auto sm:top-24 sm:w-[380px]" aria-label="Daftar laporan"><div className="border-b border-slate-100 px-4 pb-3 pt-4"><div className="flex items-start justify-between gap-3"><div><p className="text-[10px] font-bold uppercase tracking-widest text-[#e62428]">{citizen ? "Riwayat" : "Operasional"}</p><h2 className="mt-1 text-lg font-bold tracking-tight">{citizen ? "Laporan saya" : role === "polisi" ? "Antrian unit" : "Monitoring laporan"}</h2><p className="mt-1 text-[10px] font-bold text-slate-400">{filteredReports.length} laporan sesuai filter</p></div><button type="button" onClick={() => setListOpen(false)} className="grid h-7 w-7 place-items-center rounded-lg text-lg text-slate-400 hover:bg-slate-100" aria-label="Tutup daftar">×</button></div><div className="mt-3 grid grid-cols-4 gap-1 rounded-lg bg-slate-50 p-1 text-center"><div className="rounded-md bg-white py-1.5 shadow-sm"><strong className="block text-sm font-bold">{stats.total}</strong><span className="text-[8px] font-bold uppercase text-slate-400">Total</span></div><div className="py-1.5"><strong className="block text-sm font-bold">{stats.pending}</strong><span className="text-[8px] font-bold uppercase text-slate-400">Masuk</span></div><div className="py-1.5"><strong className="block text-sm font-bold">{stats.inProgress}</strong><span className="text-[8px] font-bold uppercase text-slate-400">Proses</span></div><div className="py-1.5"><strong className="block text-sm font-bold">{stats.resolved}</strong><span className="text-[8px] font-bold uppercase text-slate-400">Selesai</span></div></div></div><div className="max-h-[calc(68dvh-166px)] space-y-2 overflow-y-auto bg-slate-50/70 p-3">{filteredReports.length === 0 ? <p className="px-3 py-10 text-center text-xs font-semibold text-slate-400">Belum ada laporan yang sesuai.</p> : filteredReports.map((report) => <ReportCard key={report.id} report={report} selected={selectedId === report.id} onSelect={() => selectReport(report)} />)}</div></aside>}
         {selectedReport && !reportOpen && <ReportDetail report={selectedReport} role={role} isDesktop={isDesktop} onClose={() => setSelectedId(null)} onStatusChange={(status) => void updateStatus(selectedReport.id, status)} updating={updatingId === selectedReport.id} />}
+        {selectedUnit && !reportOpen && <PoliceMapDetail unit={selectedUnit} isDesktop={isDesktop} onClose={() => setSelectedUnit(null)} />}
+        {selectedZone && !reportOpen && <SafetyMapDetail zone={selectedZone} isDesktop={isDesktop} onClose={() => setSelectedZone(null)} onSelectReport={(report) => { setSelectedZone(null); selectReport(report); }} />}
         {canReport && <ReportForm open={reportOpen} isDesktop={isDesktop} form={form} setForm={setForm} pinMode={pinMode} setPinMode={setPinMode} submitting={submitting} onSubmit={(event) => void submit(event)} onClose={() => { setReportOpen(false); setPinMode(false); }} onUseLocation={useLocation} error={error} />}
       </>}
       {notice && <div className="absolute left-1/2 top-[6.5rem] z-30 w-[calc(100%-32px)] max-w-md -translate-x-1/2 rounded-lg bg-slate-900 px-4 py-3 text-center text-xs font-bold text-white shadow-xl sm:top-24" role="status">{notice}<button type="button" onClick={() => setNotice(null)} className="ml-3 rounded-md px-1 text-white/60 hover:bg-white/10 hover:text-white" aria-label="Tutup notifikasi">×</button></div>}
       {error && !reportOpen && <p className="absolute left-1/2 top-[6.5rem] z-30 w-[calc(100%-32px)] max-w-md -translate-x-1/2 rounded-lg bg-red-50 px-4 py-3 text-center text-xs font-bold text-red-700 shadow-lg sm:top-24" role="alert">{error}</p>}
     </section>
-    {view === "feed" && <FeedView reports={feedReports} role={role} stats={stats} overview={data?.adminOverview} onSelect={selectReport} selectedId={selectedId} selectedReport={selectedReport} isDesktop={isDesktop} onCloseDetail={() => setSelectedId(null)} onStatusChange={(status) => selectedReport && void updateStatus(selectedReport.id, status)} updating={Boolean(selectedReport && updatingId === selectedReport.id)} />}
+    {view === "feed" && <FeedView reports={feedReports} role={role} stats={stats} overview={data?.adminOverview} onSelect={selectReport} selectedId={selectedId} selectedReport={selectedReport} isDesktop={isDesktop} onCloseDetail={() => setSelectedId(null)} onStatusChange={(status) => selectedReport && void updateStatus(selectedReport.id, status)} updating={Boolean(selectedReport && updatingId === selectedReport.id)} hasMore={!citizen && feedHasMore} loadingMore={loadingMore} onLoadMore={() => void loadMoreFeed()} />}
     {signoutOpen && <div className="fixed inset-0 z-[60] grid place-items-center bg-slate-950/35 px-5 backdrop-blur-sm" role="presentation"><section className="w-full max-w-sm rounded-xl bg-white p-6 shadow-2xl" role="alertdialog" aria-modal="true" aria-labelledby="signout-title"><h2 id="signout-title" className="text-xl font-bold tracking-tight">Keluar dari dashboard?</h2><p className="mt-2 text-xs leading-relaxed text-slate-500">Sesi di perangkat ini akan ditutup.</p><div className="mt-6 flex justify-end gap-2"><button type="button" onClick={() => setSignoutOpen(false)} className="rounded-lg px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100">Batal</button><button type="button" onClick={() => void handleSignOut()} className="rounded-lg bg-[#e62428] px-4 py-2.5 text-xs font-bold text-white hover:bg-[#c91d22]">Keluar</button></div></section></div>}
   </main>;
 }

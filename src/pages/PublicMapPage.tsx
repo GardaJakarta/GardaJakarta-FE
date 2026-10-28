@@ -16,6 +16,8 @@ export default function PublicMapPage() {
   const [reports, setReports] = useState<IncidentReport[]>([]);
   const [selectedReport, setSelectedReport] = useState<IncidentReport | null>(null);
   const [selectedUnit, setSelectedUnit] = useState<PoliceUnit | null>(null);
+  const [selectedZone, setSelectedZone] = useState<{ reports: IncidentReport[]; level: string; score: number } | null>(null);
+  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -30,10 +32,15 @@ export default function PublicMapPage() {
   // Public map data is synchronized with the public API.
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    const watchId = navigator.geolocation.watchPosition((position) => setUserLocation({ latitude: position.coords.latitude, longitude: position.coords.longitude }), () => undefined, { enableHighAccuracy: false, maximumAge: 60_000, timeout: 10_000 });
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, []);
 
   const visibleReports = useMemo(() => reports.filter((report) => report.status !== "REJECTED" && (!filters.category || report.category === filters.category) && (!filters.status || report.status === filters.status) && (!filters.severity || report.severity === filters.severity)), [filters, reports]);
   const activeFilterCount = Object.values(filters).filter(Boolean).length;
-  const clearSelection = () => { setSelectedReport(null); setSelectedUnit(null); };
+  const clearSelection = () => { setSelectedReport(null); setSelectedUnit(null); setSelectedZone(null); };
 
   return <main className="relative h-screen min-h-[560px] overflow-hidden bg-[#eef0ed] text-[#171717]">
     <header className="absolute left-1/2 top-1.5 z-20 flex h-9 w-[calc(100%-1rem)] -translate-x-1/2 items-center justify-between rounded-lg border border-black/5 bg-white/95 px-2 shadow-[0_8px_24px_-12px_rgba(15,23,42,0.35)] backdrop-blur-md sm:top-3 sm:h-12 sm:w-[calc(100%-2rem)] sm:rounded-full sm:px-4 md:top-4 md:h-16 md:w-auto md:max-w-[calc(100%-3.5rem)] md:px-7">
@@ -42,7 +49,7 @@ export default function PublicMapPage() {
     </header>
     <section className="absolute inset-0 pt-9 sm:pt-12 md:pt-16" aria-label="Peta publik keamanan Jakarta">
       {error && <p className="absolute left-4 top-[76px] z-10 max-w-[calc(100%-32px)] border-l-4 border-[#e62428] bg-white px-4 py-3 text-xs font-bold text-[#a2191f] shadow-lg md:left-7 md:top-[128px]" role="alert">{error}</p>}
-      <GardaMap className="!h-full !min-h-0" units={units} reports={visibleReports} onSelectReport={(report) => { setSelectedReport(report); setSelectedUnit(null); }} onSelectUnit={(unit) => { setSelectedUnit(unit); setSelectedReport(null); }} showSafetyZones={false} />
+      <GardaMap className="!h-full !min-h-0" units={units} reports={visibleReports} userLocation={userLocation} onSelectReport={(report) => { setSelectedReport(report); setSelectedUnit(null); setSelectedZone(null); }} onSelectUnit={(unit) => { setSelectedUnit(unit); setSelectedReport(null); setSelectedZone(null); }} onSelectSafetyZone={(zone) => { setSelectedZone(zone); setSelectedReport(null); setSelectedUnit(null); }} showSafetyZones />
     </section>
     <div className="absolute left-3 top-[38px] z-10 sm:top-[52px] md:left-7 md:top-[80px]">
       <button type="button" className={`inline-flex h-8 items-center gap-2 rounded-lg bg-white px-3 text-[11px] font-bold shadow-lg transition-colors hover:bg-[#fff4f4] sm:h-9 sm:text-xs ${activeFilterCount ? "text-[#e62428]" : "text-[#4d4d47]"}`} aria-expanded={filtersOpen} onClick={() => setFiltersOpen((current) => !current)}>
@@ -60,6 +67,6 @@ export default function PublicMapPage() {
         <p className="mt-3 text-[10px] text-[#85857e]">{isLoading ? "Memuat laporan..." : `${visibleReports.length} laporan ditampilkan`}</p>
       </div>}
     </div>
-    {(selectedReport || selectedUnit) && <aside className="absolute bottom-3 right-3 z-10 w-[min(340px,calc(100vw-24px))] rounded-xl border border-black/5 bg-white p-5 shadow-2xl sm:bottom-7 sm:right-7" aria-live="polite"><button type="button" className="absolute right-3 top-3 grid h-7 w-7 place-items-center rounded-full text-xl leading-none text-[#777] transition-colors hover:bg-black/5" onClick={clearSelection} aria-label="Tutup detail">×</button>{selectedUnit ? <><span className="mb-2 block text-[10px] font-bold uppercase tracking-[.15em] text-[#e62428]">Kantor polisi</span>{selectedUnit.photoUrl && <img className="mb-4 h-32 w-full rounded-lg object-cover" src={selectedUnit.photoUrl} alt={selectedUnit.name} referrerPolicy="no-referrer" />}<h2 className="pr-5 text-lg font-bold tracking-tight">{selectedUnit.name}</h2><p className="mt-1 text-xs leading-5 text-[#6c6c67]">{selectedUnit.district} · {selectedUnit.address}</p><p className="mt-2 text-xs font-bold text-[#555]">{selectedUnit.phone || "Kontak layanan publik"}</p></> : <><span className="mb-2 block text-[10px] font-bold uppercase tracking-[.15em] text-[#e62428]">Laporan keamanan</span><h2 className="pr-5 text-lg font-bold tracking-tight">{selectedReport?.category}</h2><p className="mt-1 text-xs text-[#6c6c67]">{selectedReport?.ticketNumber} · {selectedReport?.policeUnit?.district || "Jakarta"}</p><div className="mt-3"><PublicStatus status={selectedReport!.status} /></div></>}</aside>}
+    {(selectedReport || selectedUnit || selectedZone) && <aside className="fixed bottom-0 left-0 right-0 z-30 max-h-[78dvh] w-full overflow-y-auto rounded-t-2xl rounded-b-none border border-black/5 bg-white p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-[0_-18px_45px_rgba(15,23,42,0.18)] sm:absolute sm:bottom-7 sm:left-auto sm:right-7 sm:max-h-[70dvh] sm:w-[min(340px,calc(100vw-24px))] sm:rounded-xl sm:shadow-2xl" aria-live="polite"><button type="button" className="absolute right-3 top-3 grid h-7 w-7 place-items-center rounded-full text-xl leading-none text-[#777] transition-colors hover:bg-black/5" onClick={clearSelection} aria-label="Tutup detail">×</button>{selectedUnit ? <><span className="mb-2 block text-[10px] font-bold uppercase tracking-[.15em] text-[#e62428]">Kantor polisi</span>{selectedUnit.photoUrl && <img className="mb-4 h-36 w-full rounded-lg object-cover" src={selectedUnit.photoUrl} alt={selectedUnit.name} referrerPolicy="no-referrer" />}<h2 className="pr-5 text-lg font-bold tracking-tight">{selectedUnit.name}</h2><p className="mt-1 text-xs leading-5 text-[#6c6c67]">{selectedUnit.district} · {selectedUnit.address}</p><p className="mt-2 text-xs font-bold text-[#555]">{selectedUnit.phone || "Kontak layanan publik"}</p></> : selectedZone ? <><span className="mb-2 block text-[10px] font-bold uppercase tracking-[.15em] text-[#e62428]">Area laporan</span><h2 className="pr-5 text-lg font-bold tracking-tight">Indeks keamanan area</h2><p className="mt-1 text-xs text-[#6c6c67]">Perhatian {selectedZone.level} · skor {selectedZone.score}/4</p><div className="mt-3 grid gap-2">{selectedZone.reports.length ? selectedZone.reports.map((report) => <button key={report.id} type="button" className="rounded-lg border border-[#eee] px-3 py-2 text-left hover:bg-[#fff4f4]" onClick={() => { setSelectedZone(null); setSelectedReport(report); }}><strong className="block text-xs">{report.category}</strong><span className="mt-1 block font-mono text-[10px] text-[#777]">{report.ticketNumber}</span></button>) : <p className="rounded-lg bg-[#f7f7f4] px-3 py-3 text-xs font-semibold text-[#777]">Belum ada laporan terhubung di area ini.</p>}</div></> : <><span className="mb-2 block text-[10px] font-bold uppercase tracking-[.15em] text-[#e62428]">Laporan keamanan</span><h2 className="pr-5 text-lg font-bold tracking-tight">{selectedReport?.category}</h2><p className="mt-1 text-xs text-[#6c6c67]">{selectedReport?.ticketNumber} · {selectedReport?.policeUnit?.district || "Jakarta"}</p><div className="mt-3"><PublicStatus status={selectedReport!.status} /></div></>}</aside>}
   </main>;
 }

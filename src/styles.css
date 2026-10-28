@@ -81,6 +81,10 @@ button { cursor: pointer; }
 .auth-staff-form .auth-form { gap: 17px; }
 .auth-staff-form .auth-form .auth-switch { display: none; }
 .session-state { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center; }
+.garda-loading { min-height: 100dvh; display: grid; place-items: center; align-content: center; gap: 18px; padding: 24px; background: #f3f4f6; color: #475569; text-align: center; }
+.garda-loading svg { width: 150px; height: auto; }
+.garda-loading p { margin: 0; font-size: 11px; font-weight: 800; letter-spacing: .04em; }
+.garda-loading-mark { width: 28px; height: 28px; border: 3px solid #e6e7e9; border-top-color: #e62428; border-radius: 999px; animation: garda-spin .8s linear infinite; }
 .session-state button { width: auto; }
 a:focus-visible, button:focus-visible { outline: 3px solid #e62428; outline-offset: 5px; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; } }
@@ -205,4 +209,10 @@ a:focus-visible, button:focus-visible { outline: 3px solid #e62428; outline-offs
 .garda-map-popup img { width: 100%; height: 112px; border-radius: 5px; object-fit: cover; }
 .garda-map-popup strong { font-size: 13px; line-height: 1.25; }
 .garda-map-popup span { color: #777; font-size: 11px; }
+.garda-user-location { display: grid; width: 24px; height: 24px; place-items: center; pointer-events: none; }
+.garda-user-location::before { content: ""; position: absolute; width: 24px; height: 24px; border: 1px solid rgba(230,36,40,.28); border-radius: 50%; background: rgba(230,36,40,.12); animation: garda-location-pulse 2s ease-out infinite; }
+.garda-user-location span { position: relative; width: 12px; height: 12px; border: 3px solid #fff; border-radius: 50%; background: #e62428; box-shadow: 0 2px 8px rgba(15,23,42,.28); }
+.garda-loader { display: inline-block; border: 2px solid #e7e7e2; border-top-color: #e62428; border-radius: 999px; animation: garda-spin .8s linear infinite; }
+@keyframes garda-spin { to { transform: rotate(360deg); } }
+@keyframes garda-location-pulse { 0% { transform: scale(.65); opacity: .85; } 70%, 100% { transform: scale(1.45); opacity: 0; } }
 

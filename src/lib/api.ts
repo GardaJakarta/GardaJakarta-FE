@@ -78,6 +78,10 @@ export function getDashboard() {
   return requestJson<DashboardData>("/dashboard");
 }
 
+export function getReportFeed(page = 1, limit = 10) {
+  return requestJson<{ reports: IncidentReport[]; page: number; limit: number; hasMore: boolean }>(`/reports/feed?page=${page}&limit=${limit}`);
+}
+
 export function createReport(input: { category: string; description: string; severity: ReportSeverity; latitude: number; longitude: number }) {
   return requestJson<IncidentReport>("/reports", { method: "POST", body: JSON.stringify(input) });
 }

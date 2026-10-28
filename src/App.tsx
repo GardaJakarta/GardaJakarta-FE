@@ -6,8 +6,14 @@ import RegisterPage from "./pages/RegisterPage";
 import ConnectionErrorPage from "./pages/ConnectionErrorPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import DashboardPage from "./pages/DashboardPage";
+import PublicMapPage from "./pages/PublicMapPage";
 import type { AuthPortal } from "./types";
 import { portalPaths } from "./lib/portals";
+import AppLogo from "./components/branding/AppLogo";
+
+function GardaLoading({ label = "Memeriksa keamanan Jakarta..." }: { label?: string }) {
+  return <main className="garda-loading" role="status" aria-live="polite"><AppLogo size={150} aria-label="Garda Jakarta" /><span className="garda-loading-mark" aria-hidden="true" /><p>{label}</p></main>;
+}
 
 function ProtectedRoute({ children, portal }: { children: ReactNode; portal: AuthPortal }) {
   const { user, sessionError } = useAuth();
@@ -20,14 +26,14 @@ function LandingRedirect() {
   useEffect(() => {
     window.location.replace("https://gardajakarta.my.id");
   }, []);
-  return <main className="session-state" role="status">Membuka Garda Jakarta...</main>;
+  return <GardaLoading label="Membuka Garda Jakarta..." />;
 }
 
 export default function App() {
   const { user, isReady } = useAuth();
   const location = useLocation();
   if (location.pathname === "/") return <LandingRedirect />;
-  if (!isReady && location.pathname !== "/map") return <main className="session-state" role="status">Memeriksa sesi...</main>;
+  if (!isReady && location.pathname !== "/map") return <GardaLoading label="Memeriksa sesi..." />;
   const knownPaths = ["/login", "/polisi/login", "/admin/login", "/register", "/dashboard", "/map", "/polisi", "/admin", "/not-found"];
   if (!knownPaths.includes(location.pathname)) return <Navigate to="/not-found" replace />;
   const home = user ? portalPaths[user.role].home : "/login";
@@ -39,7 +45,7 @@ export default function App() {
       <Route path="/admin/login" element={user ? <Navigate to={home} replace /> : <LoginPage key="admin" portal="admin" />} />
       <Route path="/register" element={user ? <Navigate to={home} replace /> : <RegisterPage />} />
       <Route path="/dashboard" element={<ProtectedRoute portal={user?.role || "warga"}><DashboardPage /></ProtectedRoute>} />
-      <Route path="/map" element={<DashboardPage publicMode />} />
+      <Route path="/map" element={<PublicMapPage />} />
       <Route path="/polisi" element={<Navigate to="/dashboard" replace />} />
       <Route path="/admin" element={<Navigate to="/dashboard" replace />} />
       <Route path="/not-found" element={<NotFoundPage />} />
