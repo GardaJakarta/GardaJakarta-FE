@@ -302,13 +302,17 @@ function ReportCard({ report, selected, onSelect }: { report: IncidentReport; se
   </motion.article>;
 }
 
-function AdminReportsTable({ reports, selectedId, onSelect }: { reports: IncidentReport[]; selectedId: string | null; onSelect: (report: IncidentReport) => void }) {
+function AdminReportsTable({ reports, selectedId, onSelect, hasMore, loading, onLoadMore }: { reports: IncidentReport[]; selectedId: string | null; onSelect: (report: IncidentReport) => void; hasMore: boolean; loading: boolean; onLoadMore: () => void }) {
+  const handleScroll = (event: React.UIEvent<HTMLDivElement>) => {
+    const target = event.currentTarget;
+    if (target.scrollTop + target.clientHeight >= target.scrollHeight - 160 && hasMore && !loading) onLoadMore();
+  };
   return <div className="overflow-hidden rounded-sm border border-gray-100 bg-white shadow-[0_18px_44px_rgba(15,23,42,0.06)]">
     <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-4 py-3.5 sm:px-5">
       <div><h2 className="font-heading text-base font-black tracking-tight text-gray-950">Semua laporan</h2><p className="mt-1 text-[10px] font-bold text-gray-400">Pantau laporan yang masuk ke Garda Jakarta.</p></div>
       <span className="rounded-full bg-gray-50 px-2.5 py-1 text-[10px] font-black text-gray-500">{reports.length} tiket</span>
     </div>
-    <div className="overflow-x-auto">
+    <div className="max-h-[calc(100dvh-350px)] overflow-auto" onScroll={handleScroll}>
       <table className="w-full min-w-[720px] border-collapse text-left text-xs">
         <thead><tr className="border-b border-gray-100 bg-gray-50/70 text-[10px] font-black uppercase tracking-widest text-gray-400"><th className="px-4 py-3 sm:px-5">Laporan</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Keparahan</th><th className="px-4 py-3">Unit</th><th className="px-4 py-3">Diperbarui</th><th className="px-4 py-3" /></tr></thead>
         <tbody>{reports.length === 0 ? <tr><td colSpan={6} className="px-5 py-12 text-center text-xs font-semibold text-gray-400">Belum ada laporan yang sesuai.</td></tr> : reports.map((report) => <tr key={report.id} className={`border-b border-gray-100 last:border-0 transition-colors hover:bg-red-50/30 ${selectedId === report.id ? "bg-red-50/50" : ""}`}>
@@ -320,6 +324,7 @@ function AdminReportsTable({ reports, selectedId, onSelect }: { reports: Inciden
           <td className="px-4 py-3"><button type="button" onClick={() => onSelect(report)} className="whitespace-nowrap rounded-full bg-gray-900 px-3 py-2 text-[10px] font-black text-white transition-colors hover:bg-gray-800">Detail</button></td>
         </tr>)}</tbody>
       </table>
+      {(hasMore || loading) && <div className="flex items-center justify-center gap-2 border-t border-gray-100 px-4 py-3 text-[10px] font-bold text-slate-400" role="status"><span className="garda-loader h-3 w-3" /> {loading ? "Memuat laporan berikutnya..." : "Gulir untuk memuat laporan berikutnya"}</div>}
     </div>
   </div>;
 }
@@ -497,8 +502,13 @@ function FeedView({ reports, role, stats, overview, onSelect, selectedId, select
   const title = role === "warga" ? "Isu Terkini" : role === "polisi" ? "Antrian unit" : "Monitoring laporan";
   const description = role === "warga" ? `${reports.length} laporan warga` : role === "polisi" ? "Triage laporan dari wilayah unit Anda dan catat status penanganannya." : "Ringkasan laporan dan unit operasional Garda Jakarta.";
   const statCards = [["Total", stats.total, "total", "bg-red-50 text-[#e62428]"], ["Masuk", stats.pending, "pending", "bg-amber-50 text-amber-700"], ["Diproses", stats.inProgress, "progress", "bg-sky-50 text-sky-700"], ["Selesai", stats.resolved, "done", "bg-emerald-50 text-emerald-700"]] as const;
-  return <div className="absolute inset-0 z-10 overflow-y-auto bg-[#f3f4f6] px-3 pb-28 pt-40 sm:px-5 sm:pb-36 sm:pt-24 md:px-8 md:pt-28"><div className={`${role === "admin" ? "max-w-5xl" : "max-w-2xl"} mx-auto w-full`}><div className="mb-4 border-b border-gray-200/70 bg-[#f3f4f6] pb-3"><h1 className="font-heading text-lg font-black tracking-tight text-gray-950">{title}</h1><p className="text-xs font-bold text-gray-400">{description}</p></div>{role !== "warga" && <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">{statCards.map(([label, count, icon, color]) => <div key={label} className="rounded-sm border border-gray-100 bg-white p-3"><span className={`mb-2 grid h-8 w-8 place-items-center rounded-xl ${color}`}><StatIcon kind={icon} /></span><span className="text-[10px] font-bold text-gray-400">{label}</span><strong className="mt-1 block text-xl font-black text-gray-900">{count}</strong></div>)}</div>}{role === "admin" && overview && <div className="mb-4 grid gap-3 sm:grid-cols-[1.15fr_.85fr]"><div className="rounded-sm border border-gray-100 bg-white p-4"><h2 className="font-heading text-sm font-black text-gray-900">Ringkasan operasional</h2><div className="mt-4 grid grid-cols-3 gap-2"><div className="rounded-sm bg-gray-50 p-3"><span className="block text-[9px] font-bold text-gray-400">Pengguna</span><strong className="mt-1 block text-lg font-black">{overview.users}</strong></div><div className="rounded-sm bg-gray-50 p-3"><span className="block text-[9px] font-bold text-gray-400">Unit polisi</span><strong className="mt-1 block text-lg font-black">{overview.units}</strong></div><div className="rounded-sm bg-gray-50 p-3"><span className="block text-[9px] font-bold text-gray-400">Audit log</span><strong className="mt-1 block text-lg font-black">{overview.auditLogs}</strong></div></div></div><div className="rounded-sm border border-gray-100 bg-white p-4"><h2 className="font-heading text-sm font-black text-gray-900">Kategori terbanyak</h2><div className="mt-3 grid gap-2">{overview.categories.map((category) => <div key={category.name} className="flex items-center justify-between gap-3 text-[11px]"><span className="truncate font-bold text-gray-600">{category.name}</span><span className="rounded-full bg-red-50 px-2 py-1 font-black text-red-700">{category.count}</span></div>)}</div></div></div>}{role === "admin" ? <AdminReportsTable reports={reports} selectedId={selectedId} onSelect={onSelect} /> : <InfiniteReportList reports={reports} selectedId={selectedId} onSelect={onSelect} hasMore={hasMore} loading={loadingMore} onLoadMore={onLoadMore} />}</div>{selectedReport && <ReportDetail report={selectedReport} role={role} isDesktop={isDesktop} onClose={onCloseDetail} onStatusChange={onStatusChange} updating={updating} />}</div>;
+  return <div className="absolute inset-0 z-10 overflow-y-auto bg-[#f3f4f6] px-3 pb-28 pt-40 sm:px-5 sm:pb-36 sm:pt-24 md:px-8 md:pt-28"><div className={`${role === "admin" ? "max-w-5xl" : "max-w-2xl"} mx-auto w-full`}><div className="mb-4 border-b border-gray-200/70 bg-[#f3f4f6] pb-3"><h1 className="font-heading text-lg font-black tracking-tight text-gray-950">{title}</h1><p className="text-xs font-bold text-gray-400">{description}</p></div>{role !== "warga" && <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">{statCards.map(([label, count, icon, color]) => <div key={label} className="rounded-sm border border-gray-100 bg-white p-3"><span className={`mb-2 grid h-8 w-8 place-items-center rounded-xl ${color}`}><StatIcon kind={icon} /></span><span className="text-[10px] font-bold text-gray-400">{label}</span><strong className="mt-1 block text-xl font-black text-gray-900">{count}</strong></div>)}</div>}{role === "admin" && overview && <div className="mb-4 grid gap-3 sm:grid-cols-[1.15fr_.85fr]"><div className="rounded-sm border border-gray-100 bg-white p-4"><h2 className="font-heading text-sm font-black text-gray-900">Ringkasan operasional</h2><div className="mt-4 grid grid-cols-3 gap-2"><div className="rounded-sm bg-gray-50 p-3"><span className="block text-[9px] font-bold text-gray-400">Pengguna</span><strong className="mt-1 block text-lg font-black">{overview.users}</strong></div><div className="rounded-sm bg-gray-50 p-3"><span className="block text-[9px] font-bold text-gray-400">Unit polisi</span><strong className="mt-1 block text-lg font-black">{overview.units}</strong></div><div className="rounded-sm bg-gray-50 p-3"><span className="block text-[9px] font-bold text-gray-400">Audit log</span><strong className="mt-1 block text-lg font-black">{overview.auditLogs}</strong></div></div></div><div className="rounded-sm border border-gray-100 bg-white p-4"><h2 className="font-heading text-sm font-black text-gray-900">Kategori terbanyak</h2><div className="mt-3 grid gap-2">{overview.categories.map((category) => <div key={category.name} className="flex items-center justify-between gap-3 text-[11px]"><span className="truncate font-bold text-gray-600">{category.name}</span><span className="rounded-full bg-red-50 px-2 py-1 font-black text-red-700">{category.count}</span></div>)}</div></div></div>}{role === "admin" ? <AdminReportsTable reports={reports} selectedId={selectedId} onSelect={onSelect} hasMore={hasMore} loading={loadingMore} onLoadMore={onLoadMore} /> : <InfiniteReportList reports={reports} selectedId={selectedId} onSelect={onSelect} hasMore={hasMore} loading={loadingMore} onLoadMore={onLoadMore} />}</div>{selectedReport && <ReportDetail report={selectedReport} role={role} isDesktop={isDesktop} onClose={onCloseDetail} onStatusChange={onStatusChange} updating={updating} />}</div>;
 }
+
+function MapLoadingOverlay({ label = "Memeriksa keamanan Jakarta..." }: { label?: string }) {
+  return <div className="pointer-events-none absolute inset-0 z-[35] grid place-items-center bg-white/55 backdrop-blur-[1px]" role="status" aria-live="polite"><div className="grid justify-items-center gap-3 rounded-2xl bg-white/90 px-6 py-5 text-center shadow-[0_18px_48px_rgba(15,23,42,0.14)]"><AppLogo size={96} aria-label="Garda Jakarta" /><span className="garda-loading-mark h-6 w-6" aria-hidden="true" /><p className="text-[10px] font-black tracking-wide text-slate-500">{label}</p></div></div>;
+}
+
 export default function DashboardPage({ publicMode = false }: { publicMode?: boolean }) {
   const { user, signOut } = useAuth();
   const role = publicMode ? "warga" : (user?.role || "warga");
@@ -507,9 +517,11 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
   const [isDesktop, setIsDesktop] = useState(() => window.innerWidth >= 768);
   const [data, setData] = useState<DashboardData | null>(null);
   const [publicMap, setPublicMap] = useState<{ units: PoliceUnit[]; reports: IncidentReport[]; updatedAt: string } | null>(null);
+  const [feedItems, setFeedItems] = useState<IncidentReport[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [view, setView] = useState<ViewMode>(() => {
     if (publicMode) return "map";
     if (user?.role === "admin") return "feed";
@@ -573,25 +585,30 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
       const nearest = highRiskReports.find((report) => Math.hypot(report.latitude - position.coords.latitude, report.longitude - position.coords.longitude) <= 0.01);
       if (nearest) notify(nearest);
     }, () => undefined, { enableHighAccuracy: false, maximumAge: 60_000, timeout: 10_000 });
-    return () => { disposed = true; navigator.geolocation.clearWatch(watchId); };
+    return () => { disposed = true; if (typeof navigator.geolocation.clearWatch === "function") navigator.geolocation.clearWatch(watchId); };
   }, [citizen, publicMap, publicMode]);
 
   useEffect(() => {
     if (!navigator.geolocation) return;
+    const geolocation = navigator.geolocation;
     const updateLocation = (position: GeolocationPosition) => setUserLocation({ latitude: position.coords.latitude, longitude: position.coords.longitude });
-    if (typeof navigator.geolocation.getCurrentPosition === "function") navigator.geolocation.getCurrentPosition(updateLocation, () => undefined, { enableHighAccuracy: false, maximumAge: 60_000, timeout: 10_000 });
-    if (typeof navigator.geolocation.watchPosition !== "function") return;
-    const watchId = navigator.geolocation.watchPosition(updateLocation, () => undefined, { enableHighAccuracy: false, maximumAge: 60_000, timeout: 10_000 });
-    return () => navigator.geolocation.clearWatch(watchId);
+    if (typeof geolocation.getCurrentPosition === "function") geolocation.getCurrentPosition(updateLocation, () => undefined, { enableHighAccuracy: false, maximumAge: 60_000, timeout: 10_000 });
+    if (typeof geolocation.watchPosition !== "function") return;
+    const watchId = geolocation.watchPosition(updateLocation, () => undefined, { enableHighAccuracy: false, maximumAge: 60_000, timeout: 10_000 });
+    return () => { if (typeof geolocation.clearWatch === "function") geolocation.clearWatch(watchId); };
   }, []);
 
   const load = useCallback(async () => {
-    const [dashboardResult, publicResult] = await Promise.allSettled([publicMode ? Promise.resolve(null) : getDashboard(), getPublicMap()]);
-    if (publicMode) { setData(null); setError(null); }
-    else if (dashboardResult.status === "fulfilled" && dashboardResult.value) { setData(dashboardResult.value); setFeedPage(1); setFeedHasMore(dashboardResult.value.reports.length >= 30); setError(null); }
+    setIsLoading(true);
+    const [dashboardResult, publicResult, feedResult] = await Promise.allSettled([publicMode ? Promise.resolve(null) : getDashboard(), getPublicMap(), publicMode ? Promise.resolve(null) : getReportFeed(1, 10)]);
+    if (publicMode) { setData(null); setFeedItems([]); setError(null); }
+    else if (dashboardResult.status === "fulfilled" && dashboardResult.value) { setData(dashboardResult.value); setError(null); }
     else setError("Dashboard belum dapat dimuat. Periksa koneksi lalu coba lagi.");
+    if (feedResult.status === "fulfilled" && feedResult.value) { setFeedItems(feedResult.value.reports); setFeedPage(feedResult.value.page); setFeedHasMore(feedResult.value.hasMore); }
+    else if (!publicMode) { setFeedItems([]); setFeedPage(1); setFeedHasMore(false); }
     if (publicResult.status === "fulfilled") setPublicMap(publicResult.value);
     else if (publicMode) setError("Peta belum dapat dimuat. Periksa koneksi lalu coba lagi.");
+    setIsLoading(false);
   }, [publicMode]);
   // Dashboard data is synchronized with the authenticated API session.
   // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -610,22 +627,22 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
   const publicReports = useMemo(() => (publicMap?.reports ?? []).filter((report) => report.status !== "REJECTED" && matches(report)), [matches, publicMap?.reports]);
   const mapReports = citizen ? publicReports : filteredReports;
   const mapUnits = useMemo(() => citizen ? (publicMap?.units ?? data?.units ?? []) : (data?.units ?? []), [citizen, data?.units, publicMap?.units]);
-  const feedReports = citizen ? publicReports : filteredReports;
-  const selectedReport = useMemo(() => (citizen ? [...reports, ...publicReports] : reports).find((report) => report.id === selectedId) ?? null, [citizen, publicReports, reports, selectedId]);
+  const feedReports = useMemo(() => feedItems.filter(matches), [feedItems, matches]);
+  const selectedReport = useMemo(() => [...reports, ...publicReports, ...feedItems].find((report) => report.id === selectedId) ?? null, [feedItems, publicReports, reports, selectedId]);
   const activeFilter = statusFilter !== "ALL" || Boolean(search.trim());
   const loadMoreFeed = useCallback(async () => {
-    if (citizen || loadingMore || !feedHasMore) return;
+    if (loadingMore || !feedHasMore) return;
     setLoadingMore(true);
     try {
       const next = await getReportFeed(feedPage + 1, 10);
-      setData((current) => current ? { ...current, reports: [...current.reports, ...next.reports] } : current);
+      setFeedItems((current) => [...current, ...next.reports]);
       setFeedPage(next.page);
       setFeedHasMore(next.hasMore);
     } catch { setNotice("Laporan berikutnya belum dapat dimuat."); }
     finally { setLoadingMore(false); }
-  }, [citizen, feedHasMore, feedPage, loadingMore]);
+  }, [feedHasMore, feedPage, loadingMore]);
 
-  const openReportForm = useCallback(() => { if (!canReport) return; setView("map"); setSelectedId(null); setListOpen(false); setReportOpen(true); setPinMode(true); setError(null); }, [canReport]);
+  const openReportForm = useCallback(() => { if (!canReport) return; setView("map"); setSelectedId(null); setListOpen(false); setFocusLocation({ latitude: form.latitude, longitude: form.longitude }); setReportOpen(true); setPinMode(true); setError(null); }, [canReport, form.latitude, form.longitude]);
   const selectReport = useCallback((report: IncidentReport) => { setSelectedId(report.id); setListOpen(false); setReportOpen(false); }, []);
   const selectReportFromMap = useCallback((report: IncidentReport) => { setFocusLocation({ latitude: report.latitude, longitude: report.longitude }); selectReport(report); }, [selectReport]);
   const toggleReportForm = useCallback(() => {
@@ -640,21 +657,26 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
     const query = search.trim().toLowerCase();
     if (!query) return;
     const unit = mapUnits.find((candidate) => [candidate.name, candidate.district, candidate.address].some((value) => value.toLowerCase().includes(query)));
-    if (unit) { setFocusLocation({ latitude: unit.latitude, longitude: unit.longitude }); setSelectedUnit(unit); return; }
+    const chooseLocation = (coordinates: { latitude: number; longitude: number }, message?: string) => {
+      setFocusLocation(coordinates);
+      if (reportOpen) { setForm((current) => ({ ...current, ...coordinates })); setPinMode(false); }
+      if (message) setNotice(message);
+    };
+    if (unit) { chooseLocation({ latitude: unit.latitude, longitude: unit.longitude }, `Menampilkan ${unit.name}.`); setSelectedUnit(unit); return; }
     const report = mapReports.find((candidate) => [candidate.category, candidate.ticketNumber, candidate.policeUnit?.name, candidate.policeUnit?.district].filter(Boolean).some((value) => value!.toLowerCase().includes(query)));
-    if (report) { setFocusLocation({ latitude: report.latitude, longitude: report.longitude }); setSelectedId(report.id); setSelectedUnit(null); return; }
+    if (report) { chooseLocation({ latitude: report.latitude, longitude: report.longitude }, `Menampilkan titik ${report.ticketNumber}.`); setSelectedId(report.id); setSelectedUnit(null); return; }
     try {
       const response = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=id&q=${encodeURIComponent(search.trim())}`);
       const result = await response.json() as Array<{ lat: string; lon: string; display_name: string }>;
       const location = result[0];
       if (!location) { setNotice("Lokasi belum ditemukan. Coba nama tempat atau wilayah yang lebih spesifik."); return; }
-      setFocusLocation({ latitude: Number(location.lat), longitude: Number(location.lon) });
-      setNotice(`Menampilkan ${location.display_name.split(",").slice(0, 2).join(", ")}.`);
+      chooseLocation({ latitude: Number(location.lat), longitude: Number(location.lon) }, `Menampilkan ${location.display_name.split(",").slice(0, 2).join(", ")}.`);
     } catch { setNotice("Pencarian lokasi belum tersedia. Coba lagi sebentar."); }
-  }, [mapReports, mapUnits, search]);
+  }, [mapReports, mapUnits, reportOpen, search]);
   const useLocation = useCallback(() => {
-    if (!navigator.geolocation) { setError("Perangkat ini tidak mendukung lokasi otomatis. Pilih titik langsung di peta."); return; }
-    navigator.geolocation.getCurrentPosition((position) => { setForm((current) => ({ ...current, latitude: position.coords.latitude, longitude: position.coords.longitude })); setPinMode(false); setNotice("Lokasi perangkat sudah dipilih."); }, () => setError("Lokasi perangkat belum tersedia. Pilih titik langsung di peta."), { timeout: 5000 });
+    const geolocation = navigator.geolocation;
+    if (!geolocation || typeof geolocation.getCurrentPosition !== "function") { setError("Perangkat ini tidak mendukung lokasi otomatis. Pilih titik langsung di peta."); return; }
+    geolocation.getCurrentPosition((position) => { const coordinates = { latitude: position.coords.latitude, longitude: position.coords.longitude }; setForm((current) => ({ ...current, ...coordinates })); setFocusLocation(coordinates); setPinMode(false); setNotice("Lokasi perangkat sudah dipilih."); }, () => setError("Lokasi perangkat belum tersedia. Pilih titik langsung di peta."), { timeout: 5000 });
   }, []);
   const submit = async (event: FormEvent) => {
     event.preventDefault(); setSubmitting(true); setError(null); setNotice(null);
@@ -692,6 +714,7 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
     <section className="absolute inset-0" aria-label={view === "map" ? "Dashboard peta keamanan Jakarta" : "Feed laporan keamanan Jakarta"}>
       {view === "map" && <>
         <GardaMap className="!h-full !min-h-0" units={mapUnits} reports={mapReports} userLocation={userLocation} focusLocation={focusLocation} draftLocation={form} draftActive={canReport && reportOpen} onDraftLocationChange={handleDraftLocationChange} onMapClick={canReport && reportOpen && pinMode ? mapClick : undefined} onSelectReport={(report) => { setSelectedUnit(null); setSelectedZone(null); selectReportFromMap(report); }} onSelectUnit={(unit) => { setSelectedId(null); setSelectedZone(null); setSelectedUnit(unit); }} onSelectSafetyZone={(zone) => { setSelectedId(null); setSelectedUnit(null); setSelectedZone(zone); }} showSafetyZones={!publicMode} />
+        {isLoading && <MapLoadingOverlay label="Memeriksa keamanan Jakarta..." />}
         <div className="pointer-events-none absolute bottom-5 left-0 right-0 z-20 hidden items-center justify-center px-4 sm:flex"><div className="pointer-events-auto w-full max-w-[700px]"><DashboardControls view={view} citizen={citizen} showActions={!publicMode} role={role} search={search} onSearchChange={setSearch} onSearchSubmit={searchLocation} statusFilter={statusFilter} onStatusFilterChange={setStatusFilter} listOpen={listOpen} onToggleList={() => { setListOpen((current) => !current); setReportOpen(false); setSelectedId(null); }} onCreateReport={toggleReportForm} onPickLocation={() => { if (!reportOpen) openReportForm(); else setPinMode((current) => !current); }} pinMode={pinMode} activeFilter={activeFilter} reportOpen={reportOpen} /></div></div>
       </>}
       {view === "map" && <>
@@ -704,7 +727,7 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
       {notice && <div className="absolute left-1/2 top-[6.5rem] z-30 w-[calc(100%-32px)] max-w-md -translate-x-1/2 rounded-lg bg-slate-900 px-4 py-3 text-center text-xs font-bold text-white shadow-xl sm:top-24" role="status">{notice}<button type="button" onClick={() => setNotice(null)} className="ml-3 rounded-md px-1 text-white/60 hover:bg-white/10 hover:text-white" aria-label="Tutup notifikasi">×</button></div>}
       {error && !reportOpen && <p className="absolute left-1/2 top-[6.5rem] z-30 w-[calc(100%-32px)] max-w-md -translate-x-1/2 rounded-lg bg-red-50 px-4 py-3 text-center text-xs font-bold text-red-700 shadow-lg sm:top-24" role="alert">{error}</p>}
     </section>
-    {view === "feed" && <FeedView reports={feedReports} role={role} stats={stats} overview={data?.adminOverview} onSelect={selectReport} selectedId={selectedId} selectedReport={selectedReport} isDesktop={isDesktop} onCloseDetail={() => setSelectedId(null)} onStatusChange={(status) => selectedReport && void updateStatus(selectedReport.id, status)} updating={Boolean(selectedReport && updatingId === selectedReport.id)} hasMore={!citizen && feedHasMore} loadingMore={loadingMore} onLoadMore={() => void loadMoreFeed()} />}
+    {view === "feed" && <FeedView reports={feedReports} role={role} stats={stats} overview={data?.adminOverview} onSelect={selectReport} selectedId={selectedId} selectedReport={selectedReport} isDesktop={isDesktop} onCloseDetail={() => setSelectedId(null)} onStatusChange={(status) => selectedReport && void updateStatus(selectedReport.id, status)} updating={Boolean(selectedReport && updatingId === selectedReport.id)} hasMore={feedHasMore} loadingMore={loadingMore} onLoadMore={() => void loadMoreFeed()} />}
     {signoutOpen && <div className="fixed inset-0 z-[60] grid place-items-center bg-slate-950/35 px-5 backdrop-blur-sm" role="presentation"><section className="w-full max-w-sm rounded-xl bg-white p-6 shadow-2xl" role="alertdialog" aria-modal="true" aria-labelledby="signout-title"><h2 id="signout-title" className="text-xl font-bold tracking-tight">Keluar dari dashboard?</h2><p className="mt-2 text-xs leading-relaxed text-slate-500">Sesi di perangkat ini akan ditutup.</p><div className="mt-6 flex justify-end gap-2"><button type="button" onClick={() => setSignoutOpen(false)} className="rounded-lg px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100">Batal</button><button type="button" onClick={() => void handleSignOut()} className="rounded-lg bg-[#e62428] px-4 py-2.5 text-xs font-bold text-white hover:bg-[#c91d22]">Keluar</button></div></section></div>}
   </main>;
 }
