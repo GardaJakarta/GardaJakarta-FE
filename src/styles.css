@@ -1,4 +1,3 @@
-@import url("https://fonts.googleapis.com/css2?family=Urbanist:ital,wght@0,100..900;1,100..900&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap");
 @import "tailwindcss";
 :root {
   --primary: #e62428;
@@ -6,7 +5,7 @@
   --foreground: #171717;
   --dark-gray: #363636;
   --light-gray: #f2f2f2;
-  font-family: "Plus Jakarta Sans", "Plus Jakarta Sans Variable", sans-serif;
+  font-family: "Plus Jakarta Sans Variable", sans-serif;
   color: var(--foreground);
   background: var(--background);
   font-synthesis: none;
@@ -15,9 +14,9 @@
 * { box-sizing: border-box; }
 body { margin: 0; min-width: 320px; }
 button { cursor: pointer; }
-.dashboard-app { font-family: "Plus Jakarta Sans", "Plus Jakarta Sans Variable", sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
-.dashboard-app h1, .dashboard-app h2, .dashboard-app h3, .dashboard-app h4 { font-family: "Urbanist", "Plus Jakarta Sans", sans-serif; }
-.font-heading { font-family: "Urbanist", "Plus Jakarta Sans", sans-serif; }
+.dashboard-app { font-family: "Plus Jakarta Sans Variable", sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+.dashboard-app h1, .dashboard-app h2, .dashboard-app h3, .dashboard-app h4 { font-family: "Urbanist Variable", "Plus Jakarta Sans Variable", sans-serif; }
+.font-heading { font-family: "Urbanist Variable", "Plus Jakarta Sans Variable", sans-serif; }
 .auth-page { min-height: 100dvh; height: 100dvh; display: grid; grid-template-columns: minmax(280px, 0.92fr) minmax(400px, 1.08fr); position: relative; overflow: hidden; background: var(--background); }
 .auth-page-register { grid-template-columns: minmax(400px, 1.08fr) minmax(280px, 0.92fr); }
 .auth-panel { min-height: 100dvh; padding: clamp(24px, 5vw, 72px); position: relative; z-index: 1; overflow-y: auto; }
@@ -189,10 +188,10 @@ a:focus-visible, button:focus-visible { outline: 3px solid #e62428; outline-offs
 
 
 /* MapLibre DOM marker and popup primitives. The layered circles match the LaporPak marker language. */
-.garda-map-marker { position: relative; display: grid; width: 42px; height: 42px; place-items: center; border: 0; border-radius: 999px; color: #fff; background: transparent; box-shadow: none; transform: none; cursor: pointer; transition: transform .18s ease; }
+.garda-map-marker { position: relative; display: grid; width: 42px; height: 42px; place-items: center; border: 0; border-radius: 999px; color: #fff; background: transparent; box-shadow: none; cursor: pointer; }
 .garda-map-marker::before { position: absolute; inset: 2px; border-radius: 999px; background: rgba(31,107,146,.2); content: ""; }
-.garda-map-marker:hover, .garda-map-marker:focus-visible { transform: translateY(-2px); }
-.garda-map-marker span { position: relative; z-index: 1; display: grid; width: 30px; height: 30px; place-items: center; border: 2px solid #fff; border-radius: 999px; background: #1f6b92; box-shadow: 0 6px 16px rgba(23,23,23,.26); }
+.garda-map-marker span { position: relative; z-index: 1; display: grid; width: 30px; height: 30px; place-items: center; border: 2px solid #fff; border-radius: 999px; background: #1f6b92; box-shadow: 0 6px 16px rgba(23,23,23,.26); transition: transform .18s ease, box-shadow .18s ease; }
+.garda-map-marker:hover span, .garda-map-marker:focus-visible span { transform: translateY(-2px) scale(1.04); box-shadow: 0 8px 20px rgba(23,23,23,.3); }
 .garda-map-marker svg { width: 16px; height: 16px; fill: currentColor; }
 .garda-map-marker img { display: block; width: 16px; height: 16px; }
 .garda-map-marker-report::before { background: rgba(230,36,40,.2); }

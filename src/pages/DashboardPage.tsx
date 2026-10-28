@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type FormEvent, type PointerEvent as ReactPointerEvent, type SetStateAction } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, useDragControls } from "motion/react";
 import GardaMap from "../components/GardaMap";
 import AppLogo from "../components/branding/AppLogo";
 import { useAuth } from "../context/useAuth";
@@ -139,6 +139,10 @@ function CategoryMenu({ value, onChange }: { value: string; onChange: (value: st
   const [activeIndex, setActiveIndex] = useState(() => Math.max(0, categoryOptions.findIndex((option) => option.value === value)));
   const ref = useRef<HTMLDivElement>(null);
   const selected = categoryOptions.find((option) => option.value === value);
+  const activeOptionId = `report-category-option-${activeIndex}`;
+  useEffect(() => {
+    if (open) document.getElementById(activeOptionId)?.scrollIntoView({ block: "nearest" });
+  }, [activeOptionId, open]);
   useEffect(() => {
     if (!open) return;
     const handler = (event: PointerEvent) => { if (ref.current && !ref.current.contains(event.target as Node)) setOpen(false); };
@@ -150,9 +154,11 @@ function CategoryMenu({ value, onChange }: { value: string; onChange: (value: st
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
       event.preventDefault();
       setOpen(true);
-      setActiveIndex((current) => (current + (event.key === "ArrowDown" ? 1 : -1) + categoryOptions.length) % categoryOptions.length);
+      setActiveIndex((current) => open ? (current + (event.key === "ArrowDown" ? 1 : -1) + categoryOptions.length) % categoryOptions.length : Math.max(0, categoryOptions.findIndex((option) => option.value === value)));
       return;
     }
+    if (event.key === "Home" || event.key === "End") { event.preventDefault(); setOpen(true); setActiveIndex(event.key === "Home" ? 0 : categoryOptions.length - 1); return; }
+    if (event.key === "Tab") { setOpen(false); return; }
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
       if (open) { onChange(categoryOptions[activeIndex].value); setOpen(false); }
@@ -160,17 +166,17 @@ function CategoryMenu({ value, onChange }: { value: string; onChange: (value: st
     }
   };
   return <div ref={ref} className="relative">
-    <button type="button" role="combobox" aria-expanded={open} aria-controls="report-category-options" aria-haspopup="listbox" onKeyDown={handleKeyDown} onClick={() => setOpen((current) => !current)} className={`flex min-h-11 w-full items-center gap-3 rounded-sm border bg-white px-3 text-left text-sm font-bold transition-colors focus:outline-none focus:ring-2 focus:ring-red-100 ${open ? "border-[#e62428] shadow-[0_0_0_3px_rgba(230,36,40,0.08)]" : "border-gray-200 hover:border-gray-300"}`}>
+    <button type="button" role="combobox" aria-expanded={open} aria-controls="report-category-options" aria-activedescendant={open ? activeOptionId : undefined} aria-haspopup="listbox" onKeyDown={handleKeyDown} onClick={() => setOpen((current) => !current)} className={`flex min-h-11 w-full items-center gap-3 rounded-sm border bg-white px-3 text-left text-sm font-bold transition-colors focus:outline-none focus:ring-2 focus:ring-red-100 ${open ? "border-[#e62428] shadow-[0_0_0_3px_rgba(230,36,40,0.08)]" : "border-gray-200 hover:border-gray-300"}`}>
       <span className="grid h-7 w-7 shrink-0 place-items-center rounded-sm bg-[#fff1ef] text-[#e62428]">{selected ? <CategoryIcon kind={selected.icon} className="h-4 w-4" /> : <GardaMark className="h-4 w-4" />}</span>
-      <span className="min-w-0 flex-1 truncate text-gray-900">{selected?.value || "Pilih kategori kejadian"}</span>
+      <span className="min-w-0 flex-1 py-2 text-gray-900">{selected?.value || "Pilih kategori kejadian"}</span>
       <Chevron open={open} />
     </button>
     {open && <div id="report-category-options" role="listbox" aria-label="Kategori laporan" className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 max-h-[min(66vh,430px)] overflow-y-auto rounded-sm border border-gray-100 bg-white p-1 shadow-[0_18px_44px_rgba(15,23,42,0.16)]">
       <div className="mb-1.5 flex items-center gap-3 border-b border-gray-100 bg-gray-50 px-2.5 py-2.5"><AppLogo className="h-6 w-auto shrink-0" size={145} aria-label="Garda Jakarta" /><div className="min-w-0 border-l border-gray-200 pl-3"><strong className="block text-[10px] font-black uppercase tracking-[.14em] text-gray-900">Kategori laporan</strong><span className="mt-0.5 block truncate text-[10px] font-semibold text-gray-400">Pilih jenis kejadian.</span></div></div>
       <div className="space-y-1">
-        {categoryOptions.map((option, index) => <button key={option.value} type="button" role="option" aria-selected={value === option.value} onMouseEnter={() => setActiveIndex(index)} onClick={() => { onChange(option.value); setActiveIndex(index); setOpen(false); }} className={`flex min-h-12 w-full items-center gap-3 rounded-sm border-l-2 px-2 py-1.5 text-left transition-colors ${value === option.value ? "border-[#e62428] bg-[#fff1ef] text-[#b21e24]" : activeIndex === index ? "border-gray-300 bg-gray-50 text-gray-900" : "border-transparent text-gray-700 hover:bg-gray-50"}`}>
+        {categoryOptions.map((option, index) => <button id={`report-category-option-${index}`} key={option.value} type="button" role="option" tabIndex={-1} aria-selected={value === option.value} onMouseDown={(event) => event.preventDefault()} onClick={() => { onChange(option.value); setActiveIndex(index); setOpen(false); }} className={`flex min-h-12 w-full items-center gap-3 rounded-sm border-l-2 px-2 py-1.5 text-left transition-colors ${value === option.value ? "border-[#e62428] bg-[#fff1ef] text-[#b21e24]" : activeIndex === index ? "border-gray-300 bg-gray-50 text-gray-900" : "border-transparent text-gray-700 hover:bg-gray-50"}`}>
           <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-sm border ${value === option.value ? "border-[#e62428] bg-[#e62428] text-white" : "border-gray-100 bg-white text-gray-500"}`}><CategoryIcon kind={option.icon} className="h-4 w-4" /></span>
-          <span className="min-w-0 flex-1"><strong className="block truncate text-[11px] font-black leading-snug">{option.value}</strong><span className="mt-0.5 block truncate text-[10px] font-medium text-gray-400">{option.description}</span></span>
+          <span className="min-w-0 flex-1"><strong className="block text-[11px] font-black leading-snug">{option.value}</strong><span className="mt-0.5 block text-[10px] font-medium text-gray-500">{option.description}</span></span>
           {value === option.value && <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#e62428] text-[11px] font-black text-white">✓</span>}
         </button>)}
       </div>
@@ -342,78 +348,68 @@ function ReportDetail({ report, role, isDesktop, onClose, onStatusChange, updati
 
 function ReportForm({ open, isDesktop, form, setForm, pinMode, setPinMode, submitting, onSubmit, onClose, onUseLocation, error }: { open: boolean; isDesktop: boolean; form: ReportFormState; setForm: Dispatch<SetStateAction<ReportFormState>>; pinMode: boolean; setPinMode: (value: boolean) => void; submitting: boolean; onSubmit: (event: FormEvent) => void; onClose: () => void; onUseLocation: () => void; error: string | null }) {
   const [sheetHeight, setSheetHeight] = useState(68);
-  const [desktopOffset, setDesktopOffset] = useState(0);
-  const dragRef = useRef<{ startX: number; startY: number; startOffset: number; startHeight: number } | null>(null);
+  const dragControls = useDragControls();
+  const resizeCleanupRef = useRef<(() => void) | null>(null);
+  const dragMovedRef = useRef(false);
   const heightRef = useRef(sheetHeight);
-  const desktopOffsetRef = useRef(desktopOffset);
 
-  const startDrag = (event: ReactPointerEvent<HTMLButtonElement | HTMLDivElement>) => {
+  useEffect(() => () => resizeCleanupRef.current?.(), []);
+
+  const startResize = (event: ReactPointerEvent<HTMLButtonElement | HTMLDivElement>) => {
+    if (isDesktop || event.button !== 0) return;
     event.preventDefault();
-    dragRef.current = { startX: event.clientX, startY: event.clientY, startOffset: desktopOffset, startHeight: sheetHeight };
+    resizeCleanupRef.current?.();
+    dragMovedRef.current = false;
+    const startY = event.clientY;
+    const startHeight = sheetHeight;
     const move = (moveEvent: PointerEvent) => {
-      const state = dragRef.current;
-      if (!state) return;
-      if (isDesktop) {
-        const nextOffset = Math.max(-280, Math.min(280, state.startOffset + moveEvent.clientX - state.startX));
-        desktopOffsetRef.current = nextOffset;
-        setDesktopOffset(nextOffset);
-        return;
-      }
-      const nextHeight = Math.max(34, Math.min(88, state.startHeight + ((state.startY - moveEvent.clientY) / window.innerHeight) * 100));
+      if (Math.abs(moveEvent.clientY - startY) > 4) dragMovedRef.current = true;
+      const nextHeight = Math.max(34, Math.min(86, startHeight + ((startY - moveEvent.clientY) / window.innerHeight) * 100));
       heightRef.current = nextHeight;
       setSheetHeight(nextHeight);
     };
-    const end = () => {
-      const state = dragRef.current;
-      dragRef.current = null;
+    const cleanup = () => {
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", end);
       window.removeEventListener("pointercancel", end);
-      if (!state) return;
-      if (isDesktop) {
-        if (desktopOffsetRef.current > 230) onClose();
-        else {
-          desktopOffsetRef.current = 0;
-          setDesktopOffset(0);
-        }
-        return;
-      }
+      resizeCleanupRef.current = null;
+    };
+    const end = () => {
+      cleanup();
+      if (!dragMovedRef.current) return;
       const value = heightRef.current;
       if (value < 42) { onClose(); return; }
-      const snapPoints = [56, 68, 86];
+      const snapPoints = [68, 86];
       const snap = snapPoints.reduce((nearest, point) => Math.abs(point - value) < Math.abs(nearest - value) ? point : nearest, snapPoints[0]);
       heightRef.current = snap;
       setSheetHeight(snap);
     };
+    resizeCleanupRef.current = cleanup;
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", end);
     window.addEventListener("pointercancel", end);
   };
 
-  const startResize = (event: ReactPointerEvent<HTMLButtonElement | HTMLDivElement>) => {
-    if (isDesktop) return;
-    event.preventDefault();
-    startDrag(event);
-  };
-
   return <AnimatePresence>
     {open && <>
       {!isDesktop && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="pointer-events-none fixed inset-0 z-40 bg-gray-950/45 backdrop-blur-[2px]" aria-hidden="true" />}
-      <motion.aside initial={isDesktop ? { x: "100%", opacity: 0 } : { y: "100%", opacity: 0 }} animate={isDesktop ? { x: desktopOffset, opacity: 1 } : { y: 0, opacity: 1 }} exit={isDesktop ? { x: "100%", opacity: 0 } : { y: "100%", opacity: 0 }} transition={{ type: "spring", stiffness: 360, damping: 34 }} style={!isDesktop ? { height: `${sheetHeight}dvh` } : undefined} className={`${isDesktop ? "absolute right-6 top-24 z-50 h-[calc(100dvh-120px)] w-[400px] min-w-[320px] max-w-[calc(100vw-2rem)] rounded-sm" : "fixed inset-x-0 bottom-0 z-50 max-h-[88dvh] w-full rounded-t-2xl"} flex flex-col overflow-hidden bg-white shadow-[0_24px_72px_rgba(15,23,42,0.24)]`} aria-label="Form laporan baru">
-        {!isDesktop && <button type="button" onPointerDown={startResize} onClick={() => { if (!dragRef.current) setSheetHeight((height) => height > 78 ? 68 : 86); }} className="flex w-full touch-none justify-center bg-white pb-2 pt-3" aria-label={sheetHeight > 78 ? "Perkecil panel laporan" : "Perbesar panel laporan"}><span className="h-1.5 w-12 rounded-full bg-gray-200" /></button>}
-        <div onPointerDown={startDrag} className={`flex items-center justify-between border-b border-gray-100 bg-white px-6 py-4 touch-none ${isDesktop ? "cursor-move active:cursor-grabbing" : ""}`}>
+      <motion.div key={isDesktop ? "desktop-form" : "mobile-form"} initial={isDesktop ? { x: "100%", opacity: 0 } : { y: "100%", opacity: 0 }} animate={{ x: 0, y: 0, opacity: 1 }} exit={isDesktop ? { x: "100%", opacity: 0 } : { y: "100%", opacity: 0 }} transition={{ type: "spring", stiffness: 360, damping: 34 }} className={`pointer-events-none absolute z-50 ${isDesktop ? "right-6 top-24" : "inset-x-0 bottom-0"}`}>
+      <motion.aside drag={isDesktop} dragControls={dragControls} dragListener={false} dragMomentum={false} dragElastic={0} dragConstraints={isDesktop ? { left: -Math.max(0, window.innerWidth - 440), right: 8, top: -80, bottom: 8 } : undefined} style={!isDesktop ? { height: `${sheetHeight}dvh` } : undefined} className={`${isDesktop ? "h-[calc(100dvh-120px)] w-[400px] max-w-[calc(100vw-2rem)] rounded-sm" : "max-h-[86dvh] w-full rounded-t-2xl"} pointer-events-auto flex flex-col overflow-hidden bg-white shadow-[0_24px_72px_rgba(15,23,42,0.24)]`} aria-label="Form laporan baru">
+        {!isDesktop && <button type="button" onPointerDown={startResize} onClick={() => { if (dragMovedRef.current) { dragMovedRef.current = false; return; } setSheetHeight((height) => height > 78 ? 68 : 86); }} className="flex w-full touch-none justify-center bg-white pb-2 pt-3" aria-label={sheetHeight > 78 ? "Perkecil panel laporan" : "Perbesar panel laporan"}><span className="h-1.5 w-12 rounded-full bg-gray-200" /></button>}
+        <div onPointerDown={isDesktop ? (event) => dragControls.start(event) : startResize} className={`flex shrink-0 items-center justify-between border-b border-gray-100 bg-white px-6 touch-none ${isDesktop ? "cursor-move py-6 active:cursor-grabbing" : "py-4"}`}>
           <div><p className="text-[10px] font-black uppercase tracking-[.16em] text-[#e62428]">Laporan warga</p><h2 className="mt-1 font-heading text-xl font-black tracking-tight text-gray-900">Buat laporan</h2><p className="mt-1 text-xs font-semibold text-gray-400">Pilih titik dan ceritakan kejadian.</p></div>
           <button type="button" onClick={onClose} onPointerDown={(event) => event.stopPropagation()} className="grid h-8 w-8 place-items-center rounded-full text-xl leading-none text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-900" aria-label="Tutup form">×</button>
         </div>
-        <form className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-6 pb-6 pt-5" onSubmit={onSubmit}>
+        <form id="new-report-form" className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-6 pb-6 pt-5" onSubmit={onSubmit}>
           <label className="grid gap-2 text-xs font-black tracking-normal text-slate-700">Kategori kejadian<CategoryMenu value={form.category} onChange={(category) => setForm((current) => ({ ...current, category }))} /></label>
-          <label className="grid gap-2 text-xs font-black tracking-normal text-slate-700">Kronologi singkat<textarea required minLength={10} maxLength={2000} value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} placeholder="Ceritakan urutan dan kondisi yang terjadi..." className="min-h-32 resize-none rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm font-bold normal-case tracking-normal text-slate-900 outline-none transition focus:border-[#e62428] focus:ring-2 focus:ring-red-100" /><span className="text-[10px] font-medium normal-case tracking-normal text-slate-400">Minimal 10 karakter. Jangan tulis identitas korban atau nomor telepon.</span></label>
-          <label className="grid gap-2 text-xs font-black tracking-normal text-slate-700">Tingkat keparahan<select value={form.severity} onChange={(event) => setForm((current) => ({ ...current, severity: event.target.value as ReportSeverity }))} className="h-12 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold normal-case tracking-normal text-slate-900 outline-none focus:border-[#e62428] focus:ring-2 focus:ring-red-100">{Object.entries(severityLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
-          <div className="space-y-2"><p className="text-xs font-black tracking-normal text-slate-700">Lokasi kejadian</p><div className="flex items-center justify-between gap-3 rounded-lg bg-slate-50 px-3 py-3"><div><strong className="block text-xs font-black text-slate-900">Titik laporan</strong><span className="mt-1 block font-mono text-[11px] font-bold text-slate-500">{form.latitude.toFixed(5)}, {form.longitude.toFixed(5)}</span></div><button type="button" onClick={() => setPinMode(!pinMode)} className={`shrink-0 rounded-full px-3 py-2 text-[10px] font-black tracking-wide ${pinMode ? "bg-[#e62428] text-white" : "bg-white text-slate-700 ring-1 ring-slate-200"}`}>{pinMode ? "Pilih di peta" : "Ubah titik"}</button></div><button type="button" onClick={onUseLocation} className="text-[10px] font-black tracking-wide text-[#e62428] hover:text-[#b21e24]">Gunakan lokasi saya</button></div>
+          <label className="grid gap-2 text-xs font-black tracking-normal text-slate-700">Kronologi singkat<textarea required minLength={10} maxLength={2000} value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} placeholder="Ceritakan urutan dan kondisi yang terjadi..." className="min-h-32 resize-none rounded-sm border border-gray-200 bg-white px-4 py-3 text-sm font-bold normal-case tracking-normal text-slate-900 outline-none transition focus:border-[#e62428] focus:ring-2 focus:ring-red-100" /><span className="text-[10px] font-medium normal-case tracking-normal text-slate-400">Minimal 10 karakter. Jangan tulis identitas korban atau nomor telepon.</span></label>
+          <label className="grid gap-2 text-xs font-black tracking-normal text-slate-700">Tingkat keparahan<select value={form.severity} onChange={(event) => setForm((current) => ({ ...current, severity: event.target.value as ReportSeverity }))} className="h-12 rounded-sm border border-gray-200 bg-white px-3 text-sm font-bold normal-case tracking-normal text-slate-900 outline-none focus:border-[#e62428] focus:ring-2 focus:ring-red-100">{Object.entries(severityLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
+          <div className="space-y-2"><p className="text-xs font-black tracking-normal text-slate-700">Lokasi kejadian</p><div className="flex items-center justify-between gap-3 rounded-sm bg-slate-50 px-3 py-3"><div><strong className="block text-xs font-black text-slate-900">Titik laporan</strong><span className="mt-1 block font-mono text-[11px] font-bold text-slate-500">{form.latitude.toFixed(5)}, {form.longitude.toFixed(5)}</span></div><button type="button" onClick={() => setPinMode(!pinMode)} className={`shrink-0 rounded-full px-3 py-2 text-[10px] font-black tracking-wide ${pinMode ? "bg-[#e62428] text-white" : "bg-white text-slate-700 ring-1 ring-slate-200"}`}>{pinMode ? "Pilih di peta" : "Ubah titik"}</button></div><button type="button" onClick={onUseLocation} className="text-[10px] font-black tracking-wide text-[#e62428] hover:text-[#b21e24]">Gunakan lokasi saya</button></div>
           {error && <p className="rounded-sm bg-red-50 px-3 py-2 text-xs font-bold normal-case tracking-normal text-red-700" role="alert">{error}</p>}
-          <button type="submit" disabled={submitting || !form.category} className="h-12 w-full rounded-full bg-[#e62428] px-4 text-xs font-black tracking-wide text-white transition-colors hover:bg-[#c91d22] disabled:cursor-wait disabled:opacity-60">{submitting ? "Mengirim laporan..." : "Kirim laporan"}</button>
         </form>
+        <div className="shrink-0 border-t border-gray-100 bg-white px-6 py-4"><button type="submit" form="new-report-form" disabled={submitting || !form.category || form.description.trim().length < 10} className="h-12 w-full rounded-full bg-[#e62428] px-4 text-xs font-black tracking-wide text-white transition-colors hover:bg-[#c91d22] disabled:cursor-not-allowed disabled:opacity-60">{submitting ? "Mengirim laporan..." : "Kirim laporan"}</button></div>
       </motion.aside>
+      </motion.div>
     </>}
   </AnimatePresence>;
 }
@@ -523,14 +519,14 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
   const handleSignOut = async () => { try { await signOut(); window.location.assign(portalPaths[role].login); } catch { setError("Sesi belum dapat ditutup. Coba lagi."); } finally { setSignoutOpen(false); } };
 
   return <main className="dashboard-app relative h-[100dvh] min-h-[620px] overflow-hidden bg-[#f3f4f6] text-slate-900">
-    <header className="absolute left-1/2 top-2 z-50 flex w-[94%] max-w-5xl -translate-x-1/2 flex-col gap-1.5 rounded-2xl bg-white px-2.5 py-1.5 shadow-lg sm:top-4 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:rounded-full sm:px-4 sm:py-2.5">
+    <header className="absolute left-1/2 top-2 z-50 flex w-[94%] max-w-5xl -translate-x-1/2 flex-row items-center gap-0 rounded-[26px] bg-white px-2.5 py-2 shadow-lg sm:top-4 sm:justify-between sm:gap-3 sm:rounded-full sm:px-4 sm:py-2.5">
       <div className="flex w-full min-w-0 items-center justify-between gap-2 sm:flex-1">
         <div className="flex min-w-0 shrink items-center gap-1.5 sm:gap-3">
           <a href="https://gardajakarta.my.id" aria-label="Beranda Garda Jakarta" className="group flex min-w-0 shrink-0 items-center"><AppLogo className="h-6 w-auto max-w-[72px] object-contain transition-opacity group-hover:opacity-80 sm:h-9 sm:max-w-none" size={145} aria-label="Garda Jakarta" /></a>
-          <div className="flex shrink-0 rounded-full border border-gray-100 bg-gray-50 p-0.5 shadow-inner sm:p-1">
+          {role !== "admin" && <div className="flex shrink-0 rounded-full border border-gray-100 bg-gray-50 p-0.5 shadow-inner sm:p-1">
             <button type="button" onClick={() => setView("map")} aria-pressed={view === "map"} className={`flex h-7 min-w-[48px] items-center justify-center gap-1 rounded-full px-1.5 text-[9px] font-black transition-colors sm:h-8 sm:min-w-[74px] sm:gap-1.5 sm:px-3 sm:text-[11px] ${view === "map" ? "bg-gray-900 text-white shadow-sm" : "text-gray-500 hover:bg-white hover:text-gray-900"}`}><MapModeIcon /><span>Map</span></button>
             <button type="button" onClick={() => { setView("feed"); setListOpen(false); setReportOpen(false); }} aria-pressed={view === "feed"} className={`flex h-7 min-w-[48px] items-center justify-center gap-1 rounded-full px-1.5 text-[9px] font-black transition-colors sm:h-8 sm:min-w-[74px] sm:gap-1.5 sm:px-3 sm:text-[11px] ${view === "feed" ? "bg-gray-900 text-white shadow-sm" : "text-gray-500 hover:bg-white hover:text-gray-900"}`}><FeedModeIcon /><span>Feed</span></button>
-          </div>
+          </div>}
         </div>
         {publicMode ? <a href="/login" className="inline-flex h-7 shrink-0 items-center justify-center whitespace-nowrap rounded-full bg-[#e62428] px-2.5 text-[9px] font-black leading-none text-white shadow-sm transition-colors hover:bg-[#c91d22] sm:h-9 sm:px-4 sm:text-[11px]" aria-label="Masuk sebagai pelapor"><span className="sm:hidden">Masuk</span><span className="hidden sm:inline">Masuk sebagai pelapor</span></a> : <div ref={accountRef} className="relative shrink-0">
           <button type="button" onClick={() => setAccountOpen((current) => !current)} className="inline-flex h-8 w-8 items-center justify-center rounded-full p-0 text-left hover:bg-gray-50 sm:h-auto sm:w-auto sm:gap-2 sm:justify-start sm:px-1.5 sm:py-1" aria-haspopup="menu" aria-expanded={accountOpen}>
@@ -541,10 +537,11 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
           {accountOpen && <div className="absolute right-0 top-[calc(100%+8px)] z-50 w-56 rounded-xl border border-gray-100 bg-white p-2 shadow-2xl" role="menu"><div className="border-b border-gray-100 px-3 py-2.5"><strong className="block truncate text-xs">{user?.name}</strong><span className="mt-1 block truncate text-[10px] text-gray-400">{user?.email}</span></div><button type="button" role="menuitem" onClick={() => { setAccountOpen(false); setSignoutOpen(true); }} className="mt-1 flex w-full items-center rounded-lg px-3 py-2.5 text-left text-xs font-bold text-red-700 hover:bg-red-50">Keluar</button></div>}
         </div>}
       </div>
-      <div className="w-full border-t border-gray-100 pt-1.5 sm:hidden">
-        <DashboardControls mobile view={view} citizen={citizen} showActions={!publicMode} role={role} search={search} onSearchChange={setSearch} statusFilter={statusFilter} onStatusFilterChange={setStatusFilter} listOpen={listOpen} onToggleList={() => { setListOpen((current) => !current); setReportOpen(false); setSelectedId(null); }} onCreateReport={toggleReportForm} onPickLocation={() => { if (!reportOpen) openReportForm(); else setPinMode((current) => !current); }} pinMode={pinMode} activeFilter={activeFilter} reportOpen={reportOpen} />
-      </div>
     </header>
+
+    <div className="absolute left-1/2 top-[3.75rem] z-40 w-[94%] max-w-5xl -translate-x-1/2 rounded-[26px] bg-white p-1.5 shadow-lg sm:hidden">
+      <DashboardControls mobile view={view} citizen={citizen} showActions={!publicMode} role={role} search={search} onSearchChange={setSearch} statusFilter={statusFilter} onStatusFilterChange={setStatusFilter} listOpen={listOpen} onToggleList={() => { setListOpen((current) => !current); setReportOpen(false); setSelectedId(null); }} onCreateReport={toggleReportForm} onPickLocation={() => { if (!reportOpen) openReportForm(); else setPinMode((current) => !current); }} pinMode={pinMode} activeFilter={activeFilter} reportOpen={reportOpen} />
+    </div>
 
     <section className="absolute inset-0" aria-label="Dashboard peta keamanan Jakarta">
       <GardaMap className="!h-full !min-h-0" units={mapUnits} reports={mapReports} draftLocation={form} draftActive={canReport && reportOpen} onDraftLocationChange={handleDraftLocationChange} onMapClick={canReport && reportOpen && pinMode ? mapClick : undefined} onSelectReport={selectReport} />
@@ -555,7 +552,7 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
       {notice && <div className="absolute left-1/2 top-[6.5rem] z-30 w-[calc(100%-32px)] max-w-md -translate-x-1/2 rounded-lg bg-slate-900 px-4 py-3 text-center text-xs font-bold text-white shadow-xl sm:top-24" role="status">{notice}<button type="button" onClick={() => setNotice(null)} className="ml-3 rounded-md px-1 text-white/60 hover:bg-white/10 hover:text-white" aria-label="Tutup notifikasi">×</button></div>}
       {error && !reportOpen && <p className="absolute left-1/2 top-[6.5rem] z-30 w-[calc(100%-32px)] max-w-md -translate-x-1/2 rounded-lg bg-red-50 px-4 py-3 text-center text-xs font-bold text-red-700 shadow-lg sm:top-24" role="alert">{error}</p>}
     </section>
-    {view === "feed" && <FeedView reports={feedReports} role={role} stats={stats} overview={data?.adminOverview} onSelect={(report) => { setView("map"); selectReport(report); }} selectedId={selectedId} publicMode={publicMode} />}
+    {view === "feed" && <FeedView reports={feedReports} role={role} stats={stats} overview={data?.adminOverview} onSelect={(report) => { if (role !== "admin") setView("map"); selectReport(report); }} selectedId={selectedId} publicMode={publicMode} />}
     {signoutOpen && <div className="fixed inset-0 z-[60] grid place-items-center bg-slate-950/35 px-5 backdrop-blur-sm" role="presentation"><section className="w-full max-w-sm rounded-xl bg-white p-6 shadow-2xl" role="alertdialog" aria-modal="true" aria-labelledby="signout-title"><h2 id="signout-title" className="text-xl font-bold tracking-tight">Keluar dari dashboard?</h2><p className="mt-2 text-xs leading-relaxed text-slate-500">Sesi di perangkat ini akan ditutup.</p><div className="mt-6 flex justify-end gap-2"><button type="button" onClick={() => setSignoutOpen(false)} className="rounded-lg px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100">Batal</button><button type="button" onClick={() => void handleSignOut()} className="rounded-lg bg-[#e62428] px-4 py-2.5 text-xs font-bold text-white hover:bg-[#c91d22]">Keluar</button></div></section></div>}
   </main>;
 }

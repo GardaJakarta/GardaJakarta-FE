@@ -122,7 +122,6 @@ function GardaMap({ units, reports, className, onMapClick, onSelectReport, onSel
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapInstance | null>(null);
   const [mapReady, setMapReady] = useState(false);
-  const draftActiveRef = useRef(false);
   const draftDraggingRef = useRef(false);
   const draftLocationRef = useRef({ latitude: draftLatitude, longitude: draftLongitude });
   const markersRef = useRef<Marker[]>([]);
@@ -233,17 +232,6 @@ function GardaMap({ units, reports, className, onMapClick, onSelectReport, onSel
     const map = mapRef.current;
     const location = draftLocationRef.current;
     if (!map || !mapReady || !draftActive || location.latitude === undefined || location.longitude === undefined) {
-      draftActiveRef.current = draftActive;
-      return;
-    }
-    // Keep the existing viewport when the report sheet opens; the map remains mounted underneath it.
-    draftActiveRef.current = draftActive;
-  }, [draftActive, draftLatitude, draftLongitude, mapReady]);
-
-  useEffect(() => {
-    const map = mapRef.current;
-    const location = draftLocationRef.current;
-    if (!map || !mapReady || !draftActive || location.latitude === undefined || location.longitude === undefined) {
       draftMarkerRef.current?.remove();
       draftMarkerRef.current = null;
       return;
@@ -280,6 +268,7 @@ function GardaMap({ units, reports, className, onMapClick, onSelectReport, onSel
     draftMarkerRef.current = marker;
 
     return () => {
+      draftDraggingRef.current = false;
       marker.off("dragstart", handleDragStartWithState);
       marker.off("drag", handleDrag);
       marker.off("dragend", handleDragEnd);
