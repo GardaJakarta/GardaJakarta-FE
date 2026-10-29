@@ -134,10 +134,10 @@ function safetyGeoJson(reports: IncidentReport[]): GeoJSON.FeatureCollection<Geo
   };
 }
 
-function markerElement(kind: "police" | "report", severity?: IncidentReport["severity"]) {
+function markerElement(kind: "police" | "report", severity?: IncidentReport["severity"], selected = false) {
   const element = document.createElement("button");
   element.type = "button";
-  element.className = `garda-map-marker garda-map-marker-${kind} garda-map-marker-${severity?.toLowerCase() || "default"}`;
+  element.className = `garda-map-marker garda-map-marker-${kind} garda-map-marker-${severity?.toLowerCase() || "default"}${selected ? " garda-map-marker-selected" : ""}`;
   const image = document.createElement("img");
   image.src = kind === "police" ? "/markers/garda-police-mark.svg" : "/markers/garda-report-mark.svg";
   image.alt = "";
@@ -315,7 +315,7 @@ function GardaMap({ units, reports, className, popupAnchor, onPopupPosition, onM
     markersRef.current.forEach((marker) => marker.remove());
     markersRef.current = [];
     if (showPoliceMarkers) units.forEach((unit) => {
-      const element = markerElement("police");
+      const element = markerElement("police", undefined, Boolean(focusLocation && Math.abs(focusLocation.latitude - unit.latitude) < 0.00001 && Math.abs(focusLocation.longitude - unit.longitude) < 0.00001));
       const marker = new maplibregl.Marker({ element, anchor: "center" })
         .setLngLat([unit.longitude, unit.latitude])
         .addTo(map);
@@ -326,7 +326,7 @@ function GardaMap({ units, reports, className, popupAnchor, onPopupPosition, onM
       markersRef.current.push(marker);
     });
     if (showReportMarkers) reports.forEach((report) => {
-      const element = markerElement("report", report.severity);
+      const element = markerElement("report", report.severity, Boolean(focusLocation && Math.abs(focusLocation.latitude - report.latitude) < 0.00001 && Math.abs(focusLocation.longitude - report.longitude) < 0.00001));
       const marker = new maplibregl.Marker({ element, anchor: "center" })
         .setLngLat([report.longitude, report.latitude])
         .addTo(map);
@@ -459,3 +459,5 @@ function areMapPropsEqual(previous: GardaMapProps, next: GardaMapProps) {
 }
 
 export default memo(GardaMap, areMapPropsEqual);
+
+

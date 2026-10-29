@@ -235,3 +235,11 @@ a:focus-visible, button:focus-visible { outline: 3px solid #e62428; outline-offs
 @keyframes garda-spin { to { transform: rotate(360deg); } }
 @keyframes garda-location-pulse { 0% { transform: scale(.65); opacity: .85; } 70%, 100% { transform: scale(1.45); opacity: 0; } }
 
+
+.map-anchored-detail > aside { max-height: calc(100dvh - 120px); }
+.garda-map-marker-selected { z-index: 12; filter: drop-shadow(0 0 .35rem rgba(230,36,40,.75)); transform: scale(1.22); }
+
+
+.map-anchored-detail > aside { max-height: calc(100dvh - 120px); }
+.garda-map-marker-selected { z-index: 12; filter: drop-shadow(0 0 .35rem rgba(230,36,40,.75)); transform: scale(1.22); }
+

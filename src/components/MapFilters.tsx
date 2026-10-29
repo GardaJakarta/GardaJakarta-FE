@@ -4,6 +4,8 @@ import ReportStatusOptions from "./ReportStatusOptions";
 import type { MapFilterState } from "./map-filter-state";
 import { defaultMapFilters, mapFilterCount } from "./map-filter-state";
 import type { ReportSeverity } from "../types";
+import type { ReportStatus } from "../types";
+import { reportStatusLabels } from "../lib/report-status";
 
 const categoryImages = ["harassment.png", "sexual.png", "theft.png", "robbery.png", "violence.png", "crowd-generated.png", "fraud.png", "facility.png", "other-generated.png"];
 const severityLabels: Record<ReportSeverity, string> = { P0: "Kritis", P1: "Tinggi", P2: "Sedang", P3: "Rendah" };
@@ -47,9 +49,15 @@ function IllustratedFilterSelect({ label, value, options, onChange, imageFor, ow
       {value && art(value)}<span className="min-w-0 flex-1 truncate" title={title(value)}>{title(value)}</span><span aria-hidden="true">⌄</span>
     </button>
     {open && createPortal(<div ref={menu} data-filter-owner={owner} id={id} role="listbox" aria-labelledby={`${id}-label`} style={position} className="fixed z-[110] overflow-y-auto rounded-xl border border-slate-100 bg-white p-1.5 shadow-2xl">
-      {choices.map((option, index) => <button id={`${id}-${index}`} key={option} type="button" role="option" tabIndex={-1} aria-selected={option === value} onMouseDown={(event) => event.preventDefault()} onClick={() => { onChange(option); setOpen(false); ref.current?.focus(); }} className={`flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-[11px] ${option === value ? "bg-red-50 text-red-700" : index === active ? "bg-slate-100" : "hover:bg-slate-50"}`}>{option && art(option)}<span className="min-w-0 flex-1 break-words">{title(option)}</span>{option === value && <span aria-hidden="true">✓</span>}</button>)}
+      {choices.map((option, index) => <button id={`${id}-${index}`} key={option} type="button" role="option" tabIndex={-1} aria-selected={option === value} onMouseDown={(event) => event.preventDefault()} onClick={() => { onChange(option); setOpen(false); ref.current?.focus(); }} className={`flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-[11px] ${option === value ? "bg-red-50 text-red-700" : index === active ? "bg-slate-100" : "hover:bg-slate-50"}`}>{art(option)}<span className="min-w-0 flex-1 break-words">{title(option)}</span>{option === value && <span aria-hidden="true">✓</span>}</button>)}
     </div>, document.body)}
   </div>;
+}
+
+export function CustomStatusSelect({ value, onChange }: { value: ReportStatus | "ALL"; onChange: (value: ReportStatus | "ALL") => void }) {
+  const [open, setOpen] = useState(false);
+  const options = ["ALL", ...(Object.keys(reportStatusLabels) as ReportStatus[])];
+  return <div className="relative min-w-0"><button type="button" aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen((current) => !current)} className="flex min-h-10 w-full items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-3 text-left text-xs font-bold text-slate-800"><span className="truncate">{value === "ALL" ? "Semua status" : reportStatusLabels[value]}</span><span aria-hidden="true">⌄</span></button>{open && <div role="listbox" className="absolute bottom-[calc(100%+8px)] right-0 z-[120] grid max-h-64 w-[min(230px,calc(100vw-32px))] gap-1 overflow-y-auto rounded-xl border border-slate-100 bg-white p-1.5 shadow-2xl">{options.map((option) => <button key={option} type="button" role="option" aria-selected={option === value} onClick={() => { onChange(option as ReportStatus | "ALL"); setOpen(false); }} className={`rounded-lg px-3 py-2 text-left text-xs font-semibold ${option === value ? "bg-red-50 text-red-700" : "hover:bg-slate-50"}`}>{option === "ALL" ? "Semua status" : reportStatusLabels[option as ReportStatus]}</button>)}</div>}</div>;
 }
 
 export function MapFilterMenu({ value, onChange, categories, publicOnly = false, mobile = false, alignRight = false }: {
