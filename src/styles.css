@@ -190,26 +190,23 @@ a:focus-visible, button:focus-visible { outline: 3px solid #e62428; outline-offs
 
 
 /* Map pins use a compact illustrated locator that stays legible on the pale basemap. */
-.garda-map-marker { position: absolute; display: grid; width: 42px; height: 48px; place-items: center; border: 0; color: #e62428; background: transparent; box-shadow: none; cursor: pointer; }
-.garda-map-marker span { position: relative; z-index: 1; display: grid; width: 36px; height: 42px; place-items: center; border: 2px solid #fff; border-radius: 50% 50% 50% 10%; background: #fff4ef; box-shadow: 0 6px 14px rgba(66,42,29,.22); transform: rotate(-45deg); transition: transform .18s ease, box-shadow .18s ease; }
-.garda-map-marker:hover span, .garda-map-marker:focus-visible span { transform: rotate(-45deg) translateY(-2px) scale(1.06); box-shadow: 0 9px 18px rgba(66,42,29,.28); }
-.garda-map-marker svg { width: 22px; height: 22px; transform: rotate(45deg); }
+.garda-map-marker { position: absolute; display: grid; width: 44px; height: 48px; place-items: center; border: 0; background: transparent; cursor: pointer; }
+.garda-map-marker img { width: 40px; height: 40px; object-fit: contain; filter: drop-shadow(0 6px 10px rgba(15,23,42,.22)); transition: transform .18s ease, filter .18s ease; }
+.garda-map-marker:hover img, .garda-map-marker:focus-visible img { transform: translateY(-2px) scale(1.08); filter: drop-shadow(0 9px 14px rgba(15,23,42,.28)); }
 .garda-map-marker-report { color: #d83d3d; }
 .garda-map-marker-report span { background: #fff0ed; }
 .garda-map-marker-p0 { color: #a51f29; }
 .garda-map-marker-p0 span { background: #ffe5e1; }
 .garda-map-marker-p1 { color: #b86318; }
 .garda-map-marker-p1 span { background: #fff0d6; }
-.garda-map-marker-police { color: #23708a; }
-.garda-map-marker-police span { background: #e7f6f6; }
 .garda-map-marker-draft { width: 48px; height: 52px; pointer-events: auto; touch-action: none; cursor: grab; user-select: none; }
-.garda-map-marker-draft span { width: 39px; height: 45px; color: #df493e; background: #fff0ed; box-shadow: 0 8px 20px rgba(220,69,58,.28); }
+.garda-map-marker-draft img { width: 46px; height: 46px; }
 .garda-map-marker-draft:active { cursor: grabbing; }
 .garda-map-marker-draft svg { width: 23px; height: 23px; }
 .garda-search-marker { position: relative; display: grid; width: 58px; height: 58px; place-items: center; pointer-events: auto; }
 .garda-search-marker-pin { display: grid; width: 42px; height: 48px; place-items: center; border: 2px solid #fff; border-radius: 50% 50% 50% 10%; color: #177b86; background: #e4f8f5; box-shadow: 0 8px 18px rgba(22,89,91,.28); transform: rotate(-45deg); transition: transform .18s ease, box-shadow .18s ease; }
 .garda-search-marker-pin span { display: grid; transform: rotate(45deg); }
-.garda-search-marker-pin svg { width: 24px; height: 24px; }
+.garda-search-marker-pin img { width: 28px; height: 28px; }
 .garda-search-marker-remove { position: absolute; top: -2px; right: 0; display: grid; width: 22px; height: 22px; place-items: center; border: 2px solid #fff; border-radius: 50%; color: #fff; background: #263c45; opacity: 0; box-shadow: 0 3px 8px rgba(15,23,42,.22); transition: opacity .16s ease, transform .16s ease; }
 .garda-search-marker-remove svg { width: 11px; height: 11px; }
 .garda-search-marker:hover .garda-search-marker-remove, .garda-search-marker:focus-within .garda-search-marker-remove { opacity: 1; transform: scale(1.04); }

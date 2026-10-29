@@ -37,7 +37,7 @@ const SAFETY_OUTLINE_ID = "garda-safety-zone-outline";
 type SafetyZone = {
   center: [number, number];
   reports: IncidentReport[];
-  state: "verified" | "in_progress" | "resolved";
+  state: "verified" | "in_progress";
 };
 
 type Point = [number, number];
@@ -104,14 +104,14 @@ function buildSafetyZones(reports: IncidentReport[]) {
   return groups.map((group): SafetyZone => ({
     center: [group.reduce((sum, report) => sum + report.longitude, 0) / group.length, group.reduce((sum, report) => sum + report.latitude, 0) / group.length],
     reports: group,
-    state: group.some((report) => report.status === "IN_PROGRESS") ? "in_progress" : group.every((report) => report.status === "RESOLVED") ? "resolved" : "verified",
+    state: group.some((report) => report.status === "IN_PROGRESS") ? "in_progress" : "verified",
   }));
 }
 
 type SafetyProperties = { level: string; state: SafetyZone["state"]; count: number; score: number; reports: string };
 
 function safetyGeoJson(reports: IncidentReport[]): GeoJSON.FeatureCollection<GeoJSON.Polygon, SafetyProperties> {
-  const actionableReports = reports.filter((report) => ["VERIFIED", "IN_PROGRESS", "RESOLVED"].includes(report.status));
+  const actionableReports = reports.filter((report) => ["VERIFIED", "IN_PROGRESS"].includes(report.status));
   return {
     type: "FeatureCollection",
     features: buildSafetyZones(actionableReports).map((zone) => {
@@ -146,8 +146,8 @@ function markerElement(kind: "police" | "report", severity?: IncidentReport["sev
 
 function searchedLocationElement(location: { label: string }, onClear?: () => void) {
   const element = document.createElement("div");
+  element.className = "garda-search-marker";
   element.innerHTML = '<button type="button" class="garda-search-marker-pin"><img src="/markers/garda-search-mark.svg" alt="" aria-hidden="true" /></button><button type="button" class="garda-search-marker-remove" aria-label="Hapus lokasi terpilih"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>';
-  element.innerHTML = '<button type="button" class="garda-search-marker-pin"><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3.5c-3.8 0-6.8 2.9-6.8 6.5 0 4.8 6.8 10.5 6.8 10.5s6.8-5.7 6.8-10.5c0-3.6-3-6.5-6.8-6.5Z" fill="currentColor"/><circle cx="12" cy="10" r="3.1" fill="white" fill-opacity=".94"/><circle cx="12" cy="10" r="1.3" fill="currentColor"/></svg></span></button><button type="button" class="garda-search-marker-remove" aria-label="Hapus lokasi terpilih"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>';
   element.querySelector(".garda-search-marker-pin")?.setAttribute("aria-label", `Lokasi terpilih: ${location.label}`);
   element.querySelector(".garda-search-marker-pin")?.addEventListener("click", (event) => event.stopPropagation());
   element.querySelector(".garda-search-marker-remove")?.addEventListener("click", (event) => { event.stopPropagation(); onClear?.(); });
@@ -165,7 +165,6 @@ function draftMarkerElement() {
   element.tabIndex = 0;
   element.setAttribute("aria-label", "Geser lokasi laporan");
   element.innerHTML = '<img src="/markers/garda-draft-mark.svg" alt="" aria-hidden="true" />';
-  element.innerHTML = '<span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3.5c-3.8 0-6.8 2.9-6.8 6.5 0 4.8 6.8 10.5 6.8 10.5s6.8-5.7 6.8-10.5c0-3.6-3-6.5-6.8-6.5Z" fill="currentColor"/><circle cx="12" cy="10" r="3.1" fill="white" fill-opacity=".94"/><path d="M12 8.2v3.6M10.2 10h3.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>';
   element.addEventListener("dragstart", (event) => event.preventDefault());
   return element;
 }
@@ -282,8 +281,8 @@ function GardaMap({ units, reports, className, popupAnchor, onPopupPosition, onM
       if (source) source.setData(data);
       else {
         map.addSource(SAFETY_SOURCE_ID, { type: "geojson", data });
-        map.addLayer({ id: SAFETY_FILL_ID, type: "fill", source: SAFETY_SOURCE_ID, paint: { "fill-color": ["match", ["get", "level"], "tinggi", "#e62428", "sedang", "#d88324", "#3c876c"], "fill-opacity": 0.15 } });
-        map.addLayer({ id: SAFETY_OUTLINE_ID, type: "line", source: SAFETY_SOURCE_ID, paint: { "line-color": ["match", ["get", "level"], "tinggi", "#b91c22", "sedang", "#a46018", "#2e6955"], "line-width": 1.5, "line-opacity": 0.55 } });
+        map.addLayer({ id: SAFETY_FILL_ID, type: "fill", source: SAFETY_SOURCE_ID, paint: { "fill-color": ["match", ["get", "state"], "in_progress", "#f59e0b", "resolved", "#22a06b", "#e62428"], "fill-opacity": ["match", ["get", "state"], "resolved", 0.09, 0.16] } });
+        map.addLayer({ id: SAFETY_OUTLINE_ID, type: "line", source: SAFETY_SOURCE_ID, paint: { "line-color": ["match", ["get", "state"], "in_progress", "#b45309", "resolved", "#16724b", "#b21e24"], "line-width": 2, "line-opacity": 0.68 } });
         map.on("click", SAFETY_FILL_ID, (event) => {
           const feature = event.features?.[0];
           if (!feature) return;
