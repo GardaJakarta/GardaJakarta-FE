@@ -1,3 +1,4 @@
+import MobileDetailSheet from "../components/MobileDetailSheet";
 import EvidenceFilePreview from "../components/EvidenceFilePreview";
 import ReportConversation from "../components/ReportConversation";
 import ReportStatusOptions from "../components/ReportStatusOptions";
@@ -474,12 +475,13 @@ function ReportDetail({ report, role, isDesktop, onClose }: { report: IncidentRe
 }
 
 function MapInfoPanel({ title, eyebrow, children, onClose, isDesktop }: { title: string; eyebrow: string; children: ReactNode; onClose: () => void; isDesktop: boolean }) {
-  return <motion.aside className={`${isDesktop ? "absolute right-6 top-24 w-[360px] max-w-[calc(100vw-24px)] rounded-xl" : "fixed bottom-0 left-0 right-0 rounded-t-2xl"} z-[70] box-border max-h-[72dvh] min-w-0 overflow-x-hidden overflow-y-auto border border-slate-100 bg-white p-5 shadow-[0_22px_65px_rgba(15,23,42,0.2)]`} aria-live="polite">
+  const panel = <motion.aside className={`${isDesktop ? "absolute right-6 top-24 w-[360px] max-w-[calc(100vw-24px)] rounded-xl" : "fixed bottom-0 left-0 right-0 rounded-t-2xl"} z-[70] box-border max-h-[72dvh] min-w-0 overflow-x-hidden overflow-y-auto border border-slate-100 bg-white p-5 shadow-[0_22px_65px_rgba(15,23,42,0.2)]`} aria-live="polite">
     <button type="button" onClick={onClose} className="absolute right-4 top-4 grid h-8 w-8 place-items-center rounded-full text-slate-400 hover:bg-slate-100" aria-label="Tutup detail peta"><CloseIcon /></button>
     <p className="pr-10 text-[10px] font-black uppercase tracking-[.16em] text-[#e62428]">{eyebrow}</p>
     <h2 className="mt-1 min-w-0 break-words pr-10 font-heading text-xl font-black tracking-tight text-slate-950">{title}</h2>
     <div className="mt-4 grid min-w-0 grid-cols-1 gap-3 text-xs text-slate-600">{children}</div>
   </motion.aside>;
+  return isDesktop ? panel : <MobileDetailSheet onClose={onClose}>{panel}</MobileDetailSheet>;
 }
 
 function PoliceMapDetail({ unit, isDesktop, onClose }: { unit: PoliceUnit; isDesktop: boolean; onClose: () => void }) {
@@ -841,7 +843,7 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
   }, []);
   const submit = async (event: FormEvent) => {
     event.preventDefault(); setSubmitting(true); setError(null); setNotice(null);
-    try { const created = await createReport({ ...form, category: form.category === categories[8] && form.topic.trim() ? `Lainnya: ${form.topic.trim()}` : form.category }); for (const file of evidenceFiles) await uploadReportEvidence(created.id, file); setForm((current) => ({ ...current, category: "", topic: "", description: "" })); setEvidenceFiles([]); setReportOpen(false); setPinMode(false); setNotice("Laporan berhasil dikirim dan masuk ke unit penanganan terdekat."); await load(); }
+    try { const created = await createReport({ ...form, category: form.category === categories[8] && form.topic.trim() ? `Lainnya: ${form.topic.trim()}` : form.category }); for (const file of evidenceFiles) await uploadReportEvidence(created.id, file); setForm((current) => ({ ...current, category: "", topic: "", description: "" })); setEvidenceFiles([]); setReportOpen(false); setPinMode(false); setNotice("Laporan berhasil dikirim dengan status Belum diverifikasi."); await load(); }
     catch { setError("Laporan belum dapat dikirim. Periksa isian lalu coba lagi."); }
     finally { setSubmitting(false); }
   };
@@ -881,14 +883,17 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
         {isLoading && <MapLoadingOverlay label="Memeriksa keamanan Jakarta..." />}
       </>}
       <div className="pointer-events-none absolute left-1/2 bottom-6 z-40 hidden w-full -translate-x-1/2 items-center justify-center px-4 sm:flex"><div className="pointer-events-auto w-full max-w-[700px]"><DashboardControls view={view} citizen={citizen} showActions={!publicMode} role={role} search={view === "map" ? locationSearch : search} onSearchChange={(value) => { if (view === "map") { setLocationSearch(value); setLocationSuggestions([]); if (searchedLocation) setSearchedLocation(null); } else setSearch(value); }} onSearchSubmit={view === "map" ? searchLocation : undefined} locationSuggestions={locationSuggestions} onSelectLocation={selectLocation} mapFilters={mapFilters} onMapFiltersChange={setMapFilters} statusFilter={statusFilter} onStatusFilterChange={setStatusFilter} listOpen={listOpen} onToggleList={() => { setView("map"); setListOpen((current) => !current); setSelectedId(null); }} onCreateReport={toggleReportForm} onPickLocation={() => { if (!reportOpen) openReportForm(); else setPinMode((current) => !current); }} pinMode={pinMode} activeFilter={activeFilter} reportOpen={reportOpen} /></div></div>
-      {view === "map" && <CurrentLocationButton onClick={centerOnUser} className="fixed left-3 top-[9.25rem] z-40 sm:absolute sm:top-auto sm:bottom-20" />}
+      {view === "map" && <CurrentLocationButton onClick={centerOnUser} className="fixed right-3 bottom-6 z-40 sm:absolute sm:right-4 sm:top-auto sm:bottom-20" />}
       {view === "map" && <>
         {listOpen && <MyReportsPanel reports={filteredReports} selectedId={selectedId} onSelect={selectReport} onClose={() => setListOpen(false)} isDesktop={isDesktop} stats={stats} />}
         {selectedReport && !reportOpen && <ReportDetail report={selectedReport} role={role} isDesktop={isDesktop} onClose={() => { setSelectedId(null); setFocusLocation(null); }} onStatusChange={(status) => void updateStatus(selectedReport.id, status)} updating={updatingId === selectedReport.id} />}
-        <div className="map-anchored-detail" style={{ left: popupPosition?.x, top: popupPosition?.y, visibility: popupPosition ? "visible" : "hidden" }}>
-        {selectedUnit && !reportOpen && <PoliceMapDetail unit={selectedUnit} isDesktop={isDesktop} onClose={() => { setSelectedUnit(null); setFocusLocation(null); }} />}
-        {selectedZone && !reportOpen && <SafetyMapDetail zone={selectedZone} isDesktop={isDesktop} onClose={() => { setSelectedZone(null); setFocusLocation(null); }} onSelectReport={(report) => { setSelectedZone(null); setFocusLocation({ latitude: report.latitude, longitude: report.longitude }); selectReport(report); }} />}
-        </div>
+        {isDesktop ? <div className="map-anchored-detail" style={{ left: popupPosition?.x, top: popupPosition?.y, visibility: popupPosition ? "visible" : "hidden" }}>
+          {selectedUnit && !reportOpen && <PoliceMapDetail unit={selectedUnit} isDesktop onClose={() => { setSelectedUnit(null); setFocusLocation(null); }} />}
+          {selectedZone && !reportOpen && <SafetyMapDetail zone={selectedZone} isDesktop onClose={() => { setSelectedZone(null); setFocusLocation(null); }} onSelectReport={(report) => { setSelectedZone(null); setFocusLocation({ latitude: report.latitude, longitude: report.longitude }); selectReport(report); }} />}
+        </div> : <>
+          {selectedUnit && !reportOpen && <PoliceMapDetail unit={selectedUnit} isDesktop={false} onClose={() => { setSelectedUnit(null); setFocusLocation(null); }} />}
+          {selectedZone && !reportOpen && <SafetyMapDetail zone={selectedZone} isDesktop={false} onClose={() => { setSelectedZone(null); setFocusLocation(null); }} onSelectReport={(report) => { setSelectedZone(null); setFocusLocation({ latitude: report.latitude, longitude: report.longitude }); selectReport(report); }} />}
+        </>}
         {canReport && <ReportForm open={reportOpen} isDesktop={isDesktop} form={form} setForm={setForm} evidenceFiles={evidenceFiles} setEvidenceFiles={setEvidenceFiles} pinMode={pinMode} setPinMode={setPinMode} submitting={submitting} onSubmit={(event) => void submit(event)} onClose={() => { setReportOpen(false); setPinMode(false); setFocusLocation(null); }} onUseLocation={useLocation} error={error} />}
       </>}
       {notice && <div className="absolute left-1/2 top-[9.25rem] z-30 w-[calc(100%-32px)] max-w-md -translate-x-1/2 rounded-lg bg-slate-900 px-4 py-3 text-center text-xs font-bold text-white shadow-xl sm:top-24" role="status">{notice}<button type="button" onClick={() => setNotice(null)} className="ml-3 grid h-7 w-7 place-items-center rounded-full text-white/60 hover:bg-white/10 hover:text-white" aria-label="Tutup notifikasi"><CloseIcon className="h-3.5 w-3.5" /></button></div>}

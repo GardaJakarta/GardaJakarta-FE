@@ -72,7 +72,10 @@ export async function linkGoogle() {
 
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   // Public map data changes outside the FE session; never reuse a stale browser response.
-  const response = await fetch(`${apiBase}${path}`, { ...init, cache: "no-store", credentials: "include", headers: { "Content-Type": "application/json", "Cache-Control": "no-cache", ...init?.headers } });
+  const headers = new Headers(init?.headers);
+  if (!(init?.body instanceof FormData)) headers.set("Content-Type", "application/json");
+  headers.set("Cache-Control", "no-cache");
+  const response = await fetch(`${apiBase}${path}`, { ...init, cache: "no-store", credentials: "include", headers });
   const payload = await response.json().catch(() => null) as { data?: T; error?: string } | null;
   if (!response.ok || !payload?.data) throw new Error(payload?.error || "Permintaan belum berhasil.");
   return payload.data;
@@ -104,8 +107,9 @@ export function getReportInteractions(id: string, page = 1) {
 export function voteReport(id: string, active: boolean) {
   return requestJson<{ voteCount: number; hasVoted: boolean }>(`/reports/${id}/vote`, { method: active ? "POST" : "DELETE" });
 }
-export function commentOnReport(id: string, body: string) {
-  return requestJson<{ id: string; body: string; createdAt: string }>(`/reports/${id}/comments`, { method: "POST", body: JSON.stringify({ body }) });
+export function commentOnReport(id: string, body: string, images: File[] = []) {
+  const data = new FormData(); data.append("body", body); images.forEach((file) => data.append("images", file));
+  return requestJson<{ id: string; body: string; createdAt: string }>(`/reports/${id}/comments`, { method: "POST", body: data });
 }
 export function changeReportStatus(id: string, status: ReportStatus, message: string, evidenceIds: string[]) {
   return requestJson<{id: string; status: ReportStatus}>(`/police/reports/${id}/status`, { method: "PATCH", body: JSON.stringify({status, message, evidenceIds}) });

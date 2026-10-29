@@ -223,6 +223,11 @@ a:focus-visible, button:focus-visible { outline: 3px solid #e62428; outline-offs
 .map-anchored-detail { position: absolute; z-index: 70; width: min(340px, calc(100vw - 24px)); max-width: calc(100vw - 24px); min-width: 0; transform: translate(-50%, calc(-100% - 28px)); }
 .map-anchored-detail > aside { position: relative; inset: auto; box-sizing: border-box; width: 100%; max-width: 100%; min-width: 0; max-height: min(52dvh, 420px); overflow-x: hidden; border-radius: 12px; }
 .map-anchored-detail:has(> aside)::after { content: ''; position: absolute; bottom: -8px; left: calc(50% - 8px); width: 16px; height: 16px; background: white; transform: rotate(45deg); }
+@media (max-width: 767px) {
+  .map-anchored-detail { position: static; width: 100%; max-width: none; transform: none; }
+  .map-anchored-detail:has(> aside)::after { display: none; }
+}
+.mobile-map-detail > aside { position: relative; inset: auto; width: 100%; max-height: none; overflow: visible; border: 0; border-radius: 0; box-shadow: none; }
 .overflow-y-auto, .overflow-auto { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
 .overflow-y-auto::-webkit-scrollbar, .overflow-auto::-webkit-scrollbar { width: 6px; height: 6px; }
 .overflow-y-auto::-webkit-scrollbar-track, .overflow-auto::-webkit-scrollbar-track { background: transparent; }

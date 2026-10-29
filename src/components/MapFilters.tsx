@@ -5,7 +5,7 @@ import type { MapFilterState } from "./map-filter-state";
 import { defaultMapFilters, mapFilterCount } from "./map-filter-state";
 import type { ReportSeverity } from "../types";
 
-const categoryImages = ["harassment.png", "sexual.png", "theft.png", "robbery.png", "violence.png", "crowd-generated.svg", "fraud.png", "facility.png", "other2.png"];
+const categoryImages = ["harassment.png", "sexual.png", "theft.png", "robbery.png", "violence.png", "crowd-generated.png", "fraud.png", "facility.png", "other-generated.png"];
 const severityLabels: Record<ReportSeverity, string> = { P0: "Kritis", P1: "Tinggi", P2: "Sedang", P3: "Rendah" };
 function IllustratedFilterSelect({ label, value, options, onChange, imageFor, owner }: { label: string; value: string; options: string[]; onChange: (value: string) => void; imageFor: (value: string, index: number) => string; owner: string }) {
   const [open, setOpen] = useState(false);
@@ -83,7 +83,7 @@ export function MapFilterMenu({ value, onChange, categories, publicOnly = false,
       <div className="mb-3 flex items-center justify-between"><strong className="text-sm text-slate-900">Filter peta</strong><button type="button" className="text-xs font-bold text-[#e62428]" onClick={() => onChange({ ...defaultMapFilters })}>Reset</button></div>
       <div className="grid min-w-0 gap-5 sm:grid-cols-2">
         <div className="grid min-w-0 content-start gap-4">
-          <IllustratedFilterSelect owner={owner} label="Kategori" value={value.category} options={categories} onChange={(category) => onChange({ ...value, category })} imageFor={(_, index) => categoryImages[index] || "other2.png"} />
+          <IllustratedFilterSelect owner={owner} label="Kategori" value={value.category} options={categories} onChange={(category) => onChange({ ...value, category })} imageFor={(_, index) => categoryImages[index] || "other-generated.png"} />
           <ReportStatusOptions publicOnly={publicOnly} value={value.status} onChange={(status) => onChange({ ...value, status })} />
         </div>
         <div className="grid min-w-0 content-start gap-4 sm:border-l sm:border-slate-100 sm:pl-5">

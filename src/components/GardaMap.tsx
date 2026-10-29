@@ -305,8 +305,13 @@ function GardaMap({ units, reports, className, popupAnchor, onPopupPosition, onM
         map.on("mouseleave", SAFETY_FILL_ID, () => { map.getCanvas().style.cursor = ""; });
       }
     };
-    if (map.isStyleLoaded()) syncSafetyZones();
-    else map.once("load", syncSafetyZones);
+    const retrySafetyZones = () => {
+      if (!map.isStyleLoaded()) return;
+      map.off("render", retrySafetyZones);
+      syncSafetyZones();
+    };
+    map.on("render", retrySafetyZones);
+    retrySafetyZones();
     markersRef.current.forEach((marker) => marker.remove());
     markersRef.current = [];
     if (showPoliceMarkers) units.forEach((unit) => {
@@ -331,7 +336,7 @@ function GardaMap({ units, reports, className, popupAnchor, onPopupPosition, onM
       });
       markersRef.current.push(marker);
     });
-    return () => { map.off("load", syncSafetyZones); };
+    return () => { map.off("render", retrySafetyZones); };
   }, [mapReady, reports, showPoliceMarkers, showReportMarkers, showSafetyZones, units]);
 
   useEffect(() => {

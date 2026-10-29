@@ -59,7 +59,7 @@ export interface DashboardData {
 
 export interface ReportInteractions {
  status: ReportStatus; voteCount: number; hasVoted: boolean;
- comments: Array<{id: string; body: string; createdAt: string}>;
+ comments: Array<{id: string; body: string; createdAt: string; evidence: Array<{id: string; url: string}>}>;
  activities: Array<{id: string; type: string; status: ReportStatus | null; message: string; createdAt: string; author: string; evidence: Array<{id: string; url: string}>}>;
  canParticipate: boolean; canManage: boolean; canClarify: boolean; nextStatuses: ReportStatus[];
  clarificationPrompt: string | null; clarificationResponse: string | null;
