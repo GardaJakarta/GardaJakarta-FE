@@ -474,10 +474,10 @@ function ReportDetail({ report, role, isDesktop, onClose }: { report: IncidentRe
 }
 
 function MapInfoPanel({ title, eyebrow, children, onClose, isDesktop }: { title: string; eyebrow: string; children: ReactNode; onClose: () => void; isDesktop: boolean }) {
-  return <motion.aside className={`${isDesktop ? "absolute right-6 top-24 w-[360px] rounded-xl" : "fixed bottom-0 left-0 right-0 rounded-t-2xl"} z-[70] max-h-[72dvh] overflow-x-hidden overflow-y-auto border border-slate-100 bg-white p-5 shadow-[0_22px_65px_rgba(15,23,42,0.2)]`} aria-live="polite">
+  return <motion.aside className={`${isDesktop ? "absolute right-6 top-24 w-[360px] max-w-[calc(100vw-24px)] rounded-xl" : "fixed bottom-0 left-0 right-0 rounded-t-2xl"} z-[70] box-border max-h-[72dvh] min-w-0 overflow-x-hidden overflow-y-auto border border-slate-100 bg-white p-5 shadow-[0_22px_65px_rgba(15,23,42,0.2)]`} aria-live="polite">
     <button type="button" onClick={onClose} className="absolute right-4 top-4 grid h-8 w-8 place-items-center rounded-full text-slate-400 hover:bg-slate-100" aria-label="Tutup detail peta"><CloseIcon /></button>
     <p className="pr-10 text-[10px] font-black uppercase tracking-[.16em] text-[#e62428]">{eyebrow}</p>
-    <h2 className="mt-1 pr-10 font-heading text-xl font-black tracking-tight text-slate-950">{title}</h2>
+    <h2 className="mt-1 min-w-0 break-words pr-10 font-heading text-xl font-black tracking-tight text-slate-950">{title}</h2>
     <div className="mt-4 grid min-w-0 grid-cols-1 gap-3 text-xs text-slate-600">{children}</div>
   </motion.aside>;
 }
@@ -485,9 +485,9 @@ function MapInfoPanel({ title, eyebrow, children, onClose, isDesktop }: { title:
 function PoliceMapDetail({ unit, isDesktop, onClose }: { unit: PoliceUnit; isDesktop: boolean; onClose: () => void }) {
   const [previewOpen, setPreviewOpen] = useState(false);
   return <MapInfoPanel title={unit.name} eyebrow="Kantor polisi" isDesktop={isDesktop} onClose={onClose}>
-    {unit.photoUrl && <><button type="button" className="group relative block w-full overflow-hidden rounded-lg" onClick={() => setPreviewOpen(true)} aria-label={`Lihat foto ${unit.name}`}><img src={unit.photoUrl} alt={unit.name} className="h-40 w-full object-cover transition-transform group-hover:scale-[1.02]" referrerPolicy="no-referrer" /><span className="absolute bottom-2 right-2 rounded-md bg-slate-950/70 px-2 py-1 text-[10px] font-bold text-white">Lihat foto</span></button>{previewOpen && <ImagePreview src={unit.photoUrl} alt={unit.name} onClose={() => setPreviewOpen(false)} />}</>}
+    {unit.photoUrl && <><button type="button" className="group relative block min-w-0 max-w-full overflow-hidden rounded-lg" onClick={() => setPreviewOpen(true)} aria-label={`Lihat foto ${unit.name}`}><img src={unit.photoUrl} alt={unit.name} className="block h-40 w-full max-w-full object-cover transition-transform group-hover:scale-[1.02]" referrerPolicy="no-referrer" /><span className="absolute bottom-2 right-2 rounded-md bg-slate-950/70 px-2 py-1 text-[10px] font-bold text-white">Lihat foto</span></button>{previewOpen && <ImagePreview src={unit.photoUrl} alt={unit.name} onClose={() => setPreviewOpen(false)} />}</>}
     <div><span className="block text-[10px] font-bold uppercase tracking-widest text-slate-400">Wilayah</span><strong className="mt-1 block text-slate-900">{unit.district}</strong></div>
-    <div><span className="block text-[10px] font-bold uppercase tracking-widest text-slate-400">Alamat</span><p className="mt-1 leading-relaxed">{unit.address}</p></div>
+    <div className="min-w-0"><span className="block text-[10px] font-bold uppercase tracking-widest text-slate-400">Alamat</span><p className="mt-1 break-words leading-relaxed">{unit.address}</p></div>
     {unit.phone && <div><span className="block text-[10px] font-bold uppercase tracking-widest text-slate-400">Telepon</span><a className="mt-1 block font-bold text-[#e62428]" href={`tel:${unit.phone}`}>{unit.phone}</a></div>}
     <a className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[#e62428] px-4 text-xs font-black text-white transition-colors hover:bg-[#c91d22]" href={`https://www.google.com/maps/dir/?api=1&destination=${unit.latitude},${unit.longitude}`} target="_blank" rel="noreferrer">
       Arahkan ke kantor polisi
