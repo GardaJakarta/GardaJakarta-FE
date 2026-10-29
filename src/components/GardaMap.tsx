@@ -140,7 +140,10 @@ function markerElement(kind: "police" | "report", severity?: IncidentReport["sev
   image.src = kind === "police" ? "/markers/garda-police-mark.svg" : "/markers/garda-report-mark.svg";
   image.alt = "";
   image.setAttribute("aria-hidden", "true");
-  element.append(image);
+  const pin = document.createElement("span");
+  pin.setAttribute("aria-hidden", "true");
+  pin.append(image);
+  element.append(pin);
   return element;
 }
 
@@ -164,7 +167,7 @@ function draftMarkerElement() {
   element.setAttribute("role", "button");
   element.tabIndex = 0;
   element.setAttribute("aria-label", "Geser lokasi laporan");
-  element.innerHTML = '<img src="/markers/garda-draft-mark.svg" alt="" aria-hidden="true" />';
+  element.innerHTML = '<span aria-hidden="true"><img src="/markers/garda-draft-mark.svg" alt="" /></span>';
   element.addEventListener("dragstart", (event) => event.preventDefault());
   return element;
 }
