@@ -77,7 +77,7 @@ function zonePolygon(zone: SafetyZone): Point[] {
 
 function safetyScore(report: IncidentReport) {
   const severity = { P0: 4, P1: 3, P2: 2, P3: 1 }[report.severity];
-  const status = { PENDING: 1, VERIFIED: 1.15, IN_PROGRESS: 0.8, RESOLVED: 0.35, REJECTED: 0 }[report.status];
+  const status = { PENDING: 1, VERIFIED: 1.15, IN_PROGRESS: 0.8, CLARIFICATION: 1.05, RESOLVED: 0.35, REJECTED: 0 }[report.status];
   return Math.min(4, severity * status);
 }
 

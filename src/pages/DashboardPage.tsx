@@ -1,3 +1,6 @@
+import ReportConversation from "../components/ReportConversation";
+import ReportStatusOptions from "../components/ReportStatusOptions";
+import { defaultReportStatuses } from "../lib/report-status";
 import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type FormEvent, type PointerEvent as ReactPointerEvent, type ReactNode, type SetStateAction } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion, useDragControls } from "motion/react";
@@ -10,18 +13,18 @@ import { portalPaths } from "../lib/portals";
 import type { DashboardData, IncidentReport, PoliceUnit, ReportSeverity, ReportStatus } from "../types";
 
 type ViewMode = "map" | "feed";
-type StatusFilter = "ALL" | ReportStatus;
+type StatusFilter = ReportStatus[];
 type ReportFormState = { category: string; description: string; severity: ReportSeverity; latitude: number; longitude: number };
 
 const statusLabels: Record<ReportStatus, string> = {
   PENDING: "Belum diverifikasi",
   VERIFIED: "Terverifikasi",
-  IN_PROGRESS: "Ditindaklanjuti",
+  IN_PROGRESS: "Ditindaklanjuti", CLARIFICATION: "Butuh klarifikasi",
   RESOLVED: "Selesai",
   REJECTED: "Ditolak",
 };
-const statusGlyphs: Record<ReportStatus, string> = { PENDING: "•", VERIFIED: "✓", IN_PROGRESS: "↗", RESOLVED: "✓", REJECTED: "×" };
-const statusShortLabels: Record<ReportStatus, string> = { PENDING: "Masuk", VERIFIED: "Terverifikasi", IN_PROGRESS: "Diproses", RESOLVED: "Selesai", REJECTED: "Ditolak" };
+const statusGlyphs: Record<ReportStatus, string> = { PENDING: "•", VERIFIED: "✓", IN_PROGRESS: "↗", CLARIFICATION: "?", RESOLVED: "✓", REJECTED: "×" };
+const statusShortLabels: Record<ReportStatus, string> = { PENDING: "Masuk", VERIFIED: "Terverifikasi", IN_PROGRESS: "Diproses", CLARIFICATION: "Butuh klarifikasi", RESOLVED: "Selesai", REJECTED: "Ditolak" };
 const severityLabels: Record<ReportSeverity, string> = { P0: "Kritis", P1: "Tinggi", P2: "Sedang", P3: "Rendah" };
 const severityGlyphs: Record<ReportSeverity, string> = { P0: "!", P1: "!", P2: "•", P3: "–" };
 const categories = [
@@ -35,7 +38,6 @@ const categories = [
   "Gangguan penerangan atau fasilitas yang berdampak pada keamanan",
   "Lainnya",
 ];
-const statusFilters: StatusFilter[] = ["ALL", "PENDING", "VERIFIED", "IN_PROGRESS", "RESOLVED", "REJECTED"];
 const EMPTY_REPORTS: DashboardData["reports"] = [];
 type SafetySelection = { reports: IncidentReport[]; level: string; score: number };
 type LocalNotification = { id: string; title: string; body: string; createdAt: number };
@@ -67,8 +69,8 @@ function Avatar({ name, image, size = "h-9 w-9" }: { name: string; image?: strin
 }
 
 function StatusBadge({ status }: { status: ReportStatus }) {
-  const colors: Record<ReportStatus, string> = { PENDING: "bg-amber-50 text-amber-700", VERIFIED: "bg-sky-50 text-sky-700", IN_PROGRESS: "bg-orange-50 text-orange-700", RESOLVED: "bg-emerald-50 text-emerald-700", REJECTED: "bg-red-50 text-red-700" };
-  const borders: Record<ReportStatus, string> = { PENDING: "border-amber-100", VERIFIED: "border-sky-100", IN_PROGRESS: "border-orange-100", RESOLVED: "border-emerald-100", REJECTED: "border-red-100" };
+  const colors: Record<ReportStatus, string> = { PENDING: "bg-amber-50 text-amber-700", VERIFIED: "bg-sky-50 text-sky-700", IN_PROGRESS: "bg-orange-50 text-orange-700", CLARIFICATION: "bg-amber-50 text-amber-800", RESOLVED: "bg-emerald-50 text-emerald-700", REJECTED: "bg-red-50 text-red-700" };
+  const borders: Record<ReportStatus, string> = { PENDING: "border-amber-100", VERIFIED: "border-sky-100", IN_PROGRESS: "border-orange-100", CLARIFICATION: "border-amber-100", RESOLVED: "border-emerald-100", REJECTED: "border-red-100" };
   return <span className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-widest ${borders[status]} ${colors[status]}`}><span className="grid h-3.5 w-3.5 place-items-center rounded-full bg-current text-[9px] leading-none text-white" aria-hidden="true">{statusGlyphs[status]}</span>{statusLabels[status]}</span>;
 }
 
@@ -275,10 +277,10 @@ function StatusFilterMenu({ value, onChange, mobile = false, fullWidth = false }
     document.addEventListener("pointerdown", handler);
     return () => document.removeEventListener("pointerdown", handler);
   }, [open]);
-  const label = value === "ALL" ? "Semua status" : statusShortLabels[value];
+  const label = `${value.length} status`;
   return <div ref={ref} className="relative min-w-0 sm:shrink-0">
-    <button type="button" onClick={() => setOpen((current) => !current)} className={`inline-flex ${mobile ? `h-8 min-w-0 ${fullWidth ? "w-full" : "px-2"}` : "h-9 px-3"} items-center justify-center gap-1.5 rounded-lg text-[10px] font-bold transition-colors ${value === "ALL" ? "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50" : "bg-slate-900 text-white"}`} aria-label={`Filter status laporan: ${label}`} aria-expanded={open} aria-haspopup="listbox"><FilterIcon /><span className="hidden sm:inline">Filter</span><span className="min-w-0 truncate sm:max-w-[100px]">{mobile ? "Filter" : label}</span><Chevron open={open} /></button>
-    {open && <div className="absolute left-0 top-[calc(100%+10px)] z-50 w-52 rounded-xl border border-slate-100 bg-white p-2 text-left shadow-[0_18px_44px_rgba(15,23,42,0.16)] md:bottom-[calc(100%+10px)] md:top-auto" role="listbox" aria-label="Filter status laporan"><p className="px-2 pb-2 pt-1 text-[10px] font-bold uppercase tracking-widest text-slate-400">Status laporan</p>{statusFilters.map((option) => <button key={option} type="button" role="option" aria-selected={value === option} onClick={() => { onChange(option); setOpen(false); }} className={`flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-xs font-bold transition-colors ${value === option ? "bg-red-50 text-[#b21e24]" : "text-slate-700 hover:bg-slate-50"}`}><span className={`grid h-4 w-4 place-items-center rounded-full border text-[10px] ${value === option ? "border-[#e62428] bg-[#e62428] text-white" : "border-slate-300 text-transparent"}`}>✓</span>{option === "ALL" ? "Semua status" : statusLabels[option]}</button>)}</div>}
+    <button type="button" onClick={() => setOpen((current) => !current)} className={`inline-flex ${mobile ? `h-8 min-w-0 ${fullWidth ? "w-full" : "px-2"}` : "h-9 px-3"} items-center justify-center gap-1.5 rounded-lg text-[10px] font-bold transition-colors ${value.length === defaultReportStatuses.length ? "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50" : "bg-slate-900 text-white"}`} aria-label={`Filter status laporan: ${label}`} aria-expanded={open} aria-haspopup="true"><FilterIcon /><span className="hidden sm:inline">Filter</span><span className="min-w-0 truncate sm:max-w-[100px]">{mobile ? "Filter" : label}</span><Chevron open={open} /></button>
+    {open && <div className="absolute left-0 top-[calc(100%+10px)] z-50 w-52 rounded-xl border border-slate-100 bg-white p-2 text-left shadow-[0_18px_44px_rgba(15,23,42,0.16)] md:bottom-[calc(100%+10px)] md:top-auto" role="group" aria-label="Filter status laporan"><ReportStatusOptions value={value} onChange={onChange} /></div>}
   </div>;
 }
 
@@ -437,14 +439,14 @@ function MyReportsPanel({ reports, selectedId, onSelect, onClose, isDesktop, sta
     <div className="flex h-full flex-col">
       <div className="shrink-0 border-b border-slate-100 px-4 pb-3 pt-4">
         <div className="flex items-start justify-between gap-3"><div><p className="text-[10px] font-bold uppercase tracking-widest text-[#e62428]">Riwayat</p><h2 className="mt-1 text-lg font-bold tracking-tight">Laporan saya</h2><p className="mt-1 text-[10px] font-bold text-slate-400">{reports.length} laporan sesuai filter</p></div><button type="button" onClick={onClose} className="grid h-8 w-8 place-items-center rounded-full text-slate-400 hover:bg-slate-100" aria-label="Tutup daftar laporan"><CloseIcon /></button></div>
-        <div className="mt-3 grid grid-cols-4 gap-1 rounded-lg bg-slate-50 p-1 text-center">{statTiles.map(([label, count, image], index) => <div key={label} className={`${index === 0 ? "rounded-md bg-white shadow-sm" : ""} py-1.5`}><img src={image} alt="" aria-hidden="true" className="mx-auto mb-1 h-12 w-12 rounded-lg object-cover" /><strong className="block text-sm font-bold">{count}</strong><span className="text-[8px] font-bold uppercase text-slate-400">{label}</span></div>)}</div>
+        <div className="mt-3 grid grid-cols-4 gap-1 rounded-lg bg-slate-50 p-1 text-center">{statTiles.map(([label, count, image]) => <div key={label} className="py-1.5"><img src={image} alt="" aria-hidden="true" className="mx-auto mb-1 h-12 w-12 object-contain" /><strong className="block text-sm font-bold">{count}</strong><span className="text-[8px] font-bold uppercase text-slate-400">{label}</span></div>)}</div>
       </div>
       <div className="min-h-0 flex-1 space-y-2 overflow-y-auto bg-slate-50/70 p-3">{reports.length === 0 ? <p className="px-3 py-10 text-center text-xs font-semibold text-slate-400">Belum ada laporan yang sesuai.</p> : reports.map((report) => <ReportCard key={report.id} report={report} selected={selectedId === report.id} onSelect={() => onSelect(report)} />)}</div>
     </div>
   </motion.aside>;
 }
 
-function ReportDetail({ report, role, isDesktop, onClose, onStatusChange, updating }: { report: IncidentReport; role: DashboardData["role"]; isDesktop: boolean; onClose: () => void; onStatusChange: (status: Exclude<ReportStatus, "PENDING">) => void; updating: boolean }) {
+function ReportDetail({ report, role, isDesktop, onClose }: { report: IncidentReport; role: DashboardData["role"]; isDesktop: boolean; onClose: () => void; onStatusChange: (status: Exclude<ReportStatus, "PENDING">) => void; updating: boolean }) {
   // Keep the draft pin visible above the mobile sheet so it can be dragged directly.
   const [sheetHeight, setSheetHeight] = useState(45);
   const dragControls = useDragControls();
@@ -460,8 +462,8 @@ function ReportDetail({ report, role, isDesktop, onClose, onStatusChange, updati
     target.addEventListener('pointerup', end);
     target.addEventListener('pointercancel', end);
   };
-  const canUpdate = role === "polisi" && report.status !== "RESOLVED" && report.status !== "REJECTED";
-  return <motion.aside drag={isDesktop} dragControls={dragControls} dragListener={false} dragMomentum={false} dragElastic={0} dragConstraints={{ left: -Math.max(0, window.innerWidth - 440), right: 8, top: -40, bottom: 24 }} style={{ height: isDesktop ? undefined : `${sheetHeight}dvh` }} className={`${isDesktop ? "absolute right-6 top-[7vh] h-[calc(100dvh-120px)] min-h-[400px] w-[400px] min-w-[320px] max-w-[calc(100vw-2rem)] rounded-sm" : "fixed bottom-0 left-0 right-0 max-h-[88dvh] w-full rounded-t-2xl rounded-b-none"} z-[70] overflow-y-auto border border-slate-100 bg-white p-6 shadow-[0_22px_65px_rgba(15,23,42,0.2)]`} aria-live="polite">{!isDesktop && <div onPointerDown={startDrag} className="-mx-6 -mt-6 mb-4 flex h-8 touch-none cursor-grab items-center justify-center border-b border-slate-100 active:cursor-grabbing"><span className="h-1.5 w-11 rounded-full bg-slate-200" /></div>}<button type="button" onClick={onClose} className="absolute right-4 top-4 grid h-8 w-8 place-items-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-800" aria-label="Tutup detail"><CloseIcon /></button><div onPointerDown={startDrag} className={`flex items-start justify-between gap-4 border-b border-slate-100 pb-4 touch-none ${isDesktop ? "cursor-move active:cursor-grabbing" : ""}`}><div className="pr-8"><div className="flex flex-wrap items-center gap-2"><StatusBadge status={report.status} /><SeverityBadge severity={report.severity} /></div><h2 className="mt-3 text-xl font-bold leading-tight tracking-tight text-slate-950">{report.category}</h2><p className="mt-1 text-[11px] font-semibold text-slate-400">{report.ticketNumber} · diperbarui {formatTime(report.updatedAt)}</p></div></div><div className="mt-5 grid gap-3 text-xs"><div><span className="block text-[10px] font-bold uppercase tracking-widest text-slate-400">Wilayah penanganan</span><strong className="mt-1 block text-slate-800">{report.policeUnit?.name || "Belum ditentukan"}</strong><span className="mt-0.5 block text-slate-500">{report.policeUnit?.district || "Akan ditentukan oleh petugas"}</span></div><div><span className="block text-[10px] font-bold uppercase tracking-widest text-slate-400">Lokasi laporan</span><span className="mt-1 block text-slate-600">Area dianonimkan pada tampilan publik · {report.latitude.toFixed(3)}, {report.longitude.toFixed(3)}</span></div>{report.description && <div><span className="block text-[10px] font-bold uppercase tracking-widest text-slate-400">Kronologi</span><p className="mt-1 whitespace-pre-wrap leading-relaxed text-slate-600">{report.description}</p></div>}</div>{canUpdate && <div className="mt-5 border-t border-slate-100 pt-4"><label className="grid gap-1.5 text-xs font-bold text-slate-700">Perbarui status<select disabled={updating} value={report.status} onChange={(event) => void onStatusChange(event.target.value as Exclude<ReportStatus, "PENDING">)} className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold outline-none transition-colors focus:border-[#e62428] focus:ring-4 focus:ring-red-100"><option value="PENDING" disabled>{statusLabels.PENDING}</option><option value="VERIFIED">{statusLabels.VERIFIED}</option><option value="IN_PROGRESS">{statusLabels.IN_PROGRESS}</option><option value="RESOLVED">{statusLabels.RESOLVED}</option><option value="REJECTED">{statusLabels.REJECTED}</option></select></label><p className="mt-2 text-[10px] leading-relaxed text-slate-400">Perubahan status dicatat sebagai aktivitas operasional.</p></div>}{role === "admin" && <p className="mt-5 border-t border-slate-100 pt-4 text-[10px] leading-relaxed text-slate-400">Data pelapor dan koordinat presisi hanya tersedia sesuai permission. Peta publik menampilkan area yang sudah dianonimkan.</p>}</motion.aside>;
+
+  return <motion.aside drag={isDesktop} dragControls={dragControls} dragListener={false} dragMomentum={false} dragElastic={0} dragConstraints={{ left: -Math.max(0, window.innerWidth - 440), right: 8, top: -40, bottom: 24 }} style={{ height: isDesktop ? undefined : `${sheetHeight}dvh` }} className={`${isDesktop ? "absolute right-6 top-[7vh] h-[calc(100dvh-120px)] min-h-[400px] w-[400px] min-w-[320px] max-w-[calc(100vw-2rem)] rounded-sm" : "fixed bottom-0 left-0 right-0 max-h-[88dvh] w-full rounded-t-2xl rounded-b-none"} z-[70] overflow-y-auto border border-slate-100 bg-white p-6 shadow-[0_22px_65px_rgba(15,23,42,0.2)]`} aria-live="polite">{!isDesktop && <div onPointerDown={startDrag} className="-mx-6 -mt-6 mb-4 flex h-8 touch-none cursor-grab items-center justify-center border-b border-slate-100 active:cursor-grabbing"><span className="h-1.5 w-11 rounded-full bg-slate-200" /></div>}<button type="button" onClick={onClose} className="absolute right-4 top-4 grid h-8 w-8 place-items-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-800" aria-label="Tutup detail"><CloseIcon /></button><div onPointerDown={startDrag} className={`flex items-start justify-between gap-4 border-b border-slate-100 pb-4 touch-none ${isDesktop ? "cursor-move active:cursor-grabbing" : ""}`}><div className="pr-8"><div className="flex flex-wrap items-center gap-2"><StatusBadge status={report.status} /><SeverityBadge severity={report.severity} /></div><h2 className="mt-3 text-xl font-bold leading-tight tracking-tight text-slate-950">{report.category}</h2><p className="mt-1 text-[11px] font-semibold text-slate-400">{report.ticketNumber} · diperbarui {formatTime(report.updatedAt)}</p></div></div><div className="mt-5 grid gap-3 text-xs"><div><span className="block text-[10px] font-bold uppercase tracking-widest text-slate-400">Wilayah penanganan</span><strong className="mt-1 block text-slate-800">{report.policeUnit?.name || "Belum ditentukan"}</strong><span className="mt-0.5 block text-slate-500">{report.policeUnit?.district || "Akan ditentukan oleh petugas"}</span></div><div><span className="block text-[10px] font-bold uppercase tracking-widest text-slate-400">Lokasi laporan</span><span className="mt-1 block text-slate-600">Area dianonimkan pada tampilan publik · {report.latitude.toFixed(3)}, {report.longitude.toFixed(3)}</span></div>{report.description && <div><span className="block text-[10px] font-bold uppercase tracking-widest text-slate-400">Kronologi</span><p className="mt-1 whitespace-pre-wrap leading-relaxed text-slate-600">{report.description}</p></div>}</div><ReportConversation key={report.id} reportId={report.id} onStatusChanged={() => window.dispatchEvent(new Event("garda:report-updated"))} />{role === "admin" && <p className="mt-5 border-t border-slate-100 pt-4 text-[10px] leading-relaxed text-slate-400">Data pelapor dan koordinat presisi hanya tersedia sesuai permission. Peta publik menampilkan area yang sudah dianonimkan.</p>}</motion.aside>;
 }
 
 function MapInfoPanel({ title, eyebrow, children, onClose, isDesktop }: { title: string; eyebrow: string; children: ReactNode; onClose: () => void; isDesktop: boolean }) {
@@ -489,12 +491,12 @@ function PoliceMapDetail({ unit, isDesktop, onClose }: { unit: PoliceUnit; isDes
 
 function SafetyMapDetail({ zone, isDesktop, onClose, onSelectReport }: { zone: SafetySelection; isDesktop: boolean; onClose: () => void; onSelectReport: (report: IncidentReport) => void }) {
   const [query, setQuery] = useState('');
-  const [status, setStatus] = useState<StatusFilter>('ALL');
+  const [status, setStatus] = useState<ReportStatus | "ALL">('ALL');
   const visible = zone.reports.filter(r => (status === 'ALL' || r.status === status) && [r.category, r.ticketNumber, r.description].some(value => value?.toLowerCase().includes(query.toLowerCase())));
   return <MapInfoPanel title="Indeks keamanan area" eyebrow="Area laporan" isDesktop={isDesktop} onClose={onClose}>
     <div className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-3"><span className="font-bold text-slate-600">Perhatian {zone.level}</span><strong className="text-lg text-slate-950">{zone.score}/4</strong></div>
     <p className="font-semibold text-slate-500">{zone.reports.length} laporan berada di area ini.</p>
-    <div className="flex gap-2"><input aria-label="Cari laporan area" placeholder="Cari laporan..." value={query} onChange={e => setQuery(e.target.value)} className="min-w-0 flex-1 rounded-lg border border-slate-200 px-3 py-2" /><select aria-label="Filter status area" value={status} onChange={e => setStatus(e.target.value as StatusFilter)} className="min-w-0 max-w-32 rounded-lg border border-slate-200 px-2"><option value="ALL">Semua status</option>{Object.entries(statusLabels).map(([key,label]) => <option key={key} value={key}>{label}</option>)}</select></div>
+    <div className="flex gap-2"><input aria-label="Cari laporan area" placeholder="Cari laporan..." value={query} onChange={e => setQuery(e.target.value)} className="min-w-0 flex-1 rounded-lg border border-slate-200 px-3 py-2" /><select aria-label="Filter status area" value={status} onChange={e => setStatus(e.target.value as ReportStatus | "ALL")} className="min-w-0 max-w-32 rounded-lg border border-slate-200 px-2"><option value="ALL">Semua status</option>{Object.entries(statusLabels).map(([key,label]) => <option key={key} value={key}>{label}</option>)}</select></div>
     <div className="grid gap-2">{visible.length ? visible.map((report) => <button key={report.id} type="button" onClick={() => onSelectReport(report)} className="flex items-center gap-3 rounded-lg border border-slate-100 bg-white px-3 py-3 text-left shadow-sm hover:border-red-100 hover:bg-red-50"><CategoryIllustration category={report.category} className="h-10 w-10 rounded-lg" /><span className="min-w-0"><strong className="block truncate text-xs text-slate-900">{report.category}</strong><span className="mt-1 block font-mono text-[10px] text-slate-400">{report.ticketNumber}</span><span className="mt-1 block text-[10px] font-bold text-slate-500">{statusShortLabels[report.status]} · titik laporan {report.latitude.toFixed(3)}, {report.longitude.toFixed(3)}</span></span></button>) : <p className="rounded-lg bg-slate-50 px-3 py-3 text-xs font-semibold text-slate-500">Belum ada laporan terhubung di area ini.</p>}</div>
   </MapInfoPanel>;
 }
@@ -601,7 +603,7 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
     return stored === "feed" ? "feed" : "map";
   });
   const [listOpen, setListOpen] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>(defaultReportStatuses);
   const [search, setSearch] = useState("");
   const [locationSearch, setLocationSearch] = useState("");
   const [locationSuggestions, setLocationSuggestions] = useState<LocationSearchResult[]>([]);
@@ -701,15 +703,15 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
   }, [publicMode]);
   // Dashboard data is synchronized with the authenticated API session.
   // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { void load(); const refresh = () => { void load(); }; window.addEventListener("garda:report-updated", refresh); return () => window.removeEventListener("garda:report-updated", refresh); }, [load]);
 
   const reports = data?.reports ?? EMPTY_REPORTS;
   const stats = data?.stats || { total: 0, pending: 0, inProgress: 0, resolved: 0 };
   const matches = useCallback((report: IncidentReport) => {
-    const statusMatches = statusFilter === "ALL" || report.status === statusFilter;
+    const statusMatches = statusFilter.includes(report.status);
     const query = view === "feed" ? search.trim().toLowerCase() : "";
     const searchMatches = !query || [report.ticketNumber, report.category, report.description, report.policeUnit?.name, report.policeUnit?.district].filter(Boolean).some((value) => value!.toLowerCase().includes(query));
-    const visibilityMatches = statusFilter === "REJECTED" ? report.status === "REJECTED" : report.status !== "REJECTED";
+    const visibilityMatches = true;
     return visibilityMatches && statusMatches && searchMatches;
   }, [search, statusFilter, view]);
   const filteredReports = useMemo(() => reports.filter(matches), [matches, reports]);
@@ -721,7 +723,7 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
     return [...new Map(source.map((report) => [report.id, report])).values()].filter(matches);
   }, [citizen, feedItems, matches, publicMap?.reports, reports]);
   const selectedReport = useMemo(() => [...reports, ...publicReports, ...feedItems].find((report) => report.id === selectedId) ?? null, [feedItems, publicReports, reports, selectedId]);
-  const activeFilter = statusFilter !== "ALL" || (view === "feed" && Boolean(search.trim()));
+  const activeFilter = statusFilter.length !== defaultReportStatuses.length || !defaultReportStatuses.every((status) => statusFilter.includes(status)) || (view === "feed" && Boolean(search.trim()));
 
   useEffect(() => {
     if (view !== "map" || !locationSearch.trim() || locationSearch.trim().length < 2 || (searchedLocation && locationSearch === searchedLocation.label)) return;

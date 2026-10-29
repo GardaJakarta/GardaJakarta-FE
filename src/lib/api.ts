@@ -1,6 +1,6 @@
 import { authClient } from "./auth-client";
 import { portalPaths } from "./portals";
-import type { AuthPortal, DashboardData, IncidentReport, PoliceUnit, ReportSeverity, ReportStatus, User } from "../types";
+import type { AuthPortal, DashboardData, IncidentReport, PoliceUnit, ReportSeverity, ReportStatus, ReportInteractions, User } from "../types";
 
 const apiBase = new URL(import.meta.env.VITE_API_URL || "/api", window.location.origin).href.replace(/\/$/, "");
 
@@ -90,22 +90,27 @@ export function updatePoliceReportStatus(id: string, status: Exclude<ReportStatu
   return requestJson<IncidentReport>(`/police/reports/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) });
 }
 
-export function getReportInteractions(id: string) {
-  return requestJson<IncidentReport>(`/reports/${id}/interactions`);
+export function getReportInteractions(id: string, page = 1) {
+  return requestJson<ReportInteractions>(`/reports/${id}/interactions?page=${page}`);
 }
-
 export function voteReport(id: string, active: boolean) {
   return requestJson<{ voteCount: number; hasVoted: boolean }>(`/reports/${id}/vote`, { method: active ? "POST" : "DELETE" });
 }
-
 export function commentOnReport(id: string, body: string) {
   return requestJson<{ id: string; body: string; createdAt: string }>(`/reports/${id}/comments`, { method: "POST", body: JSON.stringify({ body }) });
 }
-
-export function requestReportClarification(id: string, prompt: string) {
-  return requestJson<IncidentReport>(`/police/reports/${id}/clarification`, { method: "PATCH", body: JSON.stringify({ prompt }) });
+export function changeReportStatus(id: string, status: ReportStatus, message: string, evidenceIds: string[]) {
+  return requestJson<{id: string; status: ReportStatus}>(`/police/reports/${id}/status`, { method: "PATCH", body: JSON.stringify({status, message, evidenceIds}) });
 }
-
-export function submitReportClarification(id: string, response: string) {
-  return requestJson<IncidentReport>(`/reports/${id}/clarification`, { method: "POST", body: JSON.stringify({ response }) });
+export function submitReportClarification(id: string, message: string, evidenceIds: string[]) {
+  return requestJson<{id: string; status: ReportStatus}>(`/reports/${id}/clarification`, { method: "POST", body: JSON.stringify({message, evidenceIds}) });
+}
+export function evidenceUrl(path: string) {
+  return new URL(path, apiBase).href;
+}
+export async function uploadReportEvidence(id: string, file: File) {
+  const data = new FormData(); data.append("image", file);
+  const response = await fetch(`${apiBase}/reports/${id}/evidence`, {method: "POST", credentials: "include", body: data});
+  if (!response.ok) throw new Error("Foto belum dapat diunggah. Gunakan JPG, PNG, atau WebP maksimal 5 MB.");
+  return (await response.json() as {data: {id: string}}).data;
 }
