@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type FormEvent, type PointerEvent as ReactPointerEvent, type ReactNode, type SetStateAction } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion, useDragControls } from "motion/react";
 import GardaMap from "../components/GardaMap";
 import AppLogo from "../components/branding/AppLogo";
@@ -37,6 +38,7 @@ const categories = [
 const statusFilters: StatusFilter[] = ["ALL", "PENDING", "VERIFIED", "IN_PROGRESS", "RESOLVED", "REJECTED"];
 const EMPTY_REPORTS: DashboardData["reports"] = [];
 type SafetySelection = { reports: IncidentReport[]; level: string; score: number };
+type LocalNotification = { id: string; title: string; body: string; createdAt: number };
 
 function roleLabel(role: DashboardData["role"] | undefined) {
   return role === "polisi" ? "Petugas polisi" : role === "admin" ? "Admin operasional" : "Warga";
@@ -98,6 +100,14 @@ function ListIcon() {
   return <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" aria-hidden="true"><path d="M5 6h14M5 12h14M5 18h9" /></svg>;
 }
 
+function TicketIcon() {
+  return <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M7 3h10v18H7z" /><path d="M9.5 7h5M9.5 11h5M9.5 15h3" /></svg>;
+}
+
+function NotificationIcon() {
+  return <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9ZM10 21h4" /></svg>;
+}
+
 function PlusIcon() {
   return <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>;
 }
@@ -116,54 +126,72 @@ function StatIcon({ kind }: { kind: "total" | "pending" | "progress" | "done" })
   return <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[kind]}</svg>;
 }
 
-type CategoryIconKind = "harassment" | "sexual" | "theft" | "violence" | "crowd" | "fraud" | "facility" | "other";
-type CategoryOption = { value: string; icon: CategoryIconKind; description: string };
+type SpritePosition = `${number}% ${number}%`;
+type CategoryOption = { value: string; description: string; illustration: SpritePosition };
 
 const categoryOptions: CategoryOption[] = [
-  { value: categories[0], icon: "harassment", description: "Catcalling, siulan, atau komentar mengganggu." },
-  { value: categories[1], icon: "sexual", description: "Pelecehan atau kekerasan seksual." },
-  { value: categories[2], icon: "theft", description: "Pencurian, jambret, atau kehilangan barang." },
-  { value: categories[3], icon: "theft", description: "Begal, perampokan, atau ancaman di jalan." },
-  { value: categories[4], icon: "violence", description: "Pemukulan, penganiayaan, atau ancaman fisik." },
-  { value: categories[5], icon: "crowd", description: "Tawuran, kerumunan, atau situasi berbahaya." },
-  { value: categories[6], icon: "fraud", description: "Penipuan, pemerasan, atau transaksi mencurigakan." },
-  { value: categories[7], icon: "facility", description: "Lampu, fasilitas, atau ruang publik yang tidak aman." },
-  { value: categories[8], icon: "other", description: "Hal lain yang perlu diketahui petugas." },
+  { value: categories[0], illustration: "0% 0%", description: "Catcalling, siulan, atau komentar mengganggu." },
+  { value: categories[1], illustration: "50% 0%", description: "Pelecehan atau kekerasan seksual." },
+  { value: categories[2], illustration: "100% 0%", description: "Pencurian, jambret, atau kehilangan barang." },
+  { value: categories[3], illustration: "0% 50%", description: "Begal, perampokan, atau ancaman di jalan." },
+  { value: categories[4], illustration: "50% 50%", description: "Pemukulan, penganiayaan, atau ancaman fisik." },
+  { value: categories[5], illustration: "100% 50%", description: "Tawuran, kerumunan, atau situasi berbahaya." },
+  { value: categories[6], illustration: "0% 100%", description: "Penipuan, pemerasan, atau transaksi mencurigakan." },
+  { value: categories[7], illustration: "50% 100%", description: "Lampu, fasilitas, atau ruang publik yang tidak aman." },
+  { value: categories[8], illustration: "100% 100%", description: "Hal lain yang perlu diketahui petugas." },
 ];
 
-function CategoryIcon({ kind, className = "h-4 w-4" }: { kind: CategoryIconKind; className?: string }) {
-  const paths: Record<CategoryIconKind, React.ReactNode> = {
-    harassment: <><path d="M12 4 20 8v5c0 4.1-3.2 7-8 8-4.8-1-8-3.9-8-8V8l8-4Z" /><path d="M12 8v4M12 15h.01" /></>,
-    sexual: <><circle cx="12" cy="12" r="8" /><path d="M12 8v8M8 12h8" /></>,
-    theft: <><path d="M5 10h14v10H5zM8 10V7a4 4 0 0 1 8 0v3" /><path d="M12 14v2" /></>,
-    violence: <><path d="m6 5 13 13M18 6 5 19" /><path d="M8 4 4 8l4 4M16 20l4-4-4-4" /></>,
-    crowd: <><circle cx="9" cy="8" r="3" /><circle cx="16" cy="9" r="2.5" /><path d="M3.5 19a5.5 5.5 0 0 1 11 0M14 14a4.5 4.5 0 0 1 6.5 4" /></>,
-    fraud: <><path d="M12 3 19 6v5c0 4.3-2.8 7.5-7 9-4.2-1.5-7-4.7-7-9V6l7-3Z" /><path d="m9 12 2 2 4-4" /></>,
-    facility: <><path d="M6 19 8 5h8l2 14" /><path d="M8 9h8M7 14h10" /></>,
-    other: <><circle cx="12" cy="12" r="8" /><path d="M12 8v.01M12 11v5" /></>,
-  };
-  return <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[kind]}</svg>;
+function IllustrationTile({ sprite, position, className = "h-10 w-10" }: { sprite: "categories" | "severity"; position: SpritePosition; className?: string }) {
+  return <span className={`${className} shrink-0 rounded-xl bg-cover bg-no-repeat shadow-sm ring-1 ring-black/5`} style={{ backgroundImage: `url(/illustrations/categories/${sprite}-sprite.png)`, backgroundPosition: position, backgroundSize: sprite === "categories" ? "300% 300%" : "200% 200%" }} aria-hidden="true" />;
 }
 
 function GardaMark({ className = "h-5 w-5" }: { className?: string }) {
   return <svg className={className} viewBox="0 0 100 120" fill="none" aria-hidden="true"><path d="M90 70.4941C89.9998 92.3127 72.0913 110 50 110V98.8887C66.5685 98.8887 80 85.6228 80 69.2588V39.6299H90V70.4941Z" fill="currentColor" /><path d="M50 21.1113H20V58.1484C20.0002 74.5123 33.4316 87.7773 50 87.7773V98.8887C27.9086 98.8887 10.0001 81.2014 10 59.3828V10H50V21.1113Z" fill="currentColor" /><path d="M90 32.2227H50V80.3701C37.5737 80.3701 27.5002 70.4213 27.5 58.1484V28.5186H50V21.1113H90V32.2227Z" fill="currentColor" /></svg>;
 }
 
+type FloatingMenuStyle = { top: number; left: number; width: number };
+
+function useFloatingMenu(open: boolean, anchorRef: React.RefObject<HTMLElement | null>, menuRef: React.RefObject<HTMLElement | null>, estimatedHeight: number, onClose: () => void) {
+  const [style, setStyle] = useState<FloatingMenuStyle | null>(null);
+  const update = useCallback(() => {
+    const anchor = anchorRef.current;
+    if (!anchor) return;
+    const rect = anchor.getBoundingClientRect();
+    const gap = 8;
+    const opensAbove = rect.bottom + gap + estimatedHeight > window.innerHeight && rect.top - gap - estimatedHeight >= 8;
+    setStyle({ top: opensAbove ? Math.max(8, rect.top - estimatedHeight - gap) : Math.min(window.innerHeight - 8, rect.bottom + gap), left: Math.max(8, Math.min(rect.left, window.innerWidth - rect.width - 8)), width: rect.width });
+  }, [anchorRef, estimatedHeight]);
+  useEffect(() => {
+    if (!open) return;
+    update();
+    const refresh = () => update();
+    window.addEventListener("resize", refresh);
+    window.addEventListener("scroll", refresh, true);
+    return () => { window.removeEventListener("resize", refresh); window.removeEventListener("scroll", refresh, true); };
+  }, [open, update]);
+  useEffect(() => {
+    if (!open) return;
+    const close = (event: PointerEvent) => {
+      const target = event.target as Node;
+      if (!anchorRef.current?.contains(target) && !menuRef.current?.contains(target)) onClose();
+    };
+    document.addEventListener("pointerdown", close);
+    return () => document.removeEventListener("pointerdown", close);
+  }, [anchorRef, menuRef, onClose, open]);
+  return style;
+}
+
 function CategoryMenu({ value, onChange }: { value: string; onChange: (value: string) => void }) {
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(() => Math.max(0, categoryOptions.findIndex((option) => option.value === value)));
   const ref = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const selected = categoryOptions.find((option) => option.value === value);
   const activeOptionId = `report-category-option-${activeIndex}`;
+  const menuStyle = useFloatingMenu(open, ref, menuRef, 440, () => setOpen(false));
   useEffect(() => {
     if (open) document.getElementById(activeOptionId)?.scrollIntoView({ block: "nearest" });
   }, [activeOptionId, open]);
-  useEffect(() => {
-    if (!open) return;
-    const handler = (event: PointerEvent) => { if (ref.current && !ref.current.contains(event.target as Node)) setOpen(false); };
-    document.addEventListener("pointerdown", handler);
-    return () => document.removeEventListener("pointerdown", handler);
-  }, [open]);
   const handleKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
     if (event.key === "Escape") { setOpen(false); return; }
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
@@ -182,38 +210,34 @@ function CategoryMenu({ value, onChange }: { value: string; onChange: (value: st
   };
   return <div ref={ref} className="relative">
     <button type="button" role="combobox" aria-expanded={open} aria-controls="report-category-options" aria-activedescendant={open ? activeOptionId : undefined} aria-haspopup="listbox" onKeyDown={handleKeyDown} onClick={() => setOpen((current) => !current)} className={`flex min-h-11 w-full items-center gap-3 rounded-sm border bg-white px-3 text-left text-sm font-bold transition-colors focus:outline-none focus:ring-2 focus:ring-red-100 ${open ? "border-[#e62428] shadow-[0_0_0_3px_rgba(230,36,40,0.08)]" : "border-gray-200 hover:border-gray-300"}`}>
-      <span className="grid h-7 w-7 shrink-0 place-items-center rounded-sm bg-[#fff1ef] text-[#e62428]">{selected ? <CategoryIcon kind={selected.icon} className="h-4 w-4" /> : <GardaMark className="h-4 w-4" />}</span>
+      {selected ? <IllustrationTile sprite="categories" position={selected.illustration} className="h-9 w-9 rounded-xl" /> : <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#fff0ed] text-[#e62428]"><GardaMark className="h-4 w-4" /></span>}
       <span className="min-w-0 flex-1 py-2 text-gray-900">{selected?.value || "Pilih kategori kejadian"}</span>
       <Chevron open={open} />
     </button>
-    {open && <div id="report-category-options" role="listbox" aria-label="Kategori laporan" className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 max-h-[min(66vh,430px)] overflow-y-auto rounded-sm border border-gray-100 bg-white p-1 shadow-[0_18px_44px_rgba(15,23,42,0.16)]">
+    {open && menuStyle && createPortal(<div ref={menuRef} id="report-category-options" role="listbox" aria-label="Kategori laporan" style={{ ...menuStyle, position: "fixed" }} className="z-[100] max-h-[min(66vh,430px)] overflow-y-auto rounded-2xl border border-gray-100 bg-white p-1.5 shadow-[0_22px_60px_rgba(15,23,42,0.2)]">
       <div className="mb-1.5 flex items-center gap-3 border-b border-gray-100 bg-gray-50 px-2.5 py-2.5"><AppLogo className="h-6 w-auto shrink-0" size={145} aria-label="Garda Jakarta" /><div className="min-w-0 border-l border-gray-200 pl-3"><strong className="block text-[10px] font-black uppercase tracking-[.14em] text-gray-900">Kategori laporan</strong><span className="mt-0.5 block truncate text-[10px] font-semibold text-gray-400">Pilih jenis kejadian.</span></div></div>
       <div className="space-y-1">
         {categoryOptions.map((option, index) => <button id={`report-category-option-${index}`} key={option.value} type="button" role="option" tabIndex={-1} aria-selected={value === option.value} onMouseDown={(event) => event.preventDefault()} onClick={() => { onChange(option.value); setActiveIndex(index); setOpen(false); }} className={`flex min-h-12 w-full items-center gap-3 rounded-sm border-l-2 px-2 py-1.5 text-left transition-colors ${value === option.value ? "border-[#e62428] bg-[#fff1ef] text-[#b21e24]" : activeIndex === index ? "border-gray-300 bg-gray-50 text-gray-900" : "border-transparent text-gray-700 hover:bg-gray-50"}`}>
-          <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-sm border ${value === option.value ? "border-[#e62428] bg-[#e62428] text-white" : "border-gray-100 bg-white text-gray-500"}`}><CategoryIcon kind={option.icon} className="h-4 w-4" /></span>
+          <IllustrationTile sprite="categories" position={option.illustration} className={`h-12 w-12 rounded-xl transition-transform ${value === option.value ? "scale-105 shadow-md" : ""}`} />
           <span className="min-w-0 flex-1"><strong className="block text-[11px] font-black leading-snug">{option.value}</strong><span className="mt-0.5 block text-[10px] font-medium text-gray-500">{option.description}</span></span>
           {value === option.value && <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#e62428] text-[11px] font-black text-white">✓</span>}
         </button>)}
       </div>
-    </div>}
+    </div>, document.body)}
   </div>;
 }
 
 function SeverityMenu({ value, onChange }: { value: ReportSeverity; onChange: (value: ReportSeverity) => void }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const close = (event: PointerEvent) => { if (ref.current && !ref.current.contains(event.target as Node)) setOpen(false); };
-    document.addEventListener("pointerdown", close);
-    return () => document.removeEventListener("pointerdown", close);
-  }, [open]);
-  const colors: Record<ReportSeverity, string> = { P0: "bg-red-50 text-red-700", P1: "bg-orange-50 text-orange-700", P2: "bg-amber-50 text-amber-700", P3: "bg-slate-50 text-slate-600" };
+  const menuRef = useRef<HTMLDivElement>(null);
+  const menuStyle = useFloatingMenu(open, ref, menuRef, 230, () => setOpen(false));
+  const severityPositions: Record<ReportSeverity, SpritePosition> = { P0: "0% 0%", P1: "100% 0%", P2: "0% 100%", P3: "100% 100%" };
   return <div ref={ref} className="relative">
     <button type="button" role="combobox" aria-expanded={open} aria-haspopup="listbox" onClick={() => setOpen((current) => !current)} className="flex h-12 w-full items-center gap-3 rounded-sm border border-gray-200 bg-white px-3 text-left text-sm font-bold text-slate-900 transition focus:border-[#e62428] focus:ring-2 focus:ring-red-100">
-      <span className={`grid h-7 w-7 place-items-center rounded-lg text-xs font-black ${colors[value]}`}>{value}</span><span className="flex-1">{severityLabels[value]}</span><Chevron open={open} />
+      <IllustrationTile sprite="severity" position={severityPositions[value]} className="h-9 w-9 rounded-xl" /><span className="flex-1">{severityLabels[value]}</span><Chevron open={open} />
     </button>
-    {open && <div role="listbox" className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 rounded-xl border border-gray-100 bg-white p-1 shadow-[0_18px_44px_rgba(15,23,42,0.16)]">{(Object.keys(severityLabels) as ReportSeverity[]).map((option) => <button type="button" role="option" aria-selected={option === value} key={option} onClick={() => { onChange(option); setOpen(false); }} className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition ${option === value ? "bg-red-50 text-red-700" : "text-slate-700 hover:bg-slate-50"}`}><span className={`grid h-7 w-7 place-items-center rounded-lg text-[10px] font-black ${colors[option]}`}>{option}</span><span className="text-xs font-bold">{severityLabels[option]}</span></button>)}</div>}
+    {open && menuStyle && createPortal(<div ref={menuRef} role="listbox" style={{ ...menuStyle, position: "fixed" }} className="z-[100] rounded-2xl border border-gray-100 bg-white p-1.5 shadow-[0_22px_60px_rgba(15,23,42,0.2)]">{(Object.keys(severityLabels) as ReportSeverity[]).map((option) => <button type="button" role="option" aria-selected={option === value} key={option} onClick={() => { onChange(option); setOpen(false); }} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition ${option === value ? "bg-red-50 text-red-700" : "text-slate-700 hover:bg-slate-50"}`}><IllustrationTile sprite="severity" position={severityPositions[option]} className="h-11 w-11 rounded-xl" /><span className="text-xs font-bold">{severityLabels[option]}</span><span className="ml-auto text-[10px] font-semibold text-slate-400">{option === "P0" ? "Darurat" : option === "P1" ? "Mendesak" : option === "P2" ? "Perlu perhatian" : "Pantau"}</span></button>)}</div>, document.body)}
   </div>;
 }
 
@@ -300,7 +324,7 @@ function ReportCard({ report, selected, onSelect }: { report: IncidentReport; se
       <div className="flex shrink-0 flex-col items-end gap-1.5"><StatusBadge status={report.status} /><SeverityBadge severity={report.severity} /></div>
     </header>
     <section className="px-4 pb-3 sm:px-5"><h3 className="text-base font-black leading-snug text-gray-950 sm:text-lg">{report.category}</h3>{report.description && <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-gray-600">{report.description}</p>}</section>
-    <footer className="space-y-3 border-t border-gray-100 px-4 py-3.5 sm:px-5"><button type="button" onClick={onSelect} className="flex h-10 w-full items-center justify-center rounded-full bg-gray-900 px-4 text-xs font-black text-white transition-colors hover:bg-gray-800">Lihat detail</button><div className="grid gap-2 text-xs sm:grid-cols-2"><div className="flex min-w-0 items-center gap-2 rounded-sm bg-gray-50 px-3 py-2.5"><GardaMark className="h-4 w-4 shrink-0 text-[#e62428]" /><span className="truncate font-bold text-gray-700">{report.policeUnit?.name || "Menunggu unit penanganan"}</span></div><div className="flex min-w-0 items-center gap-2 rounded-sm bg-gray-50 px-3 py-2.5"><span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-red-50 text-[10px] font-black text-[#e62428]">#</span><span className="truncate font-mono text-[10px] font-bold text-gray-600">{report.ticketNumber}</span></div></div></footer>
+    <footer className="space-y-3 border-t border-gray-100 px-4 py-3.5 sm:px-5"><button type="button" onClick={onSelect} className="flex h-10 w-full items-center justify-center rounded-full bg-gray-900 px-4 text-xs font-black text-white transition-colors hover:bg-gray-800">Lihat detail</button><div className="grid gap-2 text-xs sm:grid-cols-2"><div className="flex min-w-0 items-center gap-2 rounded-sm bg-gray-50 px-3 py-2.5"><GardaMark className="h-4 w-4 shrink-0 text-[#e62428]" /><span className="truncate font-bold text-gray-700">{report.policeUnit?.name || "Menunggu unit penanganan"}</span></div><div className="flex min-w-0 items-center gap-2 rounded-sm bg-gray-50 px-3 py-2.5"><span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-red-50 text-[#e62428]"><TicketIcon /></span><span className="truncate font-mono text-[10px] font-bold text-gray-600">{report.ticketNumber}</span></div></div></footer>
   </motion.article>;
 }
 
@@ -366,7 +390,7 @@ function InfiniteReportList({ reports, selectedId, onSelect, hasMore, loading, o
       else if (hasMore && !loading) onLoadMore();
     }
   }}>
-    {reports.length === 0 ? <div className="mt-8 flex min-h-[260px] flex-col items-center justify-center px-6 text-center"><div className="mb-4 grid h-14 w-14 place-items-center rounded-full bg-gray-100 text-gray-400"><ListIcon /></div><p className="text-sm font-black text-gray-800">Belum ada isu yang cocok</p></div> : visibleReports.map((report) => <ReportCard key={report.id} report={report} selected={selectedId === report.id} onSelect={() => onSelect(report)} />)}
+    {reports.length === 0 ? <div className="mt-8 flex min-h-[260px] flex-col items-center justify-center px-6 text-center"><div className="mb-4 grid h-14 w-14 place-items-center rounded-full bg-gray-100 text-gray-400"><ListIcon /></div><p className="text-sm font-black text-gray-800">Belum ada laporan</p></div> : visibleReports.map((report) => <ReportCard key={report.id} report={report} selected={selectedId === report.id} onSelect={() => onSelect(report)} />)}
     <div ref={sentinelRef} className="h-px" aria-hidden="true" />
     {(visibleCount < reports.length || hasMore || loading) && <div className="flex items-center justify-center gap-2 py-3 text-[10px] font-bold text-slate-400" role="status"><span className="garda-loader h-3 w-3" /> {loading ? "Memuat laporan berikutnya..." : "Gulir untuk memuat laporan berikutnya"}</div>}
   </div>;
@@ -534,7 +558,7 @@ function FeedView({ reports, role, stats, overview, onSelect, selectedId, select
 }
 
 function MapLoadingOverlay({ label = "Memeriksa keamanan Jakarta..." }: { label?: string }) {
-  return <div className="pointer-events-none absolute inset-0 z-[35] grid place-items-center bg-white/55 backdrop-blur-[1px]" role="status" aria-live="polite"><div className="grid justify-items-center gap-3 rounded-2xl bg-white/90 px-6 py-5 text-center shadow-[0_18px_48px_rgba(15,23,42,0.14)]"><AppLogo size={96} aria-label="Garda Jakarta" /><span className="garda-loading-mark h-6 w-6" aria-hidden="true" /><p className="text-[10px] font-black tracking-wide text-slate-500">{label}</p></div></div>;
+  return <div className="pointer-events-none absolute inset-0 z-[35] grid place-items-center bg-slate-950/10 backdrop-blur-[1px]" role="status" aria-live="polite"><div className="grid justify-items-center gap-3 text-center"><AppLogo size={96} aria-label="Garda Jakarta" /><span className="garda-loading-mark h-6 w-6" aria-hidden="true" /><p className="text-[10px] font-black tracking-wide text-slate-700">{label}</p></div></div>;
 }
 
 export default function DashboardPage({ publicMode = false }: { publicMode?: boolean }) {
@@ -549,6 +573,8 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [notificationItems, setNotificationItems] = useState<LocalNotification[]>([]);
+  const [notificationOpen, setNotificationOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [view, setView] = useState<ViewMode>(() => {
     if (publicMode) return "map";
@@ -573,15 +599,19 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [focusLocation, setFocusLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const accountRef = useRef<HTMLDivElement>(null);
+  const notificationRef = useRef<HTMLDivElement>(null);
   const notifiedRiskReportsRef = useRef(new Set<string>());
   const [form, setForm] = useState<ReportFormState>({ category: "", description: "", severity: "P2", latitude: -6.1754, longitude: 106.8272 });
 
   useEffect(() => {
-    if (!accountOpen) return;
-    const handler = (event: PointerEvent) => { if (accountRef.current && !accountRef.current.contains(event.target as Node)) setAccountOpen(false); };
+    if (!accountOpen && !notificationOpen) return;
+    const handler = (event: PointerEvent) => {
+      if (accountRef.current && !accountRef.current.contains(event.target as Node)) setAccountOpen(false);
+      if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) setNotificationOpen(false);
+    };
     document.addEventListener("pointerdown", handler);
     return () => document.removeEventListener("pointerdown", handler);
-  }, [accountOpen]);
+  }, [accountOpen, notificationOpen]);
 
   useEffect(() => {
     const handleResize = () => setIsDesktop(window.innerWidth >= 768);
@@ -603,6 +633,7 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
       notifiedRiskReportsRef.current.add(report.id);
       const message = `Anda berada dekat area dengan laporan ${report.category.toLowerCase()}.`;
       setNotice(message);
+      setNotificationItems((current) => [{ id: report.id, title: "Area perhatian", body: message, createdAt: Date.now() }, ...current.filter((item) => item.id !== report.id)].slice(0, 8));
       if ("Notification" in window) {
         const show = () => { if (!disposed && Notification.permission === "granted") new Notification("Garda Jakarta · Area perhatian", { body: message, tag: `garda-risk-${report.id}` }); };
         if (Notification.permission === "default") void Notification.requestPermission().then(show);
@@ -725,14 +756,17 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
             <button type="button" onClick={() => { setView("feed"); setSelectedId(null); setSelectedUnit(null); setSelectedZone(null); setFocusLocation(null); setListOpen(false); setReportOpen(false); }} aria-pressed={view === "feed"} className={`flex h-7 min-w-[48px] items-center justify-center gap-1 rounded-full px-1.5 text-[9px] font-black transition-colors sm:h-8 sm:min-w-[74px] sm:gap-1.5 sm:px-3 sm:text-[11px] ${view === "feed" ? "bg-gray-900 text-white shadow-sm" : "text-gray-500 hover:bg-white hover:text-gray-900"}`}><FeedModeIcon /><span>Feed</span></button>
           </div>}
         </div>
-        {publicMode ? <a href="/login" className="inline-flex h-8 shrink-0 items-center justify-center whitespace-nowrap rounded-lg bg-[#e62428] px-3 text-[10px] font-black leading-none text-white shadow-sm transition-colors hover:bg-[#c91d22] sm:h-9 sm:px-4 sm:text-[11px]" aria-label="Masuk sebagai pelapor"><span className="sm:hidden">Masuk</span><span className="hidden sm:inline">Masuk sebagai pelapor</span></a> : <div ref={accountRef} className="relative shrink-0">
+        {publicMode ? <a href="/login" className="inline-flex h-8 shrink-0 items-center justify-center whitespace-nowrap rounded-lg bg-[#e62428] px-3 text-[10px] font-black leading-none text-white shadow-sm transition-colors hover:bg-[#c91d22] sm:h-9 sm:px-4 sm:text-[11px]" aria-label="Masuk sebagai pelapor"><span className="sm:hidden">Masuk</span><span className="hidden sm:inline">Masuk sebagai pelapor</span></a> : <div className="flex shrink-0 items-center gap-1.5"><div ref={notificationRef} className="relative">
+          <button type="button" onClick={() => setNotificationOpen((current) => !current)} className="relative grid h-8 w-8 place-items-center rounded-full text-slate-600 transition-colors hover:bg-gray-50 sm:h-9 sm:w-9" aria-label="Buka notifikasi" aria-haspopup="menu" aria-expanded={notificationOpen}><NotificationIcon />{notificationItems.length > 0 && <span className="absolute right-0.5 top-0.5 grid h-3.5 min-w-3.5 place-items-center rounded-full bg-[#e62428] px-0.5 text-[8px] font-black text-white">{Math.min(notificationItems.length, 9)}</span>}</button>
+          {notificationOpen && <div className="absolute right-0 top-[calc(100%+8px)] z-50 w-[min(320px,calc(100vw-24px))] rounded-xl border border-gray-100 bg-white p-2 shadow-2xl" role="menu"><div className="flex items-center justify-between border-b border-gray-100 px-3 py-2.5"><strong className="text-xs">Notifikasi</strong>{notificationItems.length > 0 && <button type="button" className="text-[10px] font-bold text-[#e62428]" onClick={() => setNotificationItems([])}>Bersihkan</button>}</div>{notificationItems.length === 0 ? <p className="px-3 py-5 text-center text-xs font-semibold text-slate-400">Belum ada notifikasi.</p> : <div className="max-h-64 overflow-y-auto">{notificationItems.map((item) => <div key={item.id} className="flex gap-2 border-b border-gray-50 px-3 py-3 last:border-0"><span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full bg-red-50 text-[#e62428]"><NotificationIcon /></span><div className="min-w-0"><strong className="block text-[11px] font-black text-slate-800">{item.title}</strong><p className="mt-0.5 text-[10px] leading-relaxed text-slate-500">{item.body}</p></div></div>)}</div>}</div>}
+        </div><div ref={accountRef} className="relative shrink-0">
           <button type="button" onClick={() => setAccountOpen((current) => !current)} className="inline-flex h-8 w-8 items-center justify-center rounded-full p-0 text-left hover:bg-gray-50 sm:h-auto sm:w-auto sm:gap-2 sm:justify-start sm:px-1.5 sm:py-1" aria-haspopup="menu" aria-expanded={accountOpen}>
             <Avatar name={user?.name || "Garda"} image={user?.image} size="h-8 w-8 sm:h-9 sm:w-9" />
             <span className="hidden max-w-[150px] sm:block"><strong className="block truncate text-[11px] font-bold text-gray-900">{user?.name}</strong><small className="mt-0.5 block text-[9px] font-bold text-[#e62428]">{roleLabel(role)}</small></span>
             <span className="hidden sm:block"><Chevron open={accountOpen} /></span>
           </button>
           {accountOpen && <div className="absolute right-0 top-[calc(100%+8px)] z-50 w-56 rounded-xl border border-gray-100 bg-white p-2 shadow-2xl" role="menu"><div className="border-b border-gray-100 px-3 py-2.5"><strong className="block truncate text-xs">{user?.name}</strong><span className="mt-1 block truncate text-[10px] text-gray-400">{user?.email}</span></div><button type="button" role="menuitem" onClick={() => { setAccountOpen(false); setSignoutOpen(true); }} className="mt-1 flex w-full items-center rounded-lg px-3 py-2.5 text-left text-xs font-bold text-red-700 hover:bg-red-50">Keluar</button></div>}
-        </div>}
+         </div></div>}
       </div>
       <div className="w-full sm:hidden">
         <DashboardControls mobile view={view} citizen={citizen} showActions={!publicMode} role={role} search={search} onSearchChange={setSearch} onSearchSubmit={searchLocation} statusFilter={statusFilter} onStatusFilterChange={setStatusFilter} listOpen={listOpen} onToggleList={() => { setListOpen((current) => !current); setReportOpen(false); setSelectedId(null); }} onCreateReport={toggleReportForm} onPickLocation={() => { if (!reportOpen) openReportForm(); else setPinMode((current) => !current); }} pinMode={pinMode} activeFilter={activeFilter} reportOpen={reportOpen} />
