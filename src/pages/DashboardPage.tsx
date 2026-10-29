@@ -305,6 +305,18 @@ function ReportCard({ report, selected, onSelect }: { report: IncidentReport; se
 }
 
 function AdminReportsTable({ reports, selectedId, onSelect, hasMore, loading, onLoadMore }: { reports: IncidentReport[]; selectedId: string | null; onSelect: (report: IncidentReport) => void; hasMore: boolean; loading: boolean; onLoadMore: () => void }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const root = scrollRef.current;
+    const sentinel = sentinelRef.current;
+    if (!root || !sentinel || !hasMore || loading || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry?.isIntersecting && !loading) onLoadMore();
+    }, { root, rootMargin: "160px 0px" });
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, loading, onLoadMore]);
   const handleScroll = (event: React.UIEvent<HTMLDivElement>) => {
     const target = event.currentTarget;
     if (target.scrollTop + target.clientHeight >= target.scrollHeight - 160 && hasMore && !loading) onLoadMore();
@@ -314,7 +326,7 @@ function AdminReportsTable({ reports, selectedId, onSelect, hasMore, loading, on
       <div><h2 className="font-heading text-base font-black tracking-tight text-gray-950">Semua laporan</h2><p className="mt-1 text-[10px] font-bold text-gray-400">Pantau laporan yang masuk ke Garda Jakarta.</p></div>
       <span className="rounded-full bg-gray-50 px-2.5 py-1 text-[10px] font-black text-gray-500">{reports.length} tiket</span>
     </div>
-    <div className="max-h-[calc(100dvh-350px)] overflow-auto" onScroll={handleScroll}>
+    <div ref={scrollRef} className="max-h-[calc(100dvh-350px)] overflow-auto" onScroll={handleScroll}>
       <table className="w-full min-w-[720px] border-collapse text-left text-xs">
         <thead><tr className="border-b border-gray-100 bg-gray-50/70 text-[10px] font-black uppercase tracking-widest text-gray-400"><th className="px-4 py-3 sm:px-5">Laporan</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Keparahan</th><th className="px-4 py-3">Unit</th><th className="px-4 py-3">Diperbarui</th><th className="px-4 py-3" /></tr></thead>
         <tbody>{reports.length === 0 ? <tr><td colSpan={6} className="px-5 py-12 text-center text-xs font-semibold text-gray-400">Belum ada laporan yang sesuai.</td></tr> : reports.map((report) => <tr key={report.id} className={`border-b border-gray-100 last:border-0 transition-colors hover:bg-red-50/30 ${selectedId === report.id ? "bg-red-50/50" : ""}`}>
@@ -326,6 +338,7 @@ function AdminReportsTable({ reports, selectedId, onSelect, hasMore, loading, on
           <td className="px-4 py-3"><button type="button" onClick={() => onSelect(report)} className="whitespace-nowrap rounded-full bg-gray-900 px-3 py-2 text-[10px] font-black text-white transition-colors hover:bg-gray-800">Detail</button></td>
         </tr>)}</tbody>
       </table>
+      <div ref={sentinelRef} className="h-px" aria-hidden="true" />
       {(hasMore || loading) && <div className="flex items-center justify-center gap-2 border-t border-gray-100 px-4 py-3 text-[10px] font-bold text-slate-400" role="status"><span className="garda-loader h-3 w-3" /> {loading ? "Memuat laporan berikutnya..." : "Gulir untuk memuat laporan berikutnya"}</div>}
     </div>
   </div>;
@@ -333,8 +346,20 @@ function AdminReportsTable({ reports, selectedId, onSelect, hasMore, loading, on
 
 function InfiniteReportList({ reports, selectedId, onSelect, hasMore, loading, onLoadMore }: { reports: IncidentReport[]; selectedId: string | null; onSelect: (report: IncidentReport) => void; hasMore: boolean; loading: boolean; onLoadMore: () => void }) {
   const [visibleCount, setVisibleCount] = useState(10);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
   const visibleReports = reports.slice(0, visibleCount);
-  return <div className="flex max-h-[calc(100dvh-290px)] flex-col gap-4 overflow-y-auto pr-1" onScroll={(event) => {
+  useEffect(() => {
+    const root = scrollRef.current;
+    const sentinel = sentinelRef.current;
+    if (!root || !sentinel || !hasMore || loading || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry?.isIntersecting && !loading) onLoadMore();
+    }, { root, rootMargin: "160px 0px" });
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, loading, onLoadMore]);
+  return <div ref={scrollRef} className="flex max-h-[calc(100dvh-290px)] flex-col gap-4 overflow-y-auto pr-1" onScroll={(event) => {
     const target = event.currentTarget;
     if (target.scrollTop + target.clientHeight >= target.scrollHeight - 160) {
       if (visibleCount < reports.length) setVisibleCount((current) => Math.min(current + 10, reports.length));
@@ -342,6 +367,7 @@ function InfiniteReportList({ reports, selectedId, onSelect, hasMore, loading, o
     }
   }}>
     {reports.length === 0 ? <div className="mt-8 flex min-h-[260px] flex-col items-center justify-center px-6 text-center"><div className="mb-4 grid h-14 w-14 place-items-center rounded-full bg-gray-100 text-gray-400"><ListIcon /></div><p className="text-sm font-black text-gray-800">Belum ada isu yang cocok</p></div> : visibleReports.map((report) => <ReportCard key={report.id} report={report} selected={selectedId === report.id} onSelect={() => onSelect(report)} />)}
+    <div ref={sentinelRef} className="h-px" aria-hidden="true" />
     {(visibleCount < reports.length || hasMore || loading) && <div className="flex items-center justify-center gap-2 py-3 text-[10px] font-bold text-slate-400" role="status"><span className="garda-loader h-3 w-3" /> {loading ? "Memuat laporan berikutnya..." : "Gulir untuk memuat laporan berikutnya"}</div>}
   </div>;
 }
