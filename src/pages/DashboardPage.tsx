@@ -427,11 +427,17 @@ function InfiniteReportList({ reports, selectedId, onSelect, hasMore, loading, o
 }
 
 function MyReportsPanel({ reports, selectedId, onSelect, onClose, isDesktop, stats }: { reports: IncidentReport[]; selectedId: string | null; onSelect: (report: IncidentReport) => void; onClose: () => void; isDesktop: boolean; stats: DashboardData["stats"] }) {
-  return <motion.aside drag={isDesktop} dragMomentum={false} dragElastic={0.06} dragConstraints={{ top: -90, bottom: 90, left: -Math.max(0, window.innerWidth - 440), right: Math.max(0, window.innerWidth - 440) }} className={`${isDesktop ? "absolute left-6 top-24 h-[calc(100dvh-120px)] w-[380px]" : "fixed bottom-0 left-0 right-0 h-[86dvh] w-full rounded-t-2xl"} z-[55] overflow-hidden rounded-xl border border-slate-100 bg-white shadow-[0_22px_65px_rgba(15,23,42,0.2)]`} aria-label="Daftar laporan saya">
+  const statTiles = [
+    ["Total", stats.total, "/illustrations/categories/other2.png"],
+    ["Masuk", stats.pending, "/illustrations/categories/crowd.png"],
+    ["Proses", stats.inProgress, "/illustrations/categories/facility.png"],
+    ["Selesai", stats.resolved, "/illustrations/categories/violence.png"],
+  ] as const;
+  return <motion.aside drag={isDesktop ? true : "y"} dragMomentum={false} dragElastic={0.06} dragConstraints={isDesktop ? { top: -120, bottom: 120, left: -Math.max(0, window.innerWidth - 440), right: Math.max(0, window.innerWidth - 440) } : { top: -window.innerHeight * 0.5, bottom: 0 }} className={`${isDesktop ? "absolute left-6 top-24 h-[calc(100dvh-120px)] w-[380px]" : "fixed bottom-0 left-0 right-0 h-[86dvh] w-full rounded-t-2xl"} z-[45] overflow-hidden rounded-xl border border-slate-100 bg-white shadow-[0_22px_65px_rgba(15,23,42,0.2)]`} aria-label="Daftar laporan saya">
     <div className="flex h-full flex-col">
       <div className="shrink-0 border-b border-slate-100 px-4 pb-3 pt-4">
         <div className="flex items-start justify-between gap-3"><div><p className="text-[10px] font-bold uppercase tracking-widest text-[#e62428]">Riwayat</p><h2 className="mt-1 text-lg font-bold tracking-tight">Laporan saya</h2><p className="mt-1 text-[10px] font-bold text-slate-400">{reports.length} laporan sesuai filter</p></div><button type="button" onClick={onClose} className="grid h-8 w-8 place-items-center rounded-full text-slate-400 hover:bg-slate-100" aria-label="Tutup daftar laporan"><CloseIcon /></button></div>
-        <div className="mt-3 grid grid-cols-4 gap-1 rounded-lg bg-slate-50 p-1 text-center"><div className="rounded-md bg-white py-1.5 shadow-sm"><strong className="block text-sm font-bold">{stats.total}</strong><span className="text-[8px] font-bold uppercase text-slate-400">Total</span></div><div className="py-1.5"><strong className="block text-sm font-bold">{stats.pending}</strong><span className="text-[8px] font-bold uppercase text-slate-400">Masuk</span></div><div className="py-1.5"><strong className="block text-sm font-bold">{stats.inProgress}</strong><span className="text-[8px] font-bold uppercase text-slate-400">Proses</span></div><div className="py-1.5"><strong className="block text-sm font-bold">{stats.resolved}</strong><span className="text-[8px] font-bold uppercase text-slate-400">Selesai</span></div></div>
+        <div className="mt-3 grid grid-cols-4 gap-1 rounded-lg bg-slate-50 p-1 text-center">{statTiles.map(([label, count, image], index) => <div key={label} className={`${index === 0 ? "rounded-md bg-white shadow-sm" : ""} py-1.5`}><img src={image} alt="" aria-hidden="true" className="mx-auto mb-1 h-6 w-6 rounded-lg object-cover" /><strong className="block text-sm font-bold">{count}</strong><span className="text-[8px] font-bold uppercase text-slate-400">{label}</span></div>)}</div>
       </div>
       <div className="min-h-0 flex-1 space-y-2 overflow-y-auto bg-slate-50/70 p-3">{reports.length === 0 ? <p className="px-3 py-10 text-center text-xs font-semibold text-slate-400">Belum ada laporan yang sesuai.</p> : reports.map((report) => <ReportCard key={report.id} report={report} selected={selectedId === report.id} onSelect={() => onSelect(report)} />)}</div>
     </div>
@@ -776,7 +782,7 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
     finally { setLoadingMore(false); }
   }, [feedHasMore, feedPage, loadingMore]);
 
-  const openReportForm = useCallback(() => { if (!canReport) return; setView("map"); setSelectedId(null); setListOpen(false); setFocusLocation({ latitude: form.latitude, longitude: form.longitude }); setReportOpen(true); setPinMode(true); setError(null); }, [canReport, form.latitude, form.longitude]);
+  const openReportForm = useCallback(() => { if (!canReport) return; setView("map"); setSelectedId(null); setFocusLocation({ latitude: form.latitude, longitude: form.longitude }); setReportOpen(true); setPinMode(true); setError(null); }, [canReport, form.latitude, form.longitude]);
   const selectReport = useCallback((report: IncidentReport) => { setSelectedId(report.id); setListOpen(false); setReportOpen(false); }, []);
   const selectReportFromMap = useCallback((report: IncidentReport) => { setFocusLocation({ latitude: report.latitude, longitude: report.longitude }); selectReport(report); }, [selectReport]);
   const toggleReportForm = useCallback(() => {
