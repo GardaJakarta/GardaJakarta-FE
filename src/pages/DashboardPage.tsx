@@ -10,6 +10,7 @@ import { CurrentLocationButton, MapFilterMenu } from "../components/MapFilters";
 import { defaultMapFilters, mapFilterCount, type MapFilterState } from "../components/map-filter-state";
 import AppLogo from "../components/branding/AppLogo";
 import ImagePreview from "../components/ImagePreview";
+import { ReportListSkeleton } from "../components/LoadingSkeleton";
 import { useAuth } from "../context/useAuth";
 import { createReport, getDashboard, getPublicMap, getReportFeed, updatePoliceReportStatus, uploadReportEvidence } from "../lib/api";
 import { portalPaths } from "../lib/portals";
@@ -400,7 +401,7 @@ function AdminReportsTable({ reports, selectedId, onSelect, hasMore, loading, on
         </tr>)}</tbody>
       </table>
       <div ref={sentinelRef} className="h-px" aria-hidden="true" />
-      {(hasMore || loading) && <div className="flex items-center justify-center gap-2 border-t border-gray-100 px-4 py-3 text-[10px] font-bold text-slate-400" role="status"><span className="garda-loader h-3 w-3" /> {loading ? "Memuat laporan berikutnya..." : "Gulir untuk memuat laporan berikutnya"}</div>}
+      {(hasMore || loading) && <div className="flex items-center justify-center gap-2 border-t border-gray-100 px-4 py-3 text-[10px] font-bold text-slate-400" role="status">{loading ? <div className="w-full"><ReportListSkeleton count={2} /></div> : "Gulir untuk memuat laporan berikutnya"}</div>}
     </div>
   </div>;
 }
@@ -429,7 +430,7 @@ function InfiniteReportList({ reports, selectedId, onSelect, hasMore, loading, o
   }}>
     {reports.length === 0 ? <div className="mt-8 flex min-h-[260px] flex-col items-center justify-center px-6 text-center"><div className="mb-4 grid h-14 w-14 place-items-center rounded-full bg-gray-100 text-gray-400"><img src="/illustrations/stats/total.png" alt="" className="h-14 w-14 rounded-xl" /></div><p className="text-sm font-black text-gray-800">Belum ada laporan</p></div> : visibleReports.map((report) => <ReportCard key={report.id} report={report} selected={selectedId === report.id} onSelect={() => onSelect(report)} />)}
     <div ref={sentinelRef} className="h-px" aria-hidden="true" />
-    {(visibleCount < reports.length || hasMore || loading) && <div className="flex items-center justify-center gap-2 py-3 text-[10px] font-bold text-slate-400" role="status"><span className="garda-loader h-3 w-3" /> {loading ? "Memuat laporan berikutnya..." : "Gulir untuk memuat laporan berikutnya"}</div>}
+    {(visibleCount < reports.length || hasMore || loading) && <div className="flex items-center justify-center gap-2 py-3 text-[10px] font-bold text-slate-400" role="status">{loading ? <div className="w-full"><ReportListSkeleton count={2} /></div> : "Gulir untuk memuat laporan berikutnya"}</div>}
   </div>;
 }
 
@@ -582,12 +583,13 @@ function FeedView({ reports, role, stats, overview, onSelect, selectedId, select
   const title = role === "warga" ? "Isu Terkini" : role === "polisi" ? "Antrian unit" : "Monitoring laporan";
   const description = role === "warga" ? `${reports.length} laporan warga` : role === "polisi" ? "Triage laporan dari wilayah unit Anda dan catat status penanganannya." : "Ringkasan laporan dan unit operasional Garda Jakarta.";
   const statCards = [["Total", stats.total, "total", "bg-red-50 text-[#e62428]"], ["Masuk", stats.pending, "pending", "bg-amber-50 text-amber-700"], ["Diproses", stats.inProgress, "progress", "bg-sky-50 text-sky-700"], ["Selesai", stats.resolved, "done", "bg-emerald-50 text-emerald-700"]] as const;
+  if (isLoading) return <div className="absolute inset-0 overflow-y-auto bg-[#f3f4f6] px-4 pb-28 pt-40 sm:pt-28"><div className="mx-auto max-w-2xl"><ReportListSkeleton /></div></div>;
   if (selectedReport) return <div className="absolute inset-0 z-10 overflow-y-auto bg-[#f3f4f6] px-4 pb-28 pt-40 sm:pt-28"><article className="mx-auto max-w-2xl rounded-xl bg-white p-6"><button type="button" onClick={onCloseDetail} className="mb-5 text-xs font-bold text-red-600">Kembali ke feed</button><div className="flex gap-2"><StatusBadge status={selectedReport.status} /><SeverityBadge severity={selectedReport.severity} /></div><h1 className="mt-4 break-words text-2xl font-bold">{selectedReport.category}</h1><p className="mt-2 text-xs text-slate-500">{selectedReport.ticketNumber}</p><p className="mt-5 whitespace-pre-wrap break-words text-sm leading-relaxed">{selectedReport.description}</p><ReportConversation key={selectedReport.id} reportId={selectedReport.id} /></article></div>;
   return <div className="absolute inset-0 z-10 overflow-y-auto bg-[#f3f4f6] px-3 pb-28 pt-40 sm:px-5 sm:pb-36 sm:pt-24 md:px-8 md:pt-28" aria-busy={isLoading}><div className={`${role === "admin" ? "max-w-5xl" : "max-w-2xl"} mx-auto w-full`}><div className="mb-4 border-b border-gray-200/70 bg-[#f3f4f6] pb-3"><h1 className="font-heading text-lg font-black tracking-tight text-gray-950">{title}</h1><p className="text-xs font-bold text-gray-400">{description}</p></div>{role !== "warga" && <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">{statCards.map(([label, count, icon, color]) => <div key={label} className="rounded-sm border border-gray-100 bg-white p-3"><span className={`mb-2 grid h-8 w-8 place-items-center rounded-xl ${color}`}><StatIcon kind={icon} /></span><span className="text-[10px] font-bold text-gray-400">{label}</span><strong className="mt-1 block text-xl font-black text-gray-900">{count}</strong></div>)}</div>}{role === "admin" && overview && <div className="mb-4 grid gap-3 sm:grid-cols-[1.15fr_.85fr]"><div className="rounded-sm border border-gray-100 bg-white p-4"><h2 className="font-heading text-sm font-black text-gray-900">Ringkasan operasional</h2><div className="mt-4 grid grid-cols-3 gap-2"><div className="rounded-sm bg-gray-50 p-3"><span className="block text-[9px] font-bold text-gray-400">Pengguna</span><strong className="mt-1 block text-lg font-black">{overview.users}</strong></div><div className="rounded-sm bg-gray-50 p-3"><span className="block text-[9px] font-bold text-gray-400">Unit polisi</span><strong className="mt-1 block text-lg font-black">{overview.units}</strong></div><div className="rounded-sm bg-gray-50 p-3"><span className="block text-[9px] font-bold text-gray-400">Audit log</span><strong className="mt-1 block text-lg font-black">{overview.auditLogs}</strong></div></div></div><div className="rounded-sm border border-gray-100 bg-white p-4"><h2 className="font-heading text-sm font-black text-gray-900">Kategori terbanyak</h2><div className="mt-3 grid gap-2">{overview.categories.map((category) => <div key={category.name} className="flex items-center justify-between gap-3 text-[11px]"><span className="truncate font-bold text-gray-600">{category.name}</span><span className="rounded-full bg-red-50 px-2 py-1 font-black text-red-700">{category.count}</span></div>)}</div></div></div>}{role === "admin" ? <AdminReportsTable reports={reports} selectedId={selectedId} onSelect={onSelect} hasMore={hasMore} loading={loadingMore} onLoadMore={onLoadMore} /> : <InfiniteReportList reports={reports} selectedId={selectedId} onSelect={onSelect} hasMore={hasMore} loading={loadingMore} onLoadMore={onLoadMore} />}</div>{isLoading && <MapLoadingOverlay label="Memuat laporan Garda Jakarta..." />}</div>;
 }
 
 function MapLoadingOverlay({ label = "Memeriksa keamanan Jakarta..." }: { label?: string }) {
-  return <div className="pointer-events-none absolute inset-0 z-[35] grid place-items-center bg-slate-950/10 backdrop-blur-[1px]" role="status" aria-live="polite"><div className="grid justify-items-center gap-3 text-center"><AppLogo size={96} aria-label="Garda Jakarta" /><span className="garda-loading-mark h-6 w-6" aria-hidden="true" /><p className="text-[10px] font-black tracking-wide text-slate-700">{label}</p></div></div>;
+  return <div className="pointer-events-none absolute inset-0 z-[35] bg-slate-950/5 p-4 pt-28 backdrop-blur-[1px]" role="status" aria-label={label} aria-live="polite"><div className="mx-auto max-w-2xl"><ReportListSkeleton count={3} /></div></div>;
 }
 
 export default function DashboardPage({ publicMode = false }: { publicMode?: boolean }) {

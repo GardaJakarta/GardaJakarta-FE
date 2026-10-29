@@ -10,10 +10,10 @@ import PublicMapPage from "./pages/PublicMapPage";
 import ProfilePage from "./pages/ProfilePage";
 import type { AuthPortal } from "./types";
 import { portalPaths } from "./lib/portals";
-import AppLogo from "./components/branding/AppLogo";
+import { ReportListSkeleton } from "./components/LoadingSkeleton";
 
 function GardaLoading({ label = "Memeriksa keamanan Jakarta..." }: { label?: string }) {
-  return <main className="garda-loading" role="status" aria-live="polite"><AppLogo size={150} aria-label="Garda Jakarta" /><span className="garda-loading-mark" aria-hidden="true" /><p>{label}</p></main>;
+  return <main className="min-h-dvh bg-slate-50 px-4 py-20" role="status" aria-label={label}><div className="mx-auto max-w-2xl"><ReportListSkeleton /></div></main>;
 }
 
 function ProtectedRoute({ children, portal }: { children: ReactNode; portal: AuthPortal }) {

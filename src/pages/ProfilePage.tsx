@@ -1,5 +1,4 @@
 import { useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
 import AppLogo from "../components/branding/AppLogo";
 import { useAuth } from "../context/useAuth";
 
@@ -21,8 +20,7 @@ export default function ProfilePage() {
   }
   return <main className="dashboard-app min-h-dvh bg-[linear-gradient(145deg,#fff1ee_0%,#f3f4f6_38%,#f3f4f6_100%)] px-4 pb-12 pt-4 text-slate-900 sm:px-8">
     <header className="mx-auto flex max-w-5xl items-center justify-between rounded-full bg-white px-5 py-3 shadow-sm">
-      <Link to="/dashboard" aria-label="Dashboard Garda Jakarta"><AppLogo size={120} /></Link>
-      <Link to="/dashboard" className="rounded-full px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100">Kembali ke dashboard</Link>
+      <a href="https://gardajakarta.my.id" aria-label="Beranda Garda Jakarta"><AppLogo size={120} /></a>
     </header>
     <div className="mx-auto mt-10 max-w-3xl sm:mt-16">
       <p className="text-[10px] font-bold uppercase tracking-[.18em] text-[#e62428]">Akun saya</p>
