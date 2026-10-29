@@ -28,6 +28,8 @@ type GardaMapProps = {
   onDraftLocationChange?: (coordinates: { latitude: number; longitude: number }) => void;
   interactive?: boolean;
   showSafetyZones?: boolean;
+  showReportMarkers?: boolean;
+  showPoliceMarkers?: boolean;
 };
 
 const SAFETY_SOURCE_ID = "garda-safety-zones";
@@ -180,7 +182,7 @@ function userLocationElement() {
   return element;
 }
 
-function GardaMap({ units, reports, className, popupAnchor, onPopupPosition, onMapClick, onSelectReport, onSelectUnit, onSelectSafetyZone, userLocation, followUser = true, focusLocation, searchedLocation, onClearSearchedLocation, draftLocation, draftActive = false, onDraftLocationChange, interactive = true, showSafetyZones = true }: GardaMapProps) {
+function GardaMap({ units, reports, className, popupAnchor, onPopupPosition, onMapClick, onSelectReport, onSelectUnit, onSelectSafetyZone, userLocation, followUser = true, focusLocation, searchedLocation, onClearSearchedLocation, draftLocation, draftActive = false, onDraftLocationChange, interactive = true, showSafetyZones = true, showReportMarkers = true, showPoliceMarkers = true }: GardaMapProps) {
   const draftLatitude = draftLocation?.latitude;
   const draftLongitude = draftLocation?.longitude;
   const containerRef = useRef<HTMLDivElement>(null);
@@ -307,7 +309,7 @@ function GardaMap({ units, reports, className, popupAnchor, onPopupPosition, onM
     else map.once("load", syncSafetyZones);
     markersRef.current.forEach((marker) => marker.remove());
     markersRef.current = [];
-    units.forEach((unit) => {
+    if (showPoliceMarkers) units.forEach((unit) => {
       const element = markerElement("police");
       const marker = new maplibregl.Marker({ element, anchor: "center" })
         .setLngLat([unit.longitude, unit.latitude])
@@ -318,7 +320,7 @@ function GardaMap({ units, reports, className, popupAnchor, onPopupPosition, onM
       });
       markersRef.current.push(marker);
     });
-    reports.forEach((report) => {
+    if (showReportMarkers) reports.forEach((report) => {
       const element = markerElement("report", report.severity);
       const marker = new maplibregl.Marker({ element, anchor: "center" })
         .setLngLat([report.longitude, report.latitude])
@@ -330,7 +332,7 @@ function GardaMap({ units, reports, className, popupAnchor, onPopupPosition, onM
       markersRef.current.push(marker);
     });
     return () => { map.off("load", syncSafetyZones); };
-  }, [mapReady, reports, showSafetyZones, units]);
+  }, [mapReady, reports, showPoliceMarkers, showReportMarkers, showSafetyZones, units]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -430,6 +432,8 @@ function areMapPropsEqual(previous: GardaMapProps, next: GardaMapProps) {
     && previous.className === next.className
     && previous.interactive === next.interactive
     && previous.showSafetyZones === next.showSafetyZones
+    && previous.showReportMarkers === next.showReportMarkers
+    && previous.showPoliceMarkers === next.showPoliceMarkers
     && previous.draftActive === next.draftActive
     && previous.draftLocation?.latitude === next.draftLocation?.latitude
     && previous.draftLocation?.longitude === next.draftLocation?.longitude
