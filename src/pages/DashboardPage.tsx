@@ -738,8 +738,7 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
   const publicReports = useMemo(() => (publicMap?.reports ?? []).filter((report) => report.status !== "REJECTED" && matches(report)), [matches, publicMap?.reports]);
   const mapReports = citizen ? publicReports : filteredReports;
   const mapUnits = useMemo(() => citizen ? (publicMap?.units ?? data?.units ?? []) : (data?.units ?? []), [citizen, data?.units, publicMap?.units]);
-  const feedSource = citizen ? (publicMap?.reports ?? []) : feedItems;
-  const feedReports = useMemo(() => feedSource.filter(matches), [feedSource, matches]);
+  const feedReports = useMemo(() => (citizen ? (publicMap?.reports ?? []) : feedItems).filter(matches), [citizen, feedItems, matches, publicMap?.reports]);
   const selectedReport = useMemo(() => [...reports, ...publicReports, ...feedItems].find((report) => report.id === selectedId) ?? null, [feedItems, publicReports, reports, selectedId]);
   const activeFilter = statusFilter !== "ALL" || (view === "feed" && Boolean(search.trim()));
 
