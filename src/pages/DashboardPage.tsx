@@ -8,7 +8,7 @@ import { createPortal } from "react-dom";
 import { AnimatePresence, motion, useDragControls } from "motion/react";
 import GardaMap from "../components/GardaMap";
 import { CurrentLocationButton, MapFilterMenu } from "../components/MapFilters";
-import { defaultMapFilters, mapFilterCount, type MapFilterState } from "../components/map-filter-state";
+import { defaultMapFilters, type MapFilterState } from "../components/map-filter-state";
 import AppLogo from "../components/branding/AppLogo";
 import ImagePreview from "../components/ImagePreview";
 import { ReportListSkeleton } from "../components/LoadingSkeleton";
@@ -744,7 +744,8 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
     const source = citizen ? [...(publicMap?.reports ?? []), ...reports] : feedItems;
     return [...new Map(source.map((report) => [report.id, report])).values()].filter(matches);
   }, [citizen, feedItems, matches, publicMap?.reports, reports]);
-  const selectedReport = useMemo(() => [...reports, ...publicReports, ...feedItems].find((report) => report.id === selectedId) ?? null, [feedItems, publicReports, reports, selectedId]);
+  const selectedReport = useMemo(() => [...reports, ...publicReports, ...feedItems].find((report) => report.id === selectedId) ?? null, [feedItems, publicReports, reports, selectedId]);
+
 
   useEffect(() => {
     if (view !== "map" || !locationSearch.trim() || locationSearch.trim().length < 2 || (searchedLocation && locationSearch === searchedLocation.label)) return;
