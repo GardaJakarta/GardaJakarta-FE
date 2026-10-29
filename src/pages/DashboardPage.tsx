@@ -504,7 +504,7 @@ function MapInfoPanel({ title, eyebrow, children, onClose, isDesktop }: { title:
     <p className="pr-10 text-[10px] font-black uppercase tracking-[.16em] text-[#e62428]">{eyebrow}</p>
     <h2 className="mt-1 pr-10 font-heading text-xl font-black tracking-tight text-slate-950">{title}</h2>
     <div className="mt-4 grid gap-3 text-xs text-slate-600">{children}</div>
-  </aside>;
+  </motion.aside>;
 }
 
 function PoliceMapDetail({ unit, isDesktop, onClose }: { unit: PoliceUnit; isDesktop: boolean; onClose: () => void }) {
