@@ -7,6 +7,7 @@ import ConnectionErrorPage from "./pages/ConnectionErrorPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import DashboardPage from "./pages/DashboardPage";
 import PublicMapPage from "./pages/PublicMapPage";
+import ProfilePage from "./pages/ProfilePage";
 import type { AuthPortal } from "./types";
 import { portalPaths } from "./lib/portals";
 import AppLogo from "./components/branding/AppLogo";
@@ -34,7 +35,7 @@ export default function App() {
   const location = useLocation();
   if (location.pathname === "/") return <LandingRedirect />;
   if (!isReady && location.pathname !== "/map") return <GardaLoading label="Memeriksa sesi..." />;
-  const knownPaths = ["/login", "/polisi/login", "/admin/login", "/register", "/dashboard", "/map", "/polisi", "/admin", "/not-found"];
+  const knownPaths = ["/login", "/polisi/login", "/admin/login", "/register", "/dashboard", "/profile", "/map", "/polisi", "/admin", "/not-found"];
   if (!knownPaths.includes(location.pathname)) return <Navigate to="/not-found" replace />;
   const home = user ? portalPaths[user.role].home : "/login";
 
@@ -46,6 +47,7 @@ export default function App() {
       <Route path="/register" element={user ? <Navigate to={home} replace /> : <RegisterPage />} />
       <Route path="/dashboard" element={<ProtectedRoute portal={user?.role || "warga"}><DashboardPage /></ProtectedRoute>} />
       <Route path="/map" element={<PublicMapPage />} />
+      <Route path="/profile" element={<ProtectedRoute portal={user?.role || "warga"}><ProfilePage /></ProtectedRoute>} />
       <Route path="/polisi" element={<Navigate to="/dashboard" replace />} />
       <Route path="/admin" element={<Navigate to="/dashboard" replace />} />
       <Route path="/not-found" element={<NotFoundPage />} />

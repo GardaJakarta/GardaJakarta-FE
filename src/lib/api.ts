@@ -45,6 +45,14 @@ export async function logout() {
   if (error) throw authError(error);
 }
 
+export async function updateProfileName(name: string) {
+  const trimmed = name.trim();
+  if (trimmed.length < 2 || trimmed.length > 100) throw new Error("Nama harus terdiri dari 2 sampai 100 karakter.");
+  const { error } = await authClient.updateUser({ name: trimmed });
+  if (error) throw authError(error);
+  return trimmed;
+}
+
 export async function signInGoogle(portal: AuthPortal) {
   const { error } = await authClient.signIn.social({
     provider: "google",

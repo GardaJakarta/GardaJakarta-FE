@@ -2,7 +2,6 @@ import { motion, useReducedMotion } from "motion/react";
 import { Link } from "react-router-dom";
 import type { ReactNode } from "react";
 import AppLogo from "./branding/AppLogo";
-import AppLogoWhite from "./branding/AppLogoWhite";
 import type { AuthPortal } from "../types";
 
 function PortalIcon({ kind }: { kind: "admin" | "police" }) {
@@ -58,9 +57,6 @@ export default function AuthShell({
     <main className={`auth-page auth-page-${mode}`}>
       <section className="auth-panel auth-panel-brand">
         <img className="auth-banner" src="/banner.png" alt="Ilustrasi keamanan Garda Jakarta" />
-        <a className="auth-form-brand" href="https://gardajakarta.my.id" aria-label="Beranda Garda Jakarta">
-          <AppLogoWhite size={186} aria-label="Garda Jakarta" />
-        </a>
       </section>
       <motion.section
         className="auth-panel auth-panel-form"

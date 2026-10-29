@@ -9,6 +9,7 @@ export interface AuthContextValue {
   signIn: (email: string, password: string, portal: AuthPortal) => Promise<void>;
   signUp: (name: string, email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  updateName: (name: string) => Promise<void>;
   signInGoogle: (portal: AuthPortal) => Promise<void>;
 }
 

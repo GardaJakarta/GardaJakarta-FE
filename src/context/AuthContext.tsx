@@ -42,14 +42,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await api.logout();
     setUser(null);
   }, []);
+  const updateName = useCallback(async (name: string) => {
+    const saved = await api.updateProfileName(name);
+    setUser((current) => current ? { ...current, name: saved } : current);
+  }, []);
   const signInGoogle = useCallback(async (portal: AuthPortal) => {
     setIsLoading(true);
     try { await api.signInGoogle(portal); }
     finally { setIsLoading(false); }
   }, []);
   const value = useMemo(
-    () => ({ user, isLoading, isReady, sessionError, signIn, signUp, signOut, signInGoogle }),
-    [user, isLoading, isReady, sessionError, signIn, signUp, signOut, signInGoogle],
+    () => ({ user, isLoading, isReady, sessionError, signIn, signUp, signOut, signInGoogle, updateName }),
+    [user, isLoading, isReady, sessionError, signIn, signUp, signOut, signInGoogle, updateName],
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
