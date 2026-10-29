@@ -19,6 +19,8 @@ type GardaMapProps = {
   userLocation?: { latitude: number; longitude: number } | null;
   followUser?: boolean;
   focusLocation?: { latitude: number; longitude: number } | null;
+  searchedLocation?: { id: string; label: string; latitude: number; longitude: number } | null;
+  onClearSearchedLocation?: () => void;
   draftLocation?: { latitude: number; longitude: number };
   draftActive?: boolean;
   onDraftLocationChange?: (coordinates: { latitude: number; longitude: number }) => void;
@@ -91,8 +93,16 @@ function markerElement(kind: "police" | "report", severity?: IncidentReport["sev
   element.type = "button";
   element.className = `garda-map-marker garda-map-marker-${kind} garda-map-marker-${severity?.toLowerCase() || "default"}`;
   element.setAttribute("aria-label", kind === "police" ? "Kantor polisi" : "Laporan keamanan");
-  const asset = kind === "police" ? "/markers/garda-police-mark.svg" : "/markers/garda-report-mark.svg";
-  element.innerHTML = `<span aria-hidden="true"><img src="${asset}" alt="" /></span>`;
+  element.innerHTML = '<span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3.5c-3.8 0-6.8 2.9-6.8 6.5 0 4.8 6.8 10.5 6.8 10.5s6.8-5.7 6.8-10.5c0-3.6-3-6.5-6.8-6.5Z" fill="currentColor"/><circle cx="12" cy="10" r="3.1" fill="white" fill-opacity=".94"/><path d="M12 8.3v3.4M10.3 10h3.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>';
+  return element;
+}
+
+function searchedLocationElement(location: { label: string }, onClear?: () => void) {
+  const element = document.createElement("div");
+  element.className = "garda-search-marker";
+  element.innerHTML = `<button type="button" class="garda-search-marker-pin" aria-label="Lokasi terpilih: ${location.label.replace(/"/g, "&quot;")}"><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3.5c-3.8 0-6.8 2.9-6.8 6.5 0 4.8 6.8 10.5 6.8 10.5s6.8-5.7 6.8-10.5c0-3.6-3-6.5-6.8-6.5Z" fill="currentColor"/><circle cx="12" cy="10" r="3.1" fill="white" fill-opacity=".94"/><circle cx="12" cy="10" r="1.3" fill="currentColor"/></svg></span></button><button type="button" class="garda-search-marker-remove" aria-label="Hapus lokasi terpilih">×</button>`;
+  element.querySelector(".garda-search-marker-pin")?.addEventListener("click", (event) => event.stopPropagation());
+  element.querySelector(".garda-search-marker-remove")?.addEventListener("click", (event) => { event.stopPropagation(); onClear?.(); });
   return element;
 }
 
@@ -107,7 +117,7 @@ function draftMarkerElement() {
   element.tabIndex = 0;
   element.setAttribute("aria-label", "Geser lokasi laporan");
   element.setAttribute("aria-grabbed", "false");
-  element.innerHTML = '<span aria-hidden="true"><img src="/markers/garda-draft-mark.svg" alt="" /></span>';
+  element.innerHTML = '<span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3.5c-3.8 0-6.8 2.9-6.8 6.5 0 4.8 6.8 10.5 6.8 10.5s6.8-5.7 6.8-10.5c0-3.6-3-6.5-6.8-6.5Z" fill="currentColor"/><circle cx="12" cy="10" r="3.1" fill="white" fill-opacity=".94"/><path d="M12 8.2v3.6M10.2 10h3.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>';
   element.addEventListener("dragstart", (event) => event.preventDefault());
   return element;
 }
@@ -120,7 +130,7 @@ function userLocationElement() {
   return element;
 }
 
-function GardaMap({ units, reports, className, onMapClick, onSelectReport, onSelectUnit, onSelectSafetyZone, userLocation, followUser = true, focusLocation, draftLocation, draftActive = false, onDraftLocationChange, interactive = true, showSafetyZones = true }: GardaMapProps) {
+function GardaMap({ units, reports, className, onMapClick, onSelectReport, onSelectUnit, onSelectSafetyZone, userLocation, followUser = true, focusLocation, searchedLocation, onClearSearchedLocation, draftLocation, draftActive = false, onDraftLocationChange, interactive = true, showSafetyZones = true }: GardaMapProps) {
   const draftLatitude = draftLocation?.latitude;
   const draftLongitude = draftLocation?.longitude;
   const containerRef = useRef<HTMLDivElement>(null);
@@ -130,6 +140,7 @@ function GardaMap({ units, reports, className, onMapClick, onSelectReport, onSel
   const draftLocationRef = useRef({ latitude: draftLatitude, longitude: draftLongitude });
   const markersRef = useRef<Marker[]>([]);
   const draftMarkerRef = useRef<Marker | null>(null);
+  const searchedMarkerRef = useRef<Marker | null>(null);
   const userMarkerRef = useRef<Marker | null>(null);
   const onMapClickRef = useRef(onMapClick);
   const onSelectReportRef = useRef(onSelectReport);
@@ -273,6 +284,24 @@ function GardaMap({ units, reports, className, onMapClick, onSelectReport, onSel
 
   useEffect(() => {
     const map = mapRef.current;
+    if (!map || !mapReady || !searchedLocation) {
+      searchedMarkerRef.current?.remove();
+      searchedMarkerRef.current = null;
+      return;
+    }
+    searchedMarkerRef.current?.remove();
+    const element = searchedLocationElement(searchedLocation, onClearSearchedLocation);
+    searchedMarkerRef.current = new maplibregl.Marker({ element, anchor: "center" })
+      .setLngLat([searchedLocation.longitude, searchedLocation.latitude])
+      .addTo(map);
+    return () => {
+      searchedMarkerRef.current?.remove();
+      searchedMarkerRef.current = null;
+    };
+  }, [mapReady, onClearSearchedLocation, searchedLocation]);
+
+  useEffect(() => {
+    const map = mapRef.current;
     const location = draftLocationRef.current;
     if (!map || !mapReady || !draftActive || location.latitude === undefined || location.longitude === undefined) {
       draftMarkerRef.current?.remove();
@@ -346,6 +375,10 @@ function areMapPropsEqual(previous: GardaMapProps, next: GardaMapProps) {
     && previous.followUser === next.followUser
     && previous.focusLocation?.latitude === next.focusLocation?.latitude
     && previous.focusLocation?.longitude === next.focusLocation?.longitude
+    && previous.searchedLocation?.id === next.searchedLocation?.id
+    && previous.searchedLocation?.latitude === next.searchedLocation?.latitude
+    && previous.searchedLocation?.longitude === next.searchedLocation?.longitude
+    && previous.onClearSearchedLocation === next.onClearSearchedLocation
     && previous.onDraftLocationChange === next.onDraftLocationChange;
 }
 
