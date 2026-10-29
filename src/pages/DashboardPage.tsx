@@ -8,13 +8,13 @@ import GardaMap from "../components/GardaMap";
 import AppLogo from "../components/branding/AppLogo";
 import ImagePreview from "../components/ImagePreview";
 import { useAuth } from "../context/useAuth";
-import { createReport, getDashboard, getPublicMap, getReportFeed, updatePoliceReportStatus } from "../lib/api";
+import { createReport, getDashboard, getPublicMap, getReportFeed, updatePoliceReportStatus, uploadReportEvidence } from "../lib/api";
 import { portalPaths } from "../lib/portals";
 import type { DashboardData, IncidentReport, PoliceUnit, ReportSeverity, ReportStatus } from "../types";
 
 type ViewMode = "map" | "feed";
 type StatusFilter = ReportStatus[];
-type ReportFormState = { category: string; description: string; severity: ReportSeverity; latitude: number; longitude: number };
+type ReportFormState = { category: string; topic: string; description: string; severity: ReportSeverity; latitude: number; longitude: number };
 
 const statusLabels: Record<ReportStatus, string> = {
   PENDING: "Belum diverifikasi",
@@ -150,7 +150,7 @@ const categoryIllustrations: Record<string, string> = {
   [categories[2]]: "/illustrations/categories/theft.png",
   [categories[3]]: "/illustrations/categories/robbery.png",
   [categories[4]]: "/illustrations/categories/violence.png",
-  [categories[5]]: "/illustrations/categories/crowd.png",
+  [categories[5]]: "/illustrations/categories/crowd-generated.svg",
   [categories[6]]: "/illustrations/categories/fraud.png",
   [categories[7]]: "/illustrations/categories/facility.png",
   [categories[8]]: "/illustrations/categories/other2.png",
@@ -347,7 +347,7 @@ function DashboardControls({ mobile = false, view, citizen, showActions = true, 
 }
 
 function ReportCard({ report, selected, onSelect }: { report: IncidentReport; selected: boolean; onSelect: () => void }) {
-  return <motion.article layout initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className={`w-full overflow-hidden rounded-sm border bg-white text-left shadow-[0_18px_44px_rgba(15,23,42,0.08)] transition-shadow ${selected ? "border-[#e62428]/35 ring-2 ring-red-100" : "border-gray-100 hover:shadow-[0_22px_50px_rgba(15,23,42,0.12)]"}`}>
+  return <motion.article layout initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className={`w-full rounded-sm border bg-white text-left shadow-[0_18px_44px_rgba(15,23,42,0.08)] transition-shadow ${selected ? "border-[#e62428]/35 ring-2 ring-red-100" : "border-gray-100 hover:shadow-[0_22px_50px_rgba(15,23,42,0.12)]"}`}>
     <header className="flex items-start justify-between gap-3 px-4 py-3.5 sm:px-5">
       <div className="flex min-w-0 items-center gap-3">
         <CategoryIllustration category={report.category} className="h-10 w-10 rounded-xl" />
@@ -355,7 +355,7 @@ function ReportCard({ report, selected, onSelect }: { report: IncidentReport; se
       </div>
       <div className="flex shrink-0 flex-col items-end gap-1.5"><StatusBadge status={report.status} /><SeverityBadge severity={report.severity} /></div>
     </header>
-    <section className="px-4 pb-3 sm:px-5"><h3 className="text-base font-black leading-snug text-gray-950 sm:text-lg">{report.category}</h3>{report.description && <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-gray-600">{report.description}</p>}</section>
+    <section className="px-4 pb-3 sm:px-5"><h3 className="line-clamp-2 text-base font-black leading-snug text-gray-950 sm:text-lg">{report.category}</h3>{report.description && <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-gray-600">{report.description}</p>}</section>
     <footer className="space-y-3 border-t border-gray-100 px-4 py-3.5 sm:px-5"><button type="button" onClick={onSelect} className="flex h-10 w-full items-center justify-center rounded-full bg-gray-900 px-4 text-xs font-black text-white transition-colors hover:bg-gray-800">Lihat detail</button><div className="grid gap-2 text-xs sm:grid-cols-2"><div className="flex min-w-0 items-center gap-2 rounded-sm bg-gray-50 px-3 py-2.5"><GardaMark className="h-4 w-4 shrink-0 text-[#e62428]" /><span className="truncate font-bold text-gray-700">{report.policeUnit?.name || "Menunggu unit penanganan"}</span></div><div className="flex min-w-0 items-center gap-2 rounded-sm bg-gray-50 px-3 py-2.5"><span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-red-50 text-[#e62428]"><TicketIcon /></span><span className="truncate font-mono text-[10px] font-bold text-gray-600">{report.ticketNumber}</span></div></div></footer>
   </motion.article>;
 }
@@ -501,7 +501,7 @@ function SafetyMapDetail({ zone, isDesktop, onClose, onSelectReport }: { zone: S
   </MapInfoPanel>;
 }
 
-function ReportForm({ open, isDesktop, form, setForm, pinMode, setPinMode, submitting, onSubmit, onClose, onUseLocation, error }: { open: boolean; isDesktop: boolean; form: ReportFormState; setForm: Dispatch<SetStateAction<ReportFormState>>; pinMode: boolean; setPinMode: (value: boolean) => void; submitting: boolean; onSubmit: (event: FormEvent) => void; onClose: () => void; onUseLocation: () => void; error: string | null }) {
+function ReportForm({ open, isDesktop, form, setForm, setEvidenceFiles, pinMode, setPinMode, submitting, onSubmit, onClose, onUseLocation, error }: { open: boolean; isDesktop: boolean; form: ReportFormState; setForm: Dispatch<SetStateAction<ReportFormState>>; setEvidenceFiles: Dispatch<SetStateAction<File[]>>; pinMode: boolean; setPinMode: (value: boolean) => void; submitting: boolean; onSubmit: (event: FormEvent) => void; onClose: () => void; onUseLocation: () => void; error: string | null }) {
   // Leave a clear map strip above the mobile sheet so the draft pin remains draggable.
   const [sheetHeight, setSheetHeight] = useState(68);
   const dragControls = useDragControls();
@@ -558,7 +558,9 @@ function ReportForm({ open, isDesktop, form, setForm, pinMode, setPinMode, submi
         </div>
         <form id="new-report-form" className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-6 pb-6 pt-5" onSubmit={onSubmit}>
           <label className="grid gap-2 text-xs font-black tracking-normal text-slate-700">Kategori kejadian<CategoryMenu value={form.category} onChange={(category) => setForm((current) => ({ ...current, category }))} /></label>
+          {form.category === categories[8] && <label className="grid gap-2 text-xs font-black tracking-normal text-slate-700">Judul/topik laporan<input required value={form.topic} onChange={(event) => setForm((current) => ({ ...current, topic: event.target.value }))} placeholder="Contoh: Lampu jalan mati di depan sekolah" className="h-11 rounded-sm border border-gray-200 bg-white px-4 text-sm font-bold normal-case tracking-normal text-slate-900 outline-none transition focus:border-[#e62428] focus:ring-2 focus:ring-red-100" /></label>}
           <label className="grid gap-2 text-xs font-black tracking-normal text-slate-700">Kronologi singkat<textarea required minLength={10} maxLength={2000} value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} placeholder="Ceritakan urutan dan kondisi yang terjadi..." className="min-h-32 resize-none rounded-sm border border-gray-200 bg-white px-4 py-3 text-sm font-bold normal-case tracking-normal text-slate-900 outline-none transition focus:border-[#e62428] focus:ring-2 focus:ring-red-100" /><span className="text-[10px] font-medium normal-case tracking-normal text-slate-400">Minimal 10 karakter. Jangan tulis identitas korban atau nomor telepon.</span></label>
+          <label className="grid gap-2 text-xs font-black tracking-normal text-slate-700">Foto pendukung<input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={(event) => { const files = Array.from(event.target.files ?? []); if (files.length <= 3 && files.every((file) => file.size <= 5 * 1024 * 1024)) setEvidenceFiles(files); }} className="text-xs file:mr-2 file:rounded-full file:border-0 file:bg-slate-100 file:px-3 file:py-2" /><span className="text-[10px] font-medium text-slate-400">Opsional, maksimal 3 foto dan 5 MB per foto.</span></label>
           <label className="grid gap-2 text-xs font-black tracking-normal text-slate-700">Tingkat keparahan<SeverityMenu value={form.severity} onChange={(severity) => setForm((current) => ({ ...current, severity }))} /></label>
           <div className="space-y-2"><p className="text-xs font-black tracking-normal text-slate-700">Lokasi kejadian</p><div className="flex items-center justify-between gap-3 rounded-sm bg-slate-50 px-3 py-3"><div><strong className="block text-xs font-black text-slate-900">Titik laporan</strong><span className="mt-1 block font-mono text-[11px] font-bold text-slate-500">{form.latitude.toFixed(5)}, {form.longitude.toFixed(5)}</span></div><button type="button" onClick={() => setPinMode(!pinMode)} className={`shrink-0 rounded-full px-3 py-2 text-[10px] font-black tracking-wide ${pinMode ? "bg-[#e62428] text-white" : "bg-white text-slate-700 ring-1 ring-slate-200"}`}>{pinMode ? "Pilih di peta" : "Ubah titik"}</button></div><button type="button" onClick={onUseLocation} className="text-[10px] font-black tracking-wide text-[#e62428] hover:text-[#b21e24]">Gunakan lokasi saya</button></div>
           {error && <p className="rounded-sm bg-red-50 px-3 py-2 text-xs font-bold normal-case tracking-normal text-red-700" role="alert">{error}</p>}
@@ -626,7 +628,8 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
   const accountRef = useRef<HTMLDivElement>(null);
   const notificationRef = useRef<HTMLDivElement>(null);
   const notifiedRiskReportsRef = useRef(new Set<string>());
-  const [form, setForm] = useState<ReportFormState>({ category: "", description: "", severity: "P2", latitude: -6.1754, longitude: 106.8272 });
+  const [form, setForm] = useState<ReportFormState>({ category: "", topic: "", description: "", severity: "P2", latitude: -6.1754, longitude: 106.8272 });
+  const [evidenceFiles, setEvidenceFiles] = useState<File[]>([]);
 
   useEffect(() => {
     if (!accountOpen && !notificationOpen) return;
@@ -781,7 +784,6 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
       setFocusLocation({ latitude: location.latitude, longitude: location.longitude });
       if (reportOpen) { setForm((current) => ({ ...current, latitude: location.latitude, longitude: location.longitude })); setPinMode(false); }
       setSelectedId(null); setSelectedUnit(null); setSelectedZone(null);
-      setNotice(`Menampilkan ${location.label}.`);
       return;
     }
     try {
@@ -793,13 +795,13 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
       const selected = { id: `place-${location.lat}-${location.lon}`, label: parts.slice(0, 2).join(", "), subtitle: parts.slice(2, 4).join(", ") || "Lokasi", latitude: Number(location.lat), longitude: Number(location.lon) };
       setLocationSearch(selected.label); setLocationSuggestions([]); setSearchedLocation(selected); setFocusLocation({ latitude: selected.latitude, longitude: selected.longitude });
       if (reportOpen) { setForm((current) => ({ ...current, latitude: selected.latitude, longitude: selected.longitude })); setPinMode(false); }
-      setSelectedId(null); setSelectedUnit(null); setSelectedZone(null); setNotice(`Menampilkan ${selected.label}.`);
+      setSelectedId(null); setSelectedUnit(null); setSelectedZone(null);
     } catch { setNotice("Pencarian lokasi belum tersedia. Coba lagi sebentar."); }
   }, [locationSearch, locationSuggestions, reportOpen]);
   const selectLocation = useCallback((location: LocationSearchResult) => {
     setLocationSearch(location.label); setLocationSuggestions([]); setSearchedLocation(location); setFocusLocation({ latitude: location.latitude, longitude: location.longitude });
     if (reportOpen) { setForm((current) => ({ ...current, latitude: location.latitude, longitude: location.longitude })); setPinMode(false); }
-    setSelectedId(null); setSelectedUnit(null); setSelectedZone(null); setNotice(`Menampilkan ${location.label}.`);
+    setSelectedId(null); setSelectedUnit(null); setSelectedZone(null);
   }, [reportOpen]);
   const clearSearchedLocation = useCallback(() => { setSearchedLocation(null); setFocusLocation(null); setLocationSuggestions([]); setLocationSearch(""); }, []);
   const useLocation = useCallback(() => {
@@ -809,7 +811,7 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
   }, []);
   const submit = async (event: FormEvent) => {
     event.preventDefault(); setSubmitting(true); setError(null); setNotice(null);
-    try { await createReport(form); setForm((current) => ({ ...current, category: "", description: "" })); setReportOpen(false); setPinMode(false); setNotice("Laporan berhasil dikirim dan masuk ke unit penanganan terdekat."); await load(); }
+    try { const created = await createReport({ ...form, category: form.category === categories[8] && form.topic.trim() ? `Lainnya: ${form.topic.trim()}` : form.category }); for (const file of evidenceFiles) await uploadReportEvidence(created.id, file); setForm((current) => ({ ...current, category: "", topic: "", description: "" })); setEvidenceFiles([]); setReportOpen(false); setPinMode(false); setNotice("Laporan berhasil dikirim dan masuk ke unit penanganan terdekat."); await load(); }
     catch { setError("Laporan belum dapat dikirim. Periksa isian lalu coba lagi."); }
     finally { setSubmitting(false); }
   };
@@ -856,7 +858,7 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
         {selectedUnit && !reportOpen && <PoliceMapDetail unit={selectedUnit} isDesktop={isDesktop} onClose={() => { setSelectedUnit(null); setFocusLocation(null); }} />}
         {selectedZone && !reportOpen && <SafetyMapDetail zone={selectedZone} isDesktop={isDesktop} onClose={() => { setSelectedZone(null); setFocusLocation(null); }} onSelectReport={(report) => { setSelectedZone(null); setFocusLocation({ latitude: report.latitude, longitude: report.longitude }); selectReport(report); }} />}
         </div>
-        {canReport && <ReportForm open={reportOpen} isDesktop={isDesktop} form={form} setForm={setForm} pinMode={pinMode} setPinMode={setPinMode} submitting={submitting} onSubmit={(event) => void submit(event)} onClose={() => { setReportOpen(false); setPinMode(false); setFocusLocation(null); }} onUseLocation={useLocation} error={error} />}
+        {canReport && <ReportForm open={reportOpen} isDesktop={isDesktop} form={form} setForm={setForm} setEvidenceFiles={setEvidenceFiles} pinMode={pinMode} setPinMode={setPinMode} submitting={submitting} onSubmit={(event) => void submit(event)} onClose={() => { setReportOpen(false); setPinMode(false); setFocusLocation(null); }} onUseLocation={useLocation} error={error} />}
       </>}
       {notice && <div className="absolute left-1/2 top-[6.5rem] z-30 w-[calc(100%-32px)] max-w-md -translate-x-1/2 rounded-lg bg-slate-900 px-4 py-3 text-center text-xs font-bold text-white shadow-xl sm:top-24" role="status">{notice}<button type="button" onClick={() => setNotice(null)} className="ml-3 grid h-7 w-7 place-items-center rounded-full text-white/60 hover:bg-white/10 hover:text-white" aria-label="Tutup notifikasi"><CloseIcon className="h-3.5 w-3.5" /></button></div>}
       {error && !reportOpen && <p className="absolute left-1/2 top-[6.5rem] z-30 w-[calc(100%-32px)] max-w-md -translate-x-1/2 rounded-lg bg-red-50 px-4 py-3 text-center text-xs font-bold text-red-700 shadow-lg sm:top-24" role="alert">{error}</p>}
