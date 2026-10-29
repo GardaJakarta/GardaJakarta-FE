@@ -37,6 +37,7 @@ const SAFETY_OUTLINE_ID = "garda-safety-zone-outline";
 type SafetyZone = {
   center: [number, number];
   reports: IncidentReport[];
+  state: "verified" | "in_progress" | "resolved";
 };
 
 type Point = [number, number];
@@ -61,14 +62,15 @@ function convexHull(points: Point[]) {
 }
 
 function zonePolygon(zone: SafetyZone): Point[] {
-  // Buffer reports by 500 m before computing the hull, including coincident points.
+  // Build an organic boundary from report influence circles instead of a fixed-sided polygon.
   const latitudeScale = 111_320;
   const longitudeScale = latitudeScale * Math.cos(zone.center[1] * Math.PI / 180);
   const bufferedPoints = zone.reports.flatMap((report) =>
-    Array.from({ length: 24 }, (_, index): Point => {
-      const angle = 2 * Math.PI * index / 24;
-      return [report.longitude + Math.cos(angle) * 500 / longitudeScale,
-        report.latitude + Math.sin(angle) * 500 / latitudeScale];
+    Array.from({ length: 32 }, (_, index): Point => {
+      const angle = 2 * Math.PI * index / 32;
+      const radius = report.severity === "P0" ? 700 : report.severity === "P1" ? 600 : report.severity === "P2" ? 500 : 420;
+      return [report.longitude + Math.cos(angle) * radius / longitudeScale,
+        report.latitude + Math.sin(angle) * radius / latitudeScale];
     }),
   );
   const hull = convexHull(bufferedPoints);
@@ -102,21 +104,24 @@ function buildSafetyZones(reports: IncidentReport[]) {
   return groups.map((group): SafetyZone => ({
     center: [group.reduce((sum, report) => sum + report.longitude, 0) / group.length, group.reduce((sum, report) => sum + report.latitude, 0) / group.length],
     reports: group,
+    state: group.some((report) => report.status === "IN_PROGRESS") ? "in_progress" : group.every((report) => report.status === "RESOLVED") ? "resolved" : "verified",
   }));
 }
 
-type SafetyProperties = { level: string; count: number; score: number; reports: string };
+type SafetyProperties = { level: string; state: SafetyZone["state"]; count: number; score: number; reports: string };
 
 function safetyGeoJson(reports: IncidentReport[]): GeoJSON.FeatureCollection<GeoJSON.Polygon, SafetyProperties> {
+  const actionableReports = reports.filter((report) => ["VERIFIED", "IN_PROGRESS", "RESOLVED"].includes(report.status));
   return {
     type: "FeatureCollection",
-    features: buildSafetyZones(reports).map((zone) => {
+    features: buildSafetyZones(actionableReports).map((zone) => {
       const score = zone.reports.reduce((sum, report) => sum + safetyScore(report), 0) / zone.reports.length;
       const coordinates = zonePolygon(zone);
       return {
         type: "Feature",
         properties: {
           level: safetyLevel(score),
+          state: zone.state,
           count: zone.reports.length,
           score: Number(score.toFixed(1)),
           reports: JSON.stringify(zone.reports.map((report) => ({ ticketNumber: report.ticketNumber, category: report.category, status: report.status }))),
@@ -131,14 +136,17 @@ function markerElement(kind: "police" | "report", severity?: IncidentReport["sev
   const element = document.createElement("button");
   element.type = "button";
   element.className = `garda-map-marker garda-map-marker-${kind} garda-map-marker-${severity?.toLowerCase() || "default"}`;
-  element.setAttribute("aria-label", kind === "police" ? "Kantor polisi" : "Laporan keamanan");
-  element.innerHTML = '<span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3.5c-3.8 0-6.8 2.9-6.8 6.5 0 4.8 6.8 10.5 6.8 10.5s6.8-5.7 6.8-10.5c0-3.6-3-6.5-6.8-6.5Z" fill="currentColor"/><circle cx="12" cy="10" r="3.1" fill="white" fill-opacity=".94"/><path d="M12 8.3v3.4M10.3 10h3.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>';
+  const image = document.createElement("img");
+  image.src = kind === "police" ? "/markers/garda-police-mark.svg" : "/markers/garda-report-mark.svg";
+  image.alt = "";
+  image.setAttribute("aria-hidden", "true");
+  element.append(image);
   return element;
 }
 
 function searchedLocationElement(location: { label: string }, onClear?: () => void) {
   const element = document.createElement("div");
-  element.className = "garda-search-marker";
+  element.innerHTML = '<button type="button" class="garda-search-marker-pin"><img src="/markers/garda-search-mark.svg" alt="" aria-hidden="true" /></button><button type="button" class="garda-search-marker-remove" aria-label="Hapus lokasi terpilih"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>';
   element.innerHTML = '<button type="button" class="garda-search-marker-pin"><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3.5c-3.8 0-6.8 2.9-6.8 6.5 0 4.8 6.8 10.5 6.8 10.5s6.8-5.7 6.8-10.5c0-3.6-3-6.5-6.8-6.5Z" fill="currentColor"/><circle cx="12" cy="10" r="3.1" fill="white" fill-opacity=".94"/><circle cx="12" cy="10" r="1.3" fill="currentColor"/></svg></span></button><button type="button" class="garda-search-marker-remove" aria-label="Hapus lokasi terpilih"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>';
   element.querySelector(".garda-search-marker-pin")?.setAttribute("aria-label", `Lokasi terpilih: ${location.label}`);
   element.querySelector(".garda-search-marker-pin")?.addEventListener("click", (event) => event.stopPropagation());
@@ -156,7 +164,7 @@ function draftMarkerElement() {
   element.setAttribute("role", "button");
   element.tabIndex = 0;
   element.setAttribute("aria-label", "Geser lokasi laporan");
-  element.setAttribute("aria-grabbed", "false");
+  element.innerHTML = '<img src="/markers/garda-draft-mark.svg" alt="" aria-hidden="true" />';
   element.innerHTML = '<span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3.5c-3.8 0-6.8 2.9-6.8 6.5 0 4.8 6.8 10.5 6.8 10.5s6.8-5.7 6.8-10.5c0-3.6-3-6.5-6.8-6.5Z" fill="currentColor"/><circle cx="12" cy="10" r="3.1" fill="white" fill-opacity=".94"/><path d="M12 8.2v3.6M10.2 10h3.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>';
   element.addEventListener("dragstart", (event) => event.preventDefault());
   return element;

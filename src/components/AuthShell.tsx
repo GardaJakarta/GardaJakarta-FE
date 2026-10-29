@@ -57,6 +57,7 @@ export default function AuthShell({
   return (
     <main className={`auth-page auth-page-${mode}`}>
       <section className="auth-panel auth-panel-brand">
+        <img className="auth-banner" src="/banner.png" alt="Ilustrasi keamanan Garda Jakarta" />
         <a className="auth-form-brand" href="https://gardajakarta.my.id" aria-label="Beranda Garda Jakarta">
           <AppLogoWhite size={186} aria-label="Garda Jakarta" />
         </a>
