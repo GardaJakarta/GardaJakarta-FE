@@ -155,7 +155,7 @@ const categoryIllustrations: Record<string, string> = {
   [categories[2]]: "/illustrations/categories/theft.png",
   [categories[3]]: "/illustrations/categories/robbery.png",
   [categories[4]]: "/illustrations/categories/violence.png",
-  [categories[5]]: "/illustrations/categories/crowd-generated.svg",
+  [categories[5]]: "/illustrations/categories/crowd-generated.png",
   [categories[6]]: "/illustrations/categories/fraud.png",
   [categories[7]]: "/illustrations/categories/facility.png",
   [categories[8]]: "/illustrations/categories/other2.png",
@@ -873,7 +873,7 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
             <span className="hidden max-w-[150px] sm:block"><strong className="block truncate text-[11px] font-bold text-gray-900">{user?.name}</strong><small className="mt-0.5 block text-[9px] font-bold text-[#e62428]">{roleLabel(role)}</small></span>
             <span className="hidden sm:block"><Chevron open={accountOpen} /></span>
           </button>
-          {accountOpen && <div className="absolute right-0 top-[calc(100%+8px)] z-50 w-56 rounded-xl border border-gray-100 bg-white p-2 shadow-2xl" role="menu"><div className="border-b border-gray-100 px-3 py-2.5"><strong className="block truncate text-xs">{user?.name}</strong><span className="mt-1 block truncate text-[10px] text-gray-400">{user?.email}</span></div><a href="/profile" role="menuitem" className="mt-1 block rounded-lg px-3 py-2.5 text-xs font-bold hover:bg-red-50">Profile</a><button type="button" role="menuitem" onClick={() => { setAccountOpen(false); setSignoutOpen(true); }} className="mt-1 flex w-full items-center rounded-lg px-3 py-2.5 text-left text-xs font-bold text-red-700 hover:bg-red-50">Keluar</button></div>}
+          {accountOpen && <div className="absolute right-0 top-[calc(100%+8px)] z-50 w-56 rounded-xl border border-gray-100 bg-white p-2 shadow-2xl" role="menu"><div className="border-b border-gray-100 px-3 py-2.5"><strong className="block truncate text-xs">{user?.name}</strong><span className="mt-1 block truncate text-[10px] text-gray-400">{user?.email}</span></div><a href="/profile" role="menuitem" className="mt-1 flex items-center gap-2 rounded-lg px-3 py-2.5 text-xs font-bold hover:bg-red-50"><svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="8" r="3.5"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg>Profile</a><button type="button" role="menuitem" onClick={() => { setAccountOpen(false); setSignoutOpen(true); }} className="mt-1 flex w-full items-center rounded-lg px-3 py-2.5 text-left text-xs font-bold text-red-700 hover:bg-red-50">Keluar</button></div>}
          </div></div>}
       </div>
       <div className="w-full sm:hidden">
@@ -887,7 +887,7 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
         {isLoading && <MapLoadingOverlay label="Memeriksa keamanan Jakarta..." />}
       </>}
       <div className="pointer-events-none absolute left-1/2 bottom-6 z-40 hidden w-full -translate-x-1/2 items-center justify-center px-4 sm:flex"><div className="pointer-events-auto w-full max-w-[700px]"><DashboardControls view={view} citizen={citizen} showActions={!publicMode} role={role} search={view === "map" ? locationSearch : search} onSearchChange={(value) => { if (view === "map") { setLocationSearch(value); setLocationSuggestions([]); if (searchedLocation) setSearchedLocation(null); } else setSearch(value); }} onSearchSubmit={view === "map" ? searchLocation : undefined} locationSuggestions={locationSuggestions} onSelectLocation={selectLocation} mapFilters={mapFilters} onMapFiltersChange={setMapFilters} statusFilter={statusFilter} onStatusFilterChange={setStatusFilter} listOpen={listOpen} onToggleList={() => { setView("map"); setListOpen((current) => !current); setSelectedId(null); }} onCreateReport={toggleReportForm} onPickLocation={() => { if (!reportOpen) openReportForm(); else setPinMode((current) => !current); }} pinMode={pinMode} reportOpen={reportOpen} /></div></div>
-      {view === "map" && <CurrentLocationButton onClick={centerOnUser} className="fixed right-3 bottom-6 z-40 sm:absolute sm:right-4 sm:top-auto sm:bottom-20" />}
+      {view === "map" && <CurrentLocationButton onClick={centerOnUser} className="fixed left-3 bottom-6 z-40 sm:absolute sm:left-4 sm:top-auto sm:bottom-20" />}
       {view === "map" && <>
         {listOpen && <MyReportsPanel reports={reports} selectedId={selectedId} onSelect={selectReport} onClose={() => setListOpen(false)} isDesktop={isDesktop} stats={stats} />}
         {selectedReport && !reportOpen && <ReportDetail report={selectedReport} role={role} isDesktop={isDesktop} onClose={() => { setSelectedId(null); setFocusLocation(null); }} onStatusChange={(status) => void updateStatus(selectedReport.id, status)} updating={updatingId === selectedReport.id} />}
@@ -907,6 +907,8 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
     {signoutOpen && <div className="fixed inset-0 z-[60] grid place-items-center bg-slate-950/35 px-5 backdrop-blur-sm" role="presentation"><section className="w-full max-w-sm rounded-xl bg-white p-6 shadow-2xl" role="alertdialog" aria-modal="true" aria-labelledby="signout-title"><h2 id="signout-title" className="text-xl font-bold tracking-tight">Keluar dari dashboard?</h2><p className="mt-2 text-xs leading-relaxed text-slate-500">Sesi di perangkat ini akan ditutup.</p><div className="mt-6 flex justify-end gap-2"><button type="button" onClick={() => setSignoutOpen(false)} className="rounded-lg px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100">Batal</button><button type="button" onClick={() => void handleSignOut()} className="rounded-lg bg-[#e62428] px-4 py-2.5 text-xs font-bold text-white hover:bg-[#c91d22]">Keluar</button></div></section></div>}
   </main>;
 }
+
+
 
 
 
