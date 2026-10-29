@@ -89,3 +89,23 @@ export function createReport(input: { category: string; description: string; sev
 export function updatePoliceReportStatus(id: string, status: Exclude<ReportStatus, "PENDING">) {
   return requestJson<IncidentReport>(`/police/reports/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) });
 }
+
+export function getReportInteractions(id: string) {
+  return requestJson<IncidentReport>(`/reports/${id}/interactions`);
+}
+
+export function voteReport(id: string, active: boolean) {
+  return requestJson<{ voteCount: number; hasVoted: boolean }>(`/reports/${id}/vote`, { method: active ? "POST" : "DELETE" });
+}
+
+export function commentOnReport(id: string, body: string) {
+  return requestJson<{ id: string; body: string; createdAt: string }>(`/reports/${id}/comments`, { method: "POST", body: JSON.stringify({ body }) });
+}
+
+export function requestReportClarification(id: string, prompt: string) {
+  return requestJson<IncidentReport>(`/police/reports/${id}/clarification`, { method: "PATCH", body: JSON.stringify({ prompt }) });
+}
+
+export function submitReportClarification(id: string, response: string) {
+  return requestJson<IncidentReport>(`/reports/${id}/clarification`, { method: "POST", body: JSON.stringify({ response }) });
+}

@@ -428,10 +428,10 @@ function InfiniteReportList({ reports, selectedId, onSelect, hasMore, loading, o
 
 function MyReportsPanel({ reports, selectedId, onSelect, onClose, isDesktop, stats }: { reports: IncidentReport[]; selectedId: string | null; onSelect: (report: IncidentReport) => void; onClose: () => void; isDesktop: boolean; stats: DashboardData["stats"] }) {
   const statTiles = [
-    ["Total", stats.total, "/illustrations/categories/other2.png"],
-    ["Masuk", stats.pending, "/illustrations/categories/crowd.png"],
-    ["Proses", stats.inProgress, "/illustrations/categories/facility.png"],
-    ["Selesai", stats.resolved, "/illustrations/categories/violence.png"],
+    ["Total", stats.total, "/illustrations/stats/total.svg"],
+    ["Masuk", stats.pending, "/illustrations/stats/incoming.svg"],
+    ["Proses", stats.inProgress, "/illustrations/stats/progress.svg"],
+    ["Selesai", stats.resolved, "/illustrations/stats/resolved.svg"],
   ] as const;
   return <motion.aside drag={isDesktop ? true : "y"} dragMomentum={false} dragElastic={0.06} dragConstraints={isDesktop ? { top: -120, bottom: 120, left: -Math.max(0, window.innerWidth - 440), right: Math.max(0, window.innerWidth - 440) } : { top: -window.innerHeight * 0.5, bottom: 0 }} className={`${isDesktop ? "absolute left-6 top-24 h-[calc(100dvh-120px)] w-[380px]" : "fixed bottom-0 left-0 right-0 h-[86dvh] w-full rounded-t-2xl"} z-[45] overflow-hidden rounded-xl border border-slate-100 bg-white shadow-[0_22px_65px_rgba(15,23,42,0.2)]`} aria-label="Daftar laporan saya">
     <div className="flex h-full flex-col">
@@ -499,7 +499,7 @@ function ReportDetail({ report, role, isDesktop, onClose, onStatusChange, updati
 }
 
 function MapInfoPanel({ title, eyebrow, children, onClose, isDesktop }: { title: string; eyebrow: string; children: ReactNode; onClose: () => void; isDesktop: boolean }) {
-  return <aside className={`${isDesktop ? "absolute right-6 top-24 w-[360px] rounded-xl" : "fixed bottom-0 left-0 right-0 rounded-t-2xl"} z-40 max-h-[72dvh] overflow-y-auto border border-slate-100 bg-white p-5 shadow-[0_22px_65px_rgba(15,23,42,0.2)]`} aria-live="polite">
+  return <motion.aside drag={isDesktop} dragMomentum={false} dragElastic={0.06} dragConstraints={isDesktop ? { top: -120, bottom: 120, left: -Math.max(0, window.innerWidth - 440), right: Math.max(0, window.innerWidth - 440) } : undefined} className={`${isDesktop ? "absolute right-6 top-24 w-[360px] rounded-xl" : "fixed bottom-0 left-0 right-0 rounded-t-2xl"} z-[70] max-h-[72dvh] overflow-y-auto border border-slate-100 bg-white p-5 shadow-[0_22px_65px_rgba(15,23,42,0.2)]`} aria-live="polite">
     <button type="button" onClick={onClose} className="absolute right-4 top-4 grid h-8 w-8 place-items-center rounded-full text-slate-400 hover:bg-slate-100" aria-label="Tutup detail peta"><CloseIcon /></button>
     <p className="pr-10 text-[10px] font-black uppercase tracking-[.16em] text-[#e62428]">{eyebrow}</p>
     <h2 className="mt-1 pr-10 font-heading text-xl font-black tracking-tight text-slate-950">{title}</h2>
@@ -525,7 +525,7 @@ function SafetyMapDetail({ zone, isDesktop, onClose, onSelectReport }: { zone: S
   return <MapInfoPanel title="Indeks keamanan area" eyebrow="Area laporan" isDesktop={isDesktop} onClose={onClose}>
     <div className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-3"><span className="font-bold text-slate-600">Perhatian {zone.level}</span><strong className="text-lg text-slate-950">{zone.score}/4</strong></div>
     <p className="font-semibold text-slate-500">{zone.reports.length} laporan berada di area ini.</p>
-    <div className="grid gap-2">{zone.reports.length ? zone.reports.map((report) => <button key={report.id} type="button" onClick={() => onSelectReport(report)} className="rounded-lg border border-slate-100 bg-white px-3 py-3 text-left shadow-sm hover:border-red-100 hover:bg-red-50"><strong className="block text-xs text-slate-900">{report.category}</strong><span className="mt-1 block font-mono text-[10px] text-slate-400">{report.ticketNumber}</span><span className="mt-1 block text-[10px] font-bold text-slate-500">{statusShortLabels[report.status]} · titik laporan {report.latitude.toFixed(3)}, {report.longitude.toFixed(3)}</span></button>) : <p className="rounded-lg bg-slate-50 px-3 py-3 text-xs font-semibold text-slate-500">Belum ada laporan terhubung di area ini.</p>}</div>
+    <div className="grid gap-2">{zone.reports.length ? zone.reports.map((report) => <button key={report.id} type="button" onClick={() => onSelectReport(report)} className="flex items-center gap-3 rounded-lg border border-slate-100 bg-white px-3 py-3 text-left shadow-sm hover:border-red-100 hover:bg-red-50"><CategoryIllustration category={report.category} className="h-10 w-10 rounded-lg" /><span className="min-w-0"><strong className="block truncate text-xs text-slate-900">{report.category}</strong><span className="mt-1 block font-mono text-[10px] text-slate-400">{report.ticketNumber}</span><span className="mt-1 block text-[10px] font-bold text-slate-500">{statusShortLabels[report.status]} · titik laporan {report.latitude.toFixed(3)}, {report.longitude.toFixed(3)}</span></span></button>) : <p className="rounded-lg bg-slate-50 px-3 py-3 text-xs font-semibold text-slate-500">Belum ada laporan terhubung di area ini.</p>}</div>
   </MapInfoPanel>;
 }
 
@@ -744,7 +744,10 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
   const publicReports = useMemo(() => (publicMap?.reports ?? []).filter((report) => report.status !== "REJECTED" && matches(report)), [matches, publicMap?.reports]);
   const mapReports = citizen ? publicReports : filteredReports;
   const mapUnits = useMemo(() => citizen ? (publicMap?.units ?? data?.units ?? []) : (data?.units ?? []), [citizen, data?.units, publicMap?.units]);
-  const feedReports = useMemo(() => (citizen ? (publicMap?.reports ?? []) : feedItems).filter(matches), [citizen, feedItems, matches, publicMap?.reports]);
+  const feedReports = useMemo(() => {
+    const source = citizen ? [...(publicMap?.reports ?? []), ...reports] : feedItems;
+    return [...new Map(source.map((report) => [report.id, report])).values()].filter(matches);
+  }, [citizen, feedItems, matches, publicMap?.reports, reports]);
   const selectedReport = useMemo(() => [...reports, ...publicReports, ...feedItems].find((report) => report.id === selectedId) ?? null, [feedItems, publicReports, reports, selectedId]);
   const activeFilter = statusFilter !== "ALL" || (view === "feed" && Boolean(search.trim()));
 

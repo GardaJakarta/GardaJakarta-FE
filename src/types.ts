@@ -25,6 +25,7 @@ export interface PoliceUnit {
 
 export type ReportSeverity = "P0" | "P1" | "P2" | "P3";
 export type ReportStatus = "PENDING" | "VERIFIED" | "IN_PROGRESS" | "RESOLVED" | "REJECTED";
+export type ReportActivity = { id: string; type: string; message: string; createdAt: string };
 
 export interface IncidentReport {
   id: string;
@@ -38,6 +39,14 @@ export interface IncidentReport {
   createdAt: string;
   updatedAt: string;
   policeUnit: { name: string; district: string } | null;
+  clarificationPrompt?: string | null;
+  clarificationResponse?: string | null;
+  clarificationRequestedAt?: string | null;
+  clarificationRespondedAt?: string | null;
+  activities?: ReportActivity[];
+  voteCount?: number;
+  commentCount?: number;
+  hasVoted?: boolean;
 }
 
 export interface DashboardData {
