@@ -37,10 +37,46 @@ type SafetyZone = {
   reports: IncidentReport[];
 };
 
+type Point = [number, number];
+
+function convexHull(points: Point[]) {
+  const sorted = [...points].sort(([leftX, leftY], [rightX, rightY]) => leftX - rightX || leftY - rightY);
+  if (sorted.length <= 1) return sorted;
+  const cross = (origin: Point, pointA: Point, pointB: Point) => (pointA[0] - origin[0]) * (pointB[1] - origin[1]) - (pointA[1] - origin[1]) * (pointB[0] - origin[0]);
+  const lower: Point[] = [];
+  sorted.forEach((point) => {
+    while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], point) <= 0) lower.pop();
+    lower.push(point);
+  });
+  const upper: Point[] = [];
+  [...sorted].reverse().forEach((point) => {
+    while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], point) <= 0) upper.pop();
+    upper.push(point);
+  });
+  lower.pop();
+  upper.pop();
+  return lower.concat(upper);
+}
+
+function zonePolygon(zone: SafetyZone): Point[] {
+  // Buffer reports by 500 m before computing the hull, including coincident points.
+  const latitudeScale = 111_320;
+  const longitudeScale = latitudeScale * Math.cos(zone.center[1] * Math.PI / 180);
+  const bufferedPoints = zone.reports.flatMap((report) =>
+    Array.from({ length: 24 }, (_, index): Point => {
+      const angle = 2 * Math.PI * index / 24;
+      return [report.longitude + Math.cos(angle) * 500 / longitudeScale,
+        report.latitude + Math.sin(angle) * 500 / latitudeScale];
+    }),
+  );
+  const hull = convexHull(bufferedPoints);
+  return hull.length ? [...hull, hull[0]] : [];
+}
+
 function safetyScore(report: IncidentReport) {
   const severity = { P0: 4, P1: 3, P2: 2, P3: 1 }[report.severity];
   const status = { PENDING: 1, VERIFIED: 1.15, IN_PROGRESS: 0.8, RESOLVED: 0.35, REJECTED: 0 }[report.status];
-  return severity * status;
+  return Math.min(4, severity * status);
 }
 
 function safetyLevel(score: number) {
@@ -50,12 +86,18 @@ function safetyLevel(score: number) {
 }
 
 function buildSafetyZones(reports: IncidentReport[]) {
-  const groups = new Map<string, IncidentReport[]>();
-  reports.forEach((report) => {
-    const key = `${Math.round(report.latitude / 0.02)}:${Math.round(report.longitude / 0.02)}`;
-    groups.set(key, [...(groups.get(key) || []), report]);
+  const groups: IncidentReport[][] = [];
+  const clusterDistance = 0.018;
+  [...reports].sort((a, b) => a.longitude - b.longitude || a.latitude - b.latitude || a.id.localeCompare(b.id)).forEach((report) => {
+    const group = groups.find((candidate) => {
+      const longitude = candidate.reduce((sum, item) => sum + item.longitude, 0) / candidate.length;
+      const latitude = candidate.reduce((sum, item) => sum + item.latitude, 0) / candidate.length;
+      return Math.hypot((report.longitude - longitude) * 0.99, report.latitude - latitude) <= clusterDistance;
+    });
+    if (group) group.push(report);
+    else groups.push([report]);
   });
-  return [...groups.values()].map((group): SafetyZone => ({
+  return groups.map((group): SafetyZone => ({
     center: [group.reduce((sum, report) => sum + report.longitude, 0) / group.length, group.reduce((sum, report) => sum + report.latitude, 0) / group.length],
     reports: group,
   }));
@@ -68,12 +110,7 @@ function safetyGeoJson(reports: IncidentReport[]): GeoJSON.FeatureCollection<Geo
     type: "FeatureCollection",
     features: buildSafetyZones(reports).map((zone) => {
       const score = zone.reports.reduce((sum, report) => sum + safetyScore(report), 0) / zone.reports.length;
-      const [longitude, latitude] = zone.center;
-      const radius = 0.012 + Math.min(zone.reports.length, 4) * 0.002;
-      const coordinates = Array.from({ length: 7 }, (_, index) => {
-        const angle = (Math.PI * 2 * index) / 6;
-        return [longitude + Math.cos(angle) * radius, latitude + Math.sin(angle) * radius * 0.82] as [number, number];
-      });
+      const coordinates = zonePolygon(zone);
       return {
         type: "Feature",
         properties: {
@@ -100,7 +137,7 @@ function markerElement(kind: "police" | "report", severity?: IncidentReport["sev
 function searchedLocationElement(location: { label: string }, onClear?: () => void) {
   const element = document.createElement("div");
   element.className = "garda-search-marker";
-  element.innerHTML = '<button type="button" class="garda-search-marker-pin"><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3.5c-3.8 0-6.8 2.9-6.8 6.5 0 4.8 6.8 10.5 6.8 10.5s6.8-5.7 6.8-10.5c0-3.6-3-6.5-6.8-6.5Z" fill="currentColor"/><circle cx="12" cy="10" r="3.1" fill="white" fill-opacity=".94"/><circle cx="12" cy="10" r="1.3" fill="currentColor"/></svg></span></button><button type="button" class="garda-search-marker-remove" aria-label="Hapus lokasi terpilih">×</button>';
+  element.innerHTML = '<button type="button" class="garda-search-marker-pin"><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3.5c-3.8 0-6.8 2.9-6.8 6.5 0 4.8 6.8 10.5 6.8 10.5s6.8-5.7 6.8-10.5c0-3.6-3-6.5-6.8-6.5Z" fill="currentColor"/><circle cx="12" cy="10" r="3.1" fill="white" fill-opacity=".94"/><circle cx="12" cy="10" r="1.3" fill="currentColor"/></svg></span></button><button type="button" class="garda-search-marker-remove" aria-label="Hapus lokasi terpilih"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>';
   element.querySelector(".garda-search-marker-pin")?.setAttribute("aria-label", `Lokasi terpilih: ${location.label}`);
   element.querySelector(".garda-search-marker-pin")?.addEventListener("click", (event) => event.stopPropagation());
   element.querySelector(".garda-search-marker-remove")?.addEventListener("click", (event) => { event.stopPropagation(); onClear?.(); });

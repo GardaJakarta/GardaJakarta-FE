@@ -168,12 +168,9 @@ a:focus-visible, button:focus-visible { outline: 3px solid #e62428; outline-offs
   .auth-page-register .auth-panel-form { grid-column: auto; grid-row: auto; }
   .auth-page { height: auto; min-height: 100dvh; overflow: visible; }
   .auth-panel { min-height: auto; padding: 38px 24px; overflow: visible; }
-  .auth-panel-brand { min-height: 210px; padding: 0; justify-content: flex-start; }
-  .auth-page-register .auth-panel-brand { order: 2; }
-  .auth-page-register .auth-panel-form { order: 1; }
-  .auth-page:not(.auth-page-register) .auth-panel-brand { order: 2; }
-  .auth-page:not(.auth-page-register) .auth-panel-form { order: 1; }
-  .auth-banner { height: 210px; object-position: center; }
+  .auth-panel-brand { display: none; }
+  .auth-page-register .auth-panel-form,
+  .auth-page:not(.auth-page-register) .auth-panel-form { grid-column: 1; grid-row: 1; min-height: 100dvh; }
   .auth-form-brand { margin-bottom: 24px; }
   .auth-form-brand svg { width: 140px; }
   .auth-panel-brand h1 { max-width: 420px; font-size: 28px; }
@@ -213,7 +210,8 @@ a:focus-visible, button:focus-visible { outline: 3px solid #e62428; outline-offs
 .garda-search-marker-pin { display: grid; width: 42px; height: 48px; place-items: center; border: 2px solid #fff; border-radius: 50% 50% 50% 10%; color: #177b86; background: #e4f8f5; box-shadow: 0 8px 18px rgba(22,89,91,.28); transform: rotate(-45deg); transition: transform .18s ease, box-shadow .18s ease; }
 .garda-search-marker-pin span { display: grid; transform: rotate(45deg); }
 .garda-search-marker-pin svg { width: 24px; height: 24px; }
-.garda-search-marker-remove { position: absolute; top: -2px; right: 0; display: grid; width: 22px; height: 22px; place-items: center; border: 2px solid #fff; border-radius: 50%; color: #fff; background: #263c45; font-size: 16px; font-weight: 900; line-height: 1; opacity: 0; box-shadow: 0 3px 8px rgba(15,23,42,.22); transition: opacity .16s ease, transform .16s ease; }
+.garda-search-marker-remove { position: absolute; top: -2px; right: 0; display: grid; width: 22px; height: 22px; place-items: center; border: 2px solid #fff; border-radius: 50%; color: #fff; background: #263c45; opacity: 0; box-shadow: 0 3px 8px rgba(15,23,42,.22); transition: opacity .16s ease, transform .16s ease; }
+.garda-search-marker-remove svg { width: 11px; height: 11px; }
 .garda-search-marker:hover .garda-search-marker-remove, .garda-search-marker:focus-within .garda-search-marker-remove { opacity: 1; transform: scale(1.04); }
 .garda-map-popup { display: grid; min-width: 220px; gap: 7px; padding: 2px; color: #222; font-family: inherit; }
 .garda-map-popup img { width: 100%; height: 112px; border-radius: 5px; object-fit: cover; }
@@ -223,6 +221,10 @@ a:focus-visible, button:focus-visible { outline: 3px solid #e62428; outline-offs
 .garda-user-location::before { content: ""; position: absolute; width: 24px; height: 24px; border: 1px solid rgba(230,36,40,.28); border-radius: 50%; background: rgba(230,36,40,.12); animation: garda-location-pulse 2s ease-out infinite; }
 .garda-user-location span { position: relative; width: 12px; height: 12px; border: 3px solid #fff; border-radius: 50%; background: #e62428; box-shadow: 0 2px 8px rgba(15,23,42,.28); }
 .garda-loader { display: inline-block; border: 2px solid #e7e7e2; border-top-color: #e62428; border-radius: 999px; animation: garda-spin .8s linear infinite; }
+.overflow-y-auto, .overflow-auto { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+.overflow-y-auto::-webkit-scrollbar, .overflow-auto::-webkit-scrollbar { width: 6px; height: 6px; }
+.overflow-y-auto::-webkit-scrollbar-track, .overflow-auto::-webkit-scrollbar-track { background: transparent; }
+.overflow-y-auto::-webkit-scrollbar-thumb, .overflow-auto::-webkit-scrollbar-thumb { border-radius: 999px; background: #cbd5e1; }
 @keyframes garda-spin { to { transform: rotate(360deg); } }
 @keyframes garda-location-pulse { 0% { transform: scale(.65); opacity: .85; } 70%, 100% { transform: scale(1.45); opacity: 0; } }
 
