@@ -100,7 +100,8 @@ function markerElement(kind: "police" | "report", severity?: IncidentReport["sev
 function searchedLocationElement(location: { label: string }, onClear?: () => void) {
   const element = document.createElement("div");
   element.className = "garda-search-marker";
-  element.innerHTML = `<button type="button" class="garda-search-marker-pin" aria-label="Lokasi terpilih: ${location.label.replace(/"/g, "&quot;")}"><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3.5c-3.8 0-6.8 2.9-6.8 6.5 0 4.8 6.8 10.5 6.8 10.5s6.8-5.7 6.8-10.5c0-3.6-3-6.5-6.8-6.5Z" fill="currentColor"/><circle cx="12" cy="10" r="3.1" fill="white" fill-opacity=".94"/><circle cx="12" cy="10" r="1.3" fill="currentColor"/></svg></span></button><button type="button" class="garda-search-marker-remove" aria-label="Hapus lokasi terpilih">×</button>`;
+  element.innerHTML = '<button type="button" class="garda-search-marker-pin"><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3.5c-3.8 0-6.8 2.9-6.8 6.5 0 4.8 6.8 10.5 6.8 10.5s6.8-5.7 6.8-10.5c0-3.6-3-6.5-6.8-6.5Z" fill="currentColor"/><circle cx="12" cy="10" r="3.1" fill="white" fill-opacity=".94"/><circle cx="12" cy="10" r="1.3" fill="currentColor"/></svg></span></button><button type="button" class="garda-search-marker-remove" aria-label="Hapus lokasi terpilih">×</button>';
+  element.querySelector(".garda-search-marker-pin")?.setAttribute("aria-label", `Lokasi terpilih: ${location.label}`);
   element.querySelector(".garda-search-marker-pin")?.addEventListener("click", (event) => event.stopPropagation());
   element.querySelector(".garda-search-marker-remove")?.addEventListener("click", (event) => { event.stopPropagation(); onClear?.(); });
   return element;

@@ -39,6 +39,7 @@ const statusFilters: StatusFilter[] = ["ALL", "PENDING", "VERIFIED", "IN_PROGRES
 const EMPTY_REPORTS: DashboardData["reports"] = [];
 type SafetySelection = { reports: IncidentReport[]; level: string; score: number };
 type LocalNotification = { id: string; title: string; body: string; createdAt: number };
+type LocationSearchResult = { id: string; label: string; subtitle: string; latitude: number; longitude: number };
 
 function roleLabel(role: DashboardData["role"] | undefined) {
   return role === "polisi" ? "Petugas polisi" : role === "admin" ? "Admin operasional" : "Warga";
@@ -275,13 +276,18 @@ type DashboardControlsProps = {
   pinMode: boolean;
   activeFilter: boolean;
   reportOpen: boolean;
+  locationSuggestions?: LocationSearchResult[];
+  onSelectLocation?: (location: LocationSearchResult) => void;
 };
 
-function DashboardControls({ mobile = false, view, citizen, showActions = true, role, search, onSearchChange, onSearchSubmit, statusFilter, onStatusFilterChange, listOpen, onToggleList, onCreateReport, onPickLocation, pinMode, activeFilter, reportOpen }: DashboardControlsProps) {
+function DashboardControls({ mobile = false, view, citizen, showActions = true, role, search, onSearchChange, onSearchSubmit, statusFilter, onStatusFilterChange, listOpen, onToggleList, onCreateReport, onPickLocation, pinMode, activeFilter, reportOpen, locationSuggestions = [], onSelectLocation }: DashboardControlsProps) {
   const controlRadius = "rounded-lg";
-  const input = <div className={`${mobile ? "h-8" : "min-h-10"} flex min-w-0 flex-1 items-center gap-2 ${controlRadius} border border-gray-200 bg-gray-50 px-3 py-1 transition-all focus-within:border-[#e62428] focus-within:bg-white focus-within:ring-2 focus-within:ring-red-100`}>
+  const input = <div className="relative min-w-0 flex-1">
+    <div className={`${mobile ? "h-8" : "min-h-10"} flex min-w-0 items-center gap-2 ${controlRadius} border border-gray-200 bg-gray-50 px-3 py-1 transition-all focus-within:border-[#e62428] focus-within:bg-white focus-within:ring-2 focus-within:ring-red-100`}>
     <svg className="h-4 w-4 shrink-0 text-[#e62428]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></svg>
-    <input aria-label={view === "map" ? "Cari lokasi atau laporan" : "Cari isu"} value={search} onChange={(event) => onSearchChange(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") onSearchSubmit?.(); }} placeholder={view === "map" ? "Cari lokasi atau laporan..." : "Cari isu..."} className="min-w-0 w-full bg-transparent py-1.5 text-xs font-bold text-gray-900 outline-none placeholder:text-gray-400" />
+    <input aria-label={view === "map" ? "Cari lokasi" : "Cari isu"} value={search} onChange={(event) => onSearchChange(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") onSearchSubmit?.(); }} placeholder={view === "map" ? "Cari lokasi..." : "Cari isu..."} className="min-w-0 w-full bg-transparent py-1.5 text-xs font-bold text-gray-900 outline-none placeholder:text-gray-400" />
+    </div>
+    {view === "map" && locationSuggestions.length > 0 && <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-50 overflow-hidden rounded-xl border border-gray-100 bg-white p-1.5 text-left shadow-[0_18px_44px_rgba(15,23,42,0.18)]" role="listbox" aria-label="Hasil pencarian lokasi"><p className="px-2.5 pb-1.5 pt-1 text-[9px] font-black uppercase tracking-[.15em] text-slate-400">Lokasi ditemukan</p>{locationSuggestions.map((location) => <button key={location.id} type="button" role="option" className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-[#fff3f0]" onMouseDown={(event) => event.preventDefault()} onClick={() => onSelectLocation?.(location)}><span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#e5f7f4] text-[#177b86]"><PinIcon /></span><span className="min-w-0"><strong className="block truncate text-[11px] font-black text-slate-800">{location.label}</strong><span className="mt-0.5 block truncate text-[10px] font-medium text-slate-400">{location.subtitle}</span></span></button>)}</div>}
   </div>;
   const buttonHeight = mobile ? "h-8" : "h-9";
   const pinButton = showActions && citizen && <button type="button" onClick={onPickLocation} className={`inline-flex ${buttonHeight} min-w-0 items-center justify-center gap-1.5 ${controlRadius} px-2 text-[10px] font-black transition-colors ${pinMode ? "bg-[#e62428] text-white shadow-sm" : "border border-gray-100 bg-white text-gray-600 hover:bg-gray-100"}`} aria-label="Tandai lokasi laporan"><PinIcon /><span className={mobile ? "truncate" : "hidden sm:inline"}>{pinMode ? "Pilih" : "Tandai"}</span></button>;
@@ -585,6 +591,9 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
   const [listOpen, setListOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
   const [search, setSearch] = useState("");
+  const [locationSearch, setLocationSearch] = useState("");
+  const [locationSuggestions, setLocationSuggestions] = useState<LocationSearchResult[]>([]);
+  const [searchedLocation, setSearchedLocation] = useState<LocationSearchResult | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [reportOpen, setReportOpen] = useState(false);
   const [pinMode, setPinMode] = useState(false);
@@ -677,18 +686,41 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
   const stats = data?.stats || { total: 0, pending: 0, inProgress: 0, resolved: 0 };
   const matches = useCallback((report: IncidentReport) => {
     const statusMatches = statusFilter === "ALL" || report.status === statusFilter;
-    const query = search.trim().toLowerCase();
+    const query = view === "feed" ? search.trim().toLowerCase() : "";
     const searchMatches = !query || [report.ticketNumber, report.category, report.description, report.policeUnit?.name, report.policeUnit?.district].filter(Boolean).some((value) => value!.toLowerCase().includes(query));
     const visibilityMatches = statusFilter === "REJECTED" ? report.status === "REJECTED" : report.status !== "REJECTED";
     return visibilityMatches && statusMatches && searchMatches;
-  }, [search, statusFilter]);
+  }, [search, statusFilter, view]);
   const filteredReports = useMemo(() => reports.filter(matches), [matches, reports]);
   const publicReports = useMemo(() => (publicMap?.reports ?? []).filter((report) => report.status !== "REJECTED" && matches(report)), [matches, publicMap?.reports]);
   const mapReports = citizen ? publicReports : filteredReports;
   const mapUnits = useMemo(() => citizen ? (publicMap?.units ?? data?.units ?? []) : (data?.units ?? []), [citizen, data?.units, publicMap?.units]);
   const feedReports = useMemo(() => feedItems.filter(matches), [feedItems, matches]);
   const selectedReport = useMemo(() => [...reports, ...publicReports, ...feedItems].find((report) => report.id === selectedId) ?? null, [feedItems, publicReports, reports, selectedId]);
-  const activeFilter = statusFilter !== "ALL" || Boolean(search.trim());
+  const activeFilter = statusFilter !== "ALL" || (view === "feed" && Boolean(search.trim()));
+
+  useEffect(() => {
+    if (view !== "map" || !locationSearch.trim() || locationSearch.trim().length < 2) return;
+    const query = locationSearch.trim().toLowerCase();
+    const unitMatches = mapUnits
+      .filter((unit) => [unit.name, unit.district, unit.address].some((value) => value.toLowerCase().includes(query)))
+      .slice(0, 3)
+      .map((unit) => ({ id: `unit-${unit.id}`, label: unit.name, subtitle: unit.address || unit.district, latitude: unit.latitude, longitude: unit.longitude }));
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      try {
+        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=4&countrycodes=id&accept-language=id&q=${encodeURIComponent(locationSearch.trim())}`, { signal: controller.signal, headers: { Accept: "application/json" } });
+        if (!response.ok) return;
+        const results = await response.json() as Array<{ place_id: number; display_name: string; lat: string; lon: string; type?: string }>;
+        const remoteMatches = results.map((result) => {
+          const parts = result.display_name.split(",").map((part) => part.trim());
+          return { id: `place-${result.place_id}`, label: parts.slice(0, 2).join(", "), subtitle: parts.slice(2, 4).join(", ") || result.type || "Lokasi", latitude: Number(result.lat), longitude: Number(result.lon) };
+        });
+        setLocationSuggestions([...unitMatches, ...remoteMatches].slice(0, 5));
+      } catch { /* Ignore aborted or unavailable autocomplete requests. */ }
+    }, 320);
+    return () => { window.clearTimeout(timer); controller.abort(); };
+  }, [locationSearch, mapUnits, view]);
   const loadMoreFeed = useCallback(async () => {
     if (loadingMore || !feedHasMore) return;
     setLoadingMore(true);
@@ -713,25 +745,37 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
   }, []);
   const mapClick = useCallback((coordinates: { latitude: number; longitude: number }) => { setForm((current) => ({ ...current, ...coordinates })); setPinMode(false); }, []);
   const searchLocation = useCallback(async () => {
-    const query = search.trim().toLowerCase();
+    const query = locationSearch.trim();
     if (!query) return;
-    const unit = mapUnits.find((candidate) => [candidate.name, candidate.district, candidate.address].some((value) => value.toLowerCase().includes(query)));
-    const chooseLocation = (coordinates: { latitude: number; longitude: number }, message?: string) => {
-      setFocusLocation(coordinates);
-      if (reportOpen) { setForm((current) => ({ ...current, ...coordinates })); setPinMode(false); }
-      if (message) setNotice(message);
-    };
-    if (unit) { chooseLocation({ latitude: unit.latitude, longitude: unit.longitude }, `Menampilkan ${unit.name}.`); setSelectedUnit(unit); return; }
-    const report = mapReports.find((candidate) => [candidate.category, candidate.ticketNumber, candidate.policeUnit?.name, candidate.policeUnit?.district].filter(Boolean).some((value) => value!.toLowerCase().includes(query)));
-    if (report) { chooseLocation({ latitude: report.latitude, longitude: report.longitude }, `Menampilkan titik ${report.ticketNumber}.`); setSelectedId(report.id); setSelectedUnit(null); return; }
+    if (locationSuggestions[0]) {
+      const location = locationSuggestions[0];
+      setLocationSearch(location.label);
+      setLocationSuggestions([]);
+      setSearchedLocation(location);
+      setFocusLocation({ latitude: location.latitude, longitude: location.longitude });
+      if (reportOpen) { setForm((current) => ({ ...current, latitude: location.latitude, longitude: location.longitude })); setPinMode(false); }
+      setSelectedId(null); setSelectedUnit(null); setSelectedZone(null);
+      setNotice(`Menampilkan ${location.label}.`);
+      return;
+    }
     try {
-      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=id&q=${encodeURIComponent(search.trim())}`);
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=id&accept-language=id&q=${encodeURIComponent(query)}`);
       const result = await response.json() as Array<{ lat: string; lon: string; display_name: string }>;
       const location = result[0];
       if (!location) { setNotice("Lokasi belum ditemukan. Coba nama tempat atau wilayah yang lebih spesifik."); return; }
-      chooseLocation({ latitude: Number(location.lat), longitude: Number(location.lon) }, `Menampilkan ${location.display_name.split(",").slice(0, 2).join(", ")}.`);
+      const parts = location.display_name.split(",").map((part) => part.trim());
+      const selected = { id: `place-${location.lat}-${location.lon}`, label: parts.slice(0, 2).join(", "), subtitle: parts.slice(2, 4).join(", ") || "Lokasi", latitude: Number(location.lat), longitude: Number(location.lon) };
+      setLocationSearch(selected.label); setLocationSuggestions([]); setSearchedLocation(selected); setFocusLocation({ latitude: selected.latitude, longitude: selected.longitude });
+      if (reportOpen) { setForm((current) => ({ ...current, latitude: selected.latitude, longitude: selected.longitude })); setPinMode(false); }
+      setSelectedId(null); setSelectedUnit(null); setSelectedZone(null); setNotice(`Menampilkan ${selected.label}.`);
     } catch { setNotice("Pencarian lokasi belum tersedia. Coba lagi sebentar."); }
-  }, [mapReports, mapUnits, reportOpen, search]);
+  }, [locationSearch, locationSuggestions, reportOpen]);
+  const selectLocation = useCallback((location: LocationSearchResult) => {
+    setLocationSearch(location.label); setLocationSuggestions([]); setSearchedLocation(location); setFocusLocation({ latitude: location.latitude, longitude: location.longitude });
+    if (reportOpen) { setForm((current) => ({ ...current, latitude: location.latitude, longitude: location.longitude })); setPinMode(false); }
+    setSelectedId(null); setSelectedUnit(null); setSelectedZone(null); setNotice(`Menampilkan ${location.label}.`);
+  }, [reportOpen]);
+  const clearSearchedLocation = useCallback(() => { setSearchedLocation(null); setFocusLocation(null); setLocationSuggestions([]); setLocationSearch(""); }, []);
   const useLocation = useCallback(() => {
     const geolocation = navigator.geolocation;
     if (!geolocation || typeof geolocation.getCurrentPosition !== "function") { setError("Perangkat ini tidak mendukung lokasi otomatis. Pilih titik langsung di peta."); return; }
@@ -769,15 +813,15 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
          </div></div>}
       </div>
       <div className="w-full sm:hidden">
-        <DashboardControls mobile view={view} citizen={citizen} showActions={!publicMode} role={role} search={search} onSearchChange={setSearch} onSearchSubmit={searchLocation} statusFilter={statusFilter} onStatusFilterChange={setStatusFilter} listOpen={listOpen} onToggleList={() => { setListOpen((current) => !current); setReportOpen(false); setSelectedId(null); }} onCreateReport={toggleReportForm} onPickLocation={() => { if (!reportOpen) openReportForm(); else setPinMode((current) => !current); }} pinMode={pinMode} activeFilter={activeFilter} reportOpen={reportOpen} />
+        <DashboardControls mobile view={view} citizen={citizen} showActions={!publicMode} role={role} search={view === "map" ? locationSearch : search} onSearchChange={(value) => { if (view === "map") { setLocationSearch(value); setLocationSuggestions([]); if (searchedLocation) setSearchedLocation(null); } else setSearch(value); }} onSearchSubmit={searchLocation} locationSuggestions={locationSuggestions} onSelectLocation={selectLocation} statusFilter={statusFilter} onStatusFilterChange={setStatusFilter} listOpen={listOpen} onToggleList={() => { setListOpen((current) => !current); setReportOpen(false); setSelectedId(null); }} onCreateReport={toggleReportForm} onPickLocation={() => { if (!reportOpen) openReportForm(); else setPinMode((current) => !current); }} pinMode={pinMode} activeFilter={activeFilter} reportOpen={reportOpen} />
       </div>
     </header>
 
     <section className="absolute inset-0" aria-label={view === "map" ? "Dashboard peta keamanan Jakarta" : "Feed laporan keamanan Jakarta"}>
       {view === "map" && <>
-         <GardaMap className="!h-full !min-h-0" units={mapUnits} reports={mapReports} userLocation={userLocation} followUser={!focusLocation && !selectedId && !selectedUnit && !selectedZone && !reportOpen} focusLocation={focusLocation} draftLocation={form} draftActive={canReport && reportOpen} onDraftLocationChange={handleDraftLocationChange} onMapClick={canReport && reportOpen && pinMode ? mapClick : undefined} onSelectReport={(report) => { setSelectedUnit(null); setSelectedZone(null); selectReportFromMap(report); }} onSelectUnit={(unit) => { setSelectedId(null); setSelectedZone(null); setFocusLocation({ latitude: unit.latitude, longitude: unit.longitude }); setSelectedUnit(unit); }} onSelectSafetyZone={(zone) => { setSelectedId(null); setSelectedUnit(null); setSelectedZone(zone); }} showSafetyZones={!publicMode} />
+         <GardaMap className="!h-full !min-h-0" units={mapUnits} reports={mapReports} userLocation={userLocation} followUser={!focusLocation && !selectedId && !selectedUnit && !selectedZone && !reportOpen} focusLocation={focusLocation} searchedLocation={searchedLocation} onClearSearchedLocation={clearSearchedLocation} draftLocation={form} draftActive={canReport && reportOpen} onDraftLocationChange={handleDraftLocationChange} onMapClick={canReport && reportOpen && pinMode ? mapClick : undefined} onSelectReport={(report) => { setSelectedUnit(null); setSelectedZone(null); selectReportFromMap(report); }} onSelectUnit={(unit) => { setSelectedId(null); setSelectedZone(null); setFocusLocation({ latitude: unit.latitude, longitude: unit.longitude }); setSelectedUnit(unit); }} onSelectSafetyZone={(zone) => { setSelectedId(null); setSelectedUnit(null); setSelectedZone(zone); }} showSafetyZones={!publicMode} />
         {isLoading && <MapLoadingOverlay label="Memeriksa keamanan Jakarta..." />}
-        <div className="pointer-events-none absolute bottom-5 left-0 right-0 z-20 hidden items-center justify-center px-4 sm:flex"><div className="pointer-events-auto w-full max-w-[700px]"><DashboardControls view={view} citizen={citizen} showActions={!publicMode} role={role} search={search} onSearchChange={setSearch} onSearchSubmit={searchLocation} statusFilter={statusFilter} onStatusFilterChange={setStatusFilter} listOpen={listOpen} onToggleList={() => { setListOpen((current) => !current); setReportOpen(false); setSelectedId(null); }} onCreateReport={toggleReportForm} onPickLocation={() => { if (!reportOpen) openReportForm(); else setPinMode((current) => !current); }} pinMode={pinMode} activeFilter={activeFilter} reportOpen={reportOpen} /></div></div>
+        <div className="pointer-events-none absolute bottom-5 left-0 right-0 z-20 hidden items-center justify-center px-4 sm:flex"><div className="pointer-events-auto w-full max-w-[700px]"><DashboardControls view={view} citizen={citizen} showActions={!publicMode} role={role} search={view === "map" ? locationSearch : search} onSearchChange={(value) => { if (view === "map") { setLocationSearch(value); setLocationSuggestions([]); if (searchedLocation) setSearchedLocation(null); } else setSearch(value); }} onSearchSubmit={searchLocation} locationSuggestions={locationSuggestions} onSelectLocation={selectLocation} statusFilter={statusFilter} onStatusFilterChange={setStatusFilter} listOpen={listOpen} onToggleList={() => { setListOpen((current) => !current); setReportOpen(false); setSelectedId(null); }} onCreateReport={toggleReportForm} onPickLocation={() => { if (!reportOpen) openReportForm(); else setPinMode((current) => !current); }} pinMode={pinMode} activeFilter={activeFilter} reportOpen={reportOpen} /></div></div>
       </>}
       {view === "map" && <>
         {listOpen && <aside className="absolute bottom-[72px] left-3 right-3 z-30 max-h-[68dvh] overflow-hidden rounded-xl border border-slate-100 bg-white shadow-[0_22px_65px_rgba(15,23,42,0.2)] sm:bottom-auto sm:left-6 sm:right-auto sm:top-24 sm:w-[380px]" aria-label="Daftar laporan"><div className="border-b border-slate-100 px-4 pb-3 pt-4"><div className="flex items-start justify-between gap-3"><div><p className="text-[10px] font-bold uppercase tracking-widest text-[#e62428]">{citizen ? "Riwayat" : "Operasional"}</p><h2 className="mt-1 text-lg font-bold tracking-tight">{citizen ? "Laporan saya" : role === "polisi" ? "Antrian unit" : "Monitoring laporan"}</h2><p className="mt-1 text-[10px] font-bold text-slate-400">{filteredReports.length} laporan sesuai filter</p></div><button type="button" onClick={() => setListOpen(false)} className="grid h-7 w-7 place-items-center rounded-lg text-lg text-slate-400 hover:bg-slate-100" aria-label="Tutup daftar">×</button></div><div className="mt-3 grid grid-cols-4 gap-1 rounded-lg bg-slate-50 p-1 text-center"><div className="rounded-md bg-white py-1.5 shadow-sm"><strong className="block text-sm font-bold">{stats.total}</strong><span className="text-[8px] font-bold uppercase text-slate-400">Total</span></div><div className="py-1.5"><strong className="block text-sm font-bold">{stats.pending}</strong><span className="text-[8px] font-bold uppercase text-slate-400">Masuk</span></div><div className="py-1.5"><strong className="block text-sm font-bold">{stats.inProgress}</strong><span className="text-[8px] font-bold uppercase text-slate-400">Proses</span></div><div className="py-1.5"><strong className="block text-sm font-bold">{stats.resolved}</strong><span className="text-[8px] font-bold uppercase text-slate-400">Selesai</span></div></div></div><div className="max-h-[calc(68dvh-166px)] space-y-2 overflow-y-auto bg-slate-50/70 p-3">{filteredReports.length === 0 ? <p className="px-3 py-10 text-center text-xs font-semibold text-slate-400">Belum ada laporan yang sesuai.</p> : filteredReports.map((report) => <ReportCard key={report.id} report={report} selected={selectedId === report.id} onSelect={() => selectReport(report)} />)}</div></aside>}
