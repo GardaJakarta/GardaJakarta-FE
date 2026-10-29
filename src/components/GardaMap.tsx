@@ -12,6 +12,8 @@ type GardaMapProps = {
   units: PoliceUnit[];
   reports: IncidentReport[];
   className?: string;
+  popupAnchor?: { latitude: number; longitude: number } | null;
+  onPopupPosition?: (point: { x: number; y: number } | null) => void;
   onMapClick?: (coordinates: { latitude: number; longitude: number }) => void;
   onSelectReport?: (report: IncidentReport) => void;
   onSelectUnit?: (unit: PoliceUnit) => void;
@@ -168,12 +170,26 @@ function userLocationElement() {
   return element;
 }
 
-function GardaMap({ units, reports, className, onMapClick, onSelectReport, onSelectUnit, onSelectSafetyZone, userLocation, followUser = true, focusLocation, searchedLocation, onClearSearchedLocation, draftLocation, draftActive = false, onDraftLocationChange, interactive = true, showSafetyZones = true }: GardaMapProps) {
+function GardaMap({ units, reports, className, popupAnchor, onPopupPosition, onMapClick, onSelectReport, onSelectUnit, onSelectSafetyZone, userLocation, followUser = true, focusLocation, searchedLocation, onClearSearchedLocation, draftLocation, draftActive = false, onDraftLocationChange, interactive = true, showSafetyZones = true }: GardaMapProps) {
   const draftLatitude = draftLocation?.latitude;
   const draftLongitude = draftLocation?.longitude;
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapInstance | null>(null);
   const [mapReady, setMapReady] = useState(false);
+  const popupLatitude = popupAnchor?.latitude;
+  const popupLongitude = popupAnchor?.longitude;
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || popupLatitude === undefined || popupLongitude === undefined || !onPopupPosition) return;
+    const update = () => {
+      const point = map.project([popupLongitude, popupLatitude]);
+      onPopupPosition({ x: point.x, y: point.y });
+    };
+    update();
+    map.on("move", update);
+    map.on("resize", update);
+    return () => { map.off("move", update); map.off("resize", update); };
+  }, [mapReady, popupLatitude, popupLongitude, onPopupPosition]);
   const draftDraggingRef = useRef(false);
   const draftLocationRef = useRef({ latitude: draftLatitude, longitude: draftLongitude });
   const markersRef = useRef<Marker[]>([]);
@@ -397,6 +413,9 @@ function GardaMap({ units, reports, className, onMapClick, onSelectReport, onSel
 
 function areMapPropsEqual(previous: GardaMapProps, next: GardaMapProps) {
   return previous.units === next.units
+    && previous.popupAnchor?.latitude === next.popupAnchor?.latitude
+    && previous.popupAnchor?.longitude === next.popupAnchor?.longitude
+    && previous.onPopupPosition === next.onPopupPosition
     && previous.reports === next.reports
     && previous.className === next.className
     && previous.interactive === next.interactive
