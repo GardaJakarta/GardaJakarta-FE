@@ -646,7 +646,7 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
 
   const openReportForm = useCallback(() => { if (!canReport) return; setView("map"); setSelectedId(null); setListOpen(false); setFocusLocation({ latitude: form.latitude, longitude: form.longitude }); setReportOpen(true); setPinMode(true); setError(null); }, [canReport, form.latitude, form.longitude]);
   const selectReport = useCallback((report: IncidentReport) => { setSelectedId(report.id); setListOpen(false); setReportOpen(false); }, []);
-  const selectReportFromMap = useCallback((report: IncidentReport) => { selectReport(report); }, [selectReport]);
+  const selectReportFromMap = useCallback((report: IncidentReport) => { setFocusLocation({ latitude: report.latitude, longitude: report.longitude }); selectReport(report); }, [selectReport]);
   const toggleReportForm = useCallback(() => {
     if (reportOpen) { setReportOpen(false); setPinMode(false); return; }
     openReportForm();
