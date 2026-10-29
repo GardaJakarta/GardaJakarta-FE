@@ -313,7 +313,7 @@ type DashboardControlsProps = {
   onMapFiltersChange: (value: MapFilterState) => void;
 };
 
-function DashboardControls({ mobile = false, view, citizen, showActions = true, role, search, onSearchChange, onSearchSubmit, statusFilter, onStatusFilterChange, listOpen, onToggleList, onCreateReport, onPickLocation, pinMode, activeFilter, reportOpen, locationSuggestions = [], onSelectLocation, mapFilters, onMapFiltersChange }: DashboardControlsProps) {
+function DashboardControls({ mobile = false, view, citizen, showActions = true, role, search, onSearchChange, onSearchSubmit, statusFilter, onStatusFilterChange, listOpen, onToggleList, onCreateReport, onPickLocation, pinMode, reportOpen, locationSuggestions = [], onSelectLocation, mapFilters, onMapFiltersChange }: DashboardControlsProps) {
   const controlRadius = "rounded-lg";
   const input = <div className="relative min-w-0 flex-1">
     <div className={`${mobile ? "h-8" : "min-h-10"} flex min-w-0 items-center gap-2 ${controlRadius} border border-gray-200 bg-gray-50 px-3 py-1 transition-all focus-within:border-[#e62428] focus-within:bg-white focus-within:ring-2 focus-within:ring-red-100`}>
@@ -744,8 +744,7 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
     const source = citizen ? [...(publicMap?.reports ?? []), ...reports] : feedItems;
     return [...new Map(source.map((report) => [report.id, report])).values()].filter(matches);
   }, [citizen, feedItems, matches, publicMap?.reports, reports]);
-  const selectedReport = useMemo(() => [...reports, ...publicReports, ...feedItems].find((report) => report.id === selectedId) ?? null, [feedItems, publicReports, reports, selectedId]);
-  const activeFilter = (view === "map" ? mapFilterCount(mapFilters) > 0 : statusFilter.length !== defaultReportStatuses.length || !defaultReportStatuses.every((status) => statusFilter.includes(status))) || (view === "feed" && Boolean(search.trim()));
+  const selectedReport = useMemo(() => [...reports, ...publicReports, ...feedItems].find((report) => report.id === selectedId) ?? null, [feedItems, publicReports, reports, selectedId]);
 
   useEffect(() => {
     if (view !== "map" || !locationSearch.trim() || locationSearch.trim().length < 2 || (searchedLocation && locationSearch === searchedLocation.label)) return;
@@ -907,3 +906,4 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
     {signoutOpen && <div className="fixed inset-0 z-[60] grid place-items-center bg-slate-950/35 px-5 backdrop-blur-sm" role="presentation"><section className="w-full max-w-sm rounded-xl bg-white p-6 shadow-2xl" role="alertdialog" aria-modal="true" aria-labelledby="signout-title"><h2 id="signout-title" className="text-xl font-bold tracking-tight">Keluar dari dashboard?</h2><p className="mt-2 text-xs leading-relaxed text-slate-500">Sesi di perangkat ini akan ditutup.</p><div className="mt-6 flex justify-end gap-2"><button type="button" onClick={() => setSignoutOpen(false)} className="rounded-lg px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100">Batal</button><button type="button" onClick={() => void handleSignOut()} className="rounded-lg bg-[#e62428] px-4 py-2.5 text-xs font-bold text-white hover:bg-[#c91d22]">Keluar</button></div></section></div>}
   </main>;
 }
+
