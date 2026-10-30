@@ -458,7 +458,7 @@ function MyReportsPanel({ reports, selectedId, onSelect, onClose, isDesktop, sta
   </motion.aside>;
 }
 
-function ReportDetail({ report, role, isDesktop, onClose }: { report: IncidentReport; role: DashboardData["role"]; isDesktop: boolean; onClose: () => void; onStatusChange: (status: Exclude<ReportStatus, "PENDING">) => void; updating: boolean }) {
+function ReportDetail({ report, role, isDesktop, onClose, onOpenFeed }: { report: IncidentReport; role: DashboardData["role"]; isDesktop: boolean; onClose: () => void; onOpenFeed: () => void; onStatusChange: (status: Exclude<ReportStatus, "PENDING">) => void; updating: boolean }) {
   // Keep the draft pin visible above the mobile sheet so it can be dragged directly.
   const [sheetHeight, setSheetHeight] = useState(45);
   const dragControls = useDragControls();
@@ -890,7 +890,7 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
       {view === "map" && <CurrentLocationButton onClick={centerOnUser} className="fixed left-3 bottom-6 z-40 sm:absolute sm:left-4 sm:top-auto sm:bottom-20" />}
       {view === "map" && <>
         {listOpen && <MyReportsPanel reports={reports} selectedId={selectedId} onSelect={selectReport} onClose={() => setListOpen(false)} isDesktop={isDesktop} stats={stats} />}
-        {selectedReport && !reportOpen && <ReportDetail report={selectedReport} role={role} isDesktop={isDesktop} onClose={() => { setSelectedId(null); setFocusLocation(null); }} onStatusChange={(status) => void updateStatus(selectedReport.id, status)} updating={updatingId === selectedReport.id} />}
+        {selectedReport && !reportOpen && <ReportDetail report={selectedReport} role={role} isDesktop={isDesktop} onClose={() => { setSelectedId(null); setFocusLocation(null); }} onOpenFeed={() => { setView("feed"); setListOpen(false); }} onStatusChange={(status) => void updateStatus(selectedReport.id, status)} updating={updatingId === selectedReport.id} />}
         {isDesktop ? <div className="map-anchored-detail" style={{ left: popupPosition?.x, top: popupPosition?.y, visibility: popupPosition ? "visible" : "hidden" }}>
           {selectedUnit && !reportOpen && <PoliceMapDetail unit={selectedUnit} isDesktop onClose={() => { setSelectedUnit(null); setFocusLocation(null); }} />}
           {selectedZone && !reportOpen && <SafetyMapDetail zone={selectedZone} isDesktop onClose={() => { setSelectedZone(null); setFocusLocation(null); }} onSelectReport={(report) => { setSelectedZone(null); setFocusLocation({ latitude: report.latitude, longitude: report.longitude }); selectReport(report); }} />}
