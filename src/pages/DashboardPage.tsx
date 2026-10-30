@@ -15,6 +15,7 @@ import { ReportListSkeleton } from "../components/LoadingSkeleton";
 import { useAuth } from "../context/useAuth";
 import { createReport, getDashboard, getPublicMap, getReportFeed, updatePoliceReportStatus, uploadReportEvidence } from "../lib/api";
 import { portalPaths } from "../lib/portals";
+import { useReportCategories } from "../lib/use-report-categories";
 import type { DashboardData, IncidentReport, PoliceUnit, ReportSeverity, ReportStatus } from "../types";
 import { CheckCircle, FileText, HourglassHigh, Tray } from "@phosphor-icons/react";
 
@@ -237,11 +238,13 @@ function useFloatingMenu(open: boolean, anchorRef: React.RefObject<HTMLElement |
 }
 
 function CategoryMenu({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  const catalog = useReportCategories(categories);
+  const options: CategoryOption[] = catalog.map((name) => categoryOptions.find((option) => option.value === name) || { value: name, description: "Laporkan kejadian dalam kategori ini.", illustration: "100% 100%" });
   const [open, setOpen] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(() => Math.max(0, categoryOptions.findIndex((option) => option.value === value)));
+  const [activeIndex, setActiveIndex] = useState(() => Math.max(0, options.findIndex((option) => option.value === value)));
   const ref = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-  const selected = categoryOptions.find((option) => option.value === value);
+  const selected = options.find((option) => option.value === value);
   const activeOptionId = `report-category-option-${activeIndex}`;
   const menuStyle = useFloatingMenu(open, ref, menuRef, 440, () => setOpen(false));
   useEffect(() => {
@@ -252,14 +255,14 @@ function CategoryMenu({ value, onChange }: { value: string; onChange: (value: st
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
       event.preventDefault();
       setOpen(true);
-      setActiveIndex((current) => open ? (current + (event.key === "ArrowDown" ? 1 : -1) + categoryOptions.length) % categoryOptions.length : Math.max(0, categoryOptions.findIndex((option) => option.value === value)));
+      setActiveIndex((current) => open && options.length ? (current + (event.key === "ArrowDown" ? 1 : -1) + options.length) % options.length : Math.max(0, options.findIndex((option) => option.value === value)));
       return;
     }
-    if (event.key === "Home" || event.key === "End") { event.preventDefault(); setOpen(true); setActiveIndex(event.key === "Home" ? 0 : categoryOptions.length - 1); return; }
+    if (event.key === "Home" || event.key === "End") { event.preventDefault(); setOpen(true); setActiveIndex(event.key === "Home" ? 0 : options.length - 1); return; }
     if (event.key === "Tab") { setOpen(false); return; }
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
-      if (open) { onChange(categoryOptions[activeIndex].value); setOpen(false); }
+      if (open) { if (options[activeIndex]) onChange(options[activeIndex].value); setOpen(false); }
       else setOpen(true);
     }
   };
@@ -272,7 +275,7 @@ function CategoryMenu({ value, onChange }: { value: string; onChange: (value: st
     {open && menuStyle && createPortal(<div ref={menuRef} id="report-category-options" role="listbox" aria-label="Kategori laporan" style={{ ...menuStyle, position: "fixed" }} className="z-[100] max-h-[min(66vh,430px)] overflow-y-auto rounded-2xl border border-gray-100 bg-white p-1.5 shadow-[0_22px_60px_rgba(15,23,42,0.2)]">
       <div className="mb-1.5 flex items-center gap-3 border-b border-gray-100 bg-gray-50 px-2.5 py-2.5"><AppLogo className="h-6 w-auto shrink-0" size={145} aria-label="Garda Jakarta" /><div className="min-w-0 border-l border-gray-200 pl-3"><strong className="block text-[10px] font-black uppercase tracking-[.14em] text-gray-900">Kategori laporan</strong><span className="mt-0.5 block truncate text-[10px] font-semibold text-gray-400">Pilih jenis kejadian.</span></div></div>
       <div className="space-y-1">
-        {categoryOptions.map((option, index) => <button id={`report-category-option-${index}`} key={option.value} type="button" role="option" tabIndex={-1} aria-selected={value === option.value} onMouseDown={(event) => event.preventDefault()} onClick={() => { onChange(option.value); setActiveIndex(index); setOpen(false); }} className={`flex min-h-12 w-full items-center gap-3 rounded-sm border-l-2 px-2 py-1.5 text-left transition-colors ${value === option.value ? "border-[#e62428] bg-[#fff1ef] text-[#b21e24]" : activeIndex === index ? "border-gray-300 bg-gray-50 text-gray-900" : "border-transparent text-gray-700 hover:bg-gray-50"}`}>
+        {options.map((option, index) => <button id={`report-category-option-${index}`} key={option.value} type="button" role="option" tabIndex={-1} aria-selected={value === option.value} onMouseDown={(event) => event.preventDefault()} onClick={() => { onChange(option.value); setActiveIndex(index); setOpen(false); }} className={`flex min-h-12 w-full items-center gap-3 rounded-sm border-l-2 px-2 py-1.5 text-left transition-colors ${value === option.value ? "border-[#e62428] bg-[#fff1ef] text-[#b21e24]" : activeIndex === index ? "border-gray-300 bg-gray-50 text-gray-900" : "border-transparent text-gray-700 hover:bg-gray-50"}`}>
           <IllustrationTile sprite="categories" position={option.illustration} className={`h-12 w-12 rounded-xl transition-transform ${value === option.value ? "scale-105 shadow-md" : ""}`} />
           <span className="min-w-0 flex-1"><strong className="block text-[11px] font-black leading-snug">{option.value}</strong><span className="mt-0.5 block text-[10px] font-medium text-gray-500">{option.description}</span></span>
           {value === option.value && <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#e62428] text-[11px] font-black text-white">✓</span>}

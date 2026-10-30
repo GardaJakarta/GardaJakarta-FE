@@ -78,6 +78,11 @@ export interface AdminUsersPage {
   hasMore: boolean;
 }
 
+export interface AdminUnit {
+  id: string; name: string; district: string; address: string; phone: string | null; latitude: number; longitude: number; photoUrl: string | null; isPublished: boolean; reports: number; staff: number;
+}
+export interface AdminCategory { id: string; name: string; createdAt: string; updatedAt: string; reports: number; }
+
 export interface ReportInteractions {
  status: ReportStatus; voteCount: number; hasVoted: boolean;
  comments: Array<{id: string; body: string; createdAt: string; evidence: Array<{id: string; url: string}>}>;

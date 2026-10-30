@@ -1,3 +1,4 @@
+import { useReportCategories } from "../lib/use-report-categories";
 import { createPortal } from "react-dom";
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import ReportStatusOptions from "./ReportStatusOptions";
@@ -67,7 +68,7 @@ export function CustomStatusSelect({ value, onChange }: { value: ReportStatus | 
   return <div className="relative min-w-0"><button ref={ref} type="button" aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen((current) => !current)} className="flex min-h-10 w-full items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-3 text-left text-xs font-bold text-slate-800"><span className="truncate">{value === "ALL" ? "Semua status" : reportStatusLabels[value]}</span><span aria-hidden="true">⌄</span></button>{open && createPortal(<div role="listbox" style={{ ...position, maxHeight: "min(280px, calc(100dvh - 24px))" }} className="fixed z-[120] grid gap-1 overflow-y-auto rounded-xl border border-slate-100 bg-white p-1.5 shadow-2xl">{options.map((option) => <button key={option} type="button" role="option" aria-selected={option === value} onClick={() => { onChange(option as ReportStatus | "ALL"); setOpen(false); }} className={`rounded-lg px-3 py-2 text-left text-xs font-semibold ${option === value ? "bg-red-50 text-red-700" : "hover:bg-slate-50"}`}>{option === "ALL" ? "Semua status" : reportStatusLabels[option as ReportStatus]}</button>)}</div>, document.body)}</div>;
 }
 
-export function MapFilterMenu({ value, onChange, categories, publicOnly = false, mobile = false, alignRight = false }: {
+export function MapFilterMenu({ value, onChange, categories: fallbackCategories, publicOnly = false, mobile = false, alignRight = false }: {
   value: MapFilterState;
   onChange: (value: MapFilterState) => void;
   categories: string[];
@@ -75,6 +76,7 @@ export function MapFilterMenu({ value, onChange, categories, publicOnly = false,
   mobile?: boolean;
   alignRight?: boolean;
 }) {
+  const categories = useReportCategories(fallbackCategories);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const owner = useId();
@@ -98,7 +100,7 @@ export function MapFilterMenu({ value, onChange, categories, publicOnly = false,
       <div className="mb-3 flex items-center justify-between"><strong className="text-sm text-slate-900">Filter peta</strong><button type="button" className="text-xs font-bold text-[#e62428]" onClick={() => onChange({ ...defaultMapFilters })}>Reset</button></div>
       <div className="grid min-w-0 gap-5 sm:grid-cols-2">
         <div className="grid min-w-0 content-start gap-4">
-          <IllustratedFilterSelect owner={owner} label="Kategori" value={value.category} options={categories} onChange={(category) => onChange({ ...value, category })} imageFor={(_, index) => categoryImages[index] || "other-generated.png"} />
+          <IllustratedFilterSelect owner={owner} label="Kategori" value={value.category} options={categories} onChange={(category) => onChange({ ...value, category })} imageFor={(name) => categoryImages[fallbackCategories.indexOf(name)] || "other-generated.png"} />
           <ReportStatusOptions publicOnly={publicOnly} value={value.status} onChange={(status) => onChange({ ...value, status })} />
         </div>
         <div className="grid min-w-0 content-start gap-4 sm:border-l sm:border-slate-100 sm:pl-5">

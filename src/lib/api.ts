@@ -70,7 +70,7 @@ export async function linkGoogle() {
   if (error) throw authError(error);
 }
 
-async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
+export async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   // Public map data changes outside the FE session; never reuse a stale browser response.
   const headers = new Headers(init?.headers);
   if (!(init?.body instanceof FormData)) headers.set("Content-Type", "application/json");
