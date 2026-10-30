@@ -1,6 +1,6 @@
 import { authClient } from "./auth-client";
 import { portalPaths } from "./portals";
-import type { AuthPortal, DashboardData, IncidentReport, PoliceUnit, ReportSeverity, ReportStatus, ReportInteractions, User } from "../types";
+import type { AdminUsersPage, AuthPortal, DashboardData, IncidentReport, PoliceUnit, ReportSeverity, ReportStatus, ReportInteractions, User } from "../types";
 
 const apiBase = new URL(import.meta.env.VITE_API_URL || "/api", window.location.origin).href.replace(/\/$/, "");
 
@@ -89,8 +89,15 @@ export function getDashboard() {
   return requestJson<DashboardData>("/dashboard");
 }
 
-export function getReportFeed(page = 1, limit = 10) {
-  return requestJson<{ reports: IncidentReport[]; page: number; limit: number; hasMore: boolean }>(`/reports/feed?page=${page}&limit=${limit}`);
+export function getReportFeed(page = 1, limit = 10, filters?: { search: string; status: ReportStatus | "ALL" }) {
+  const query = new URLSearchParams({ page: String(page), limit: String(limit) });
+  if (filters?.search) query.set("search", filters.search);
+  if (filters?.status && filters.status !== "ALL") query.set("status", filters.status);
+  return requestJson<{ reports: IncidentReport[]; page: number; limit: number; hasMore: boolean }>(`/reports/feed?${query}`);
+}
+
+export function getAdminUsers(page = 1, search = "") {
+  return requestJson<AdminUsersPage>(`/admin/users?${new URLSearchParams({ page: String(page), search })}`);
 }
 
 export function createReport(input: { category: string; description: string; severity: ReportSeverity; latitude: number; longitude: number }) {

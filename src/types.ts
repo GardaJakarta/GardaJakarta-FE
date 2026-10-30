@@ -55,7 +55,27 @@ export interface DashboardData {
   reports: IncidentReport[];
   stats: { total: number; pending: number; inProgress: number; resolved: number };
   units: PoliceUnit[];
-  adminOverview?: { users: number; units: number; auditLogs: number; categories: Array<{ name: string; count: number }> };
+  adminOverview?: {
+    users: number;
+    units: number;
+    publishedUnits: number;
+    districts: number;
+    categoriesCount: number;
+    reports: number;
+    assignedPolice: number;
+    auditLogs: number;
+    categories: Array<{ name: string; count: number }>;
+    statuses: Array<{ status: ReportStatus; count: number }>;
+    unitsByReport: Array<{ name: string; count: number }>;
+    unitDirectory: Array<{ id: string; name: string; district: string; address: string; isPublished: boolean; reports: number; staff: number }>;
+  };
+}
+
+export interface AdminUsersPage {
+  users: Array<{ id: string; name: string; email: string; role: "WARGA" | "POLISI" | "ADMIN"; createdAt: string; policeUnit: { name: string } | null }>;
+  total: number;
+  page: number;
+  hasMore: boolean;
 }
 
 export interface ReportInteractions {

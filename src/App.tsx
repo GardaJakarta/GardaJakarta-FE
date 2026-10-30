@@ -6,6 +6,7 @@ import RegisterPage from "./pages/RegisterPage";
 import ConnectionErrorPage from "./pages/ConnectionErrorPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import DashboardPage from "./pages/DashboardPage";
+import AdminDashboardPage from "./pages/AdminDashboardPage";
 import PublicMapPage from "./pages/PublicMapPage";
 import ProfilePage from "./pages/ProfilePage";
 import type { AuthPortal } from "./types";
@@ -45,11 +46,11 @@ export default function App() {
       <Route path="/polisi/login" element={user ? <Navigate to={home} replace /> : <LoginPage key="polisi" portal="polisi" />} />
       <Route path="/admin/login" element={user ? <Navigate to={home} replace /> : <LoginPage key="admin" portal="admin" />} />
       <Route path="/register" element={user ? <Navigate to={home} replace /> : <RegisterPage />} />
-      <Route path="/dashboard" element={<ProtectedRoute portal={user?.role || "warga"}><DashboardPage /></ProtectedRoute>} />
+      <Route path="/dashboard" element={<ProtectedRoute portal={user?.role || "warga"}>{user?.role === "admin" ? <Navigate to="/admin" replace /> : <DashboardPage />}</ProtectedRoute>} />
       <Route path="/map" element={<PublicMapPage />} />
       <Route path="/profile" element={<ProtectedRoute portal={user?.role || "warga"}><ProfilePage /></ProtectedRoute>} />
       <Route path="/polisi" element={<Navigate to="/dashboard" replace />} />
-      <Route path="/admin" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/admin" element={<ProtectedRoute portal="admin"><AdminDashboardPage /></ProtectedRoute>} />
       <Route path="/not-found" element={<NotFoundPage />} />
       <Route path="*" element={<Navigate to="/not-found" replace />} />
     </Routes>
