@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { changeReportStatus, commentOnReport, evidenceUrl, getReportInteractions, submitReportClarification, uploadReportEvidence, voteReport } from "../lib/api";
 import { reportStatusLabels } from "../lib/report-status";
@@ -22,6 +23,8 @@ export default function ReportConversation({ reportId, readOnly = false, hideCom
   const [files, setFiles] = useState<File[]>([]);
   const [uploadIds, setUploadIds] = useState<string[]>([]);
   const [menuOpen, setMenuOpen] = useState(false);
+  const statusButtonRef = useRef<HTMLButtonElement>(null);
+  const [statusMenuStyle, setStatusMenuStyle] = useState<CSSProperties | null>(null);
   const [preview, setPreview] = useState<{ src: string; alt: string } | null>(null);
   const filePreviews = useMemo(() => files.map((file) => ({ file, url: URL.createObjectURL(file) })), [files]);
   useEffect(() => () => filePreviews.forEach(({ url }) => URL.revokeObjectURL(url)), [filePreviews]);
@@ -42,6 +45,20 @@ export default function ReportConversation({ reportId, readOnly = false, hideCom
     finally { setBusy(false); }
   }
   async function refresh() { const next = await getReportInteractions(reportId); setData(next); return next; }
+  useEffect(() => {
+    if (!menuOpen || !statusButtonRef.current) return;
+    const updatePosition = () => {
+      const rect = statusButtonRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const menuHeight = Math.min(280, Math.max(120, data?.nextStatuses.length ? data.nextStatuses.length * 44 + 12 : 160));
+      const fitsBelow = window.innerHeight - rect.bottom >= menuHeight + 8;
+      setStatusMenuStyle({ left: rect.left, width: rect.width, top: fitsBelow ? rect.bottom + 6 : undefined, bottom: fitsBelow ? undefined : window.innerHeight - rect.top + 6 });
+    };
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+    return () => { window.removeEventListener("resize", updatePosition); window.removeEventListener("scroll", updatePosition, true); };
+  }, [data?.nextStatuses.length, menuOpen]);
   if (!data) return <section className="mt-5 border-t border-slate-100 pt-4" aria-live="polite">{error ? <><p className="text-xs text-red-700">{error}</p><button type="button" className="mt-2 text-xs font-bold" onClick={() => void run(async () => { await refresh(); })}>Coba lagi</button></> : <div className="grid gap-3"><SkeletonBlock className="h-4 w-32" /><SkeletonBlock className="h-16 w-full" /><SkeletonBlock className="h-16 w-11/12" /></div>}</section>;
   const canAct = !readOnly && (data.canManage || data.canClarify);
   return <section className="mt-5 space-y-5 border-t border-slate-100 pt-5">
@@ -55,7 +72,7 @@ export default function ReportConversation({ reportId, readOnly = false, hideCom
       <h3 className="text-sm font-bold">{data.canManage ? "Perbarui penanganan" : "Berikan klarifikasi"}</h3>
       {data.clarificationPrompt && <p className="whitespace-pre-wrap text-xs leading-relaxed text-slate-600">{data.clarificationPrompt}</p>}
       {data.clarificationResponse && <p className="whitespace-pre-wrap text-xs leading-relaxed text-slate-600">Balasan pelapor: {data.clarificationResponse}</p>}
-      {data.canManage && <div className="relative"><button type="button" disabled={busy} aria-expanded={menuOpen} className={`${field} flex items-center justify-between bg-white text-left`} onClick={() => setMenuOpen(!menuOpen)} onKeyDown={(event) => { if (event.key === "Escape") setMenuOpen(false); }}>{status ? reportStatusLabels[status] : "Pilih status"}<span aria-hidden="true">⌄</span></button>{menuOpen && <div className="mt-1 grid gap-1 rounded-xl border border-slate-200 bg-white p-1" role="group" aria-label="Status penanganan">{data.nextStatuses.map((option) => <button key={option} type="button" className="rounded-lg px-3 py-2 text-left text-xs hover:bg-red-50" disabled={busy} onClick={() => { setStatus(option); setMenuOpen(false); }}>{reportStatusLabels[option]}</button>)}</div>}</div>}
+      {data.canManage && <div className="relative"><button ref={statusButtonRef} type="button" disabled={busy} aria-expanded={menuOpen} className={`${field} flex items-center justify-between bg-white text-left`} onClick={() => setMenuOpen(!menuOpen)} onKeyDown={(event) => { if (event.key === "Escape") setMenuOpen(false); }}>{status ? reportStatusLabels[status] : "Pilih status"}<span aria-hidden="true">⌄</span></button>{menuOpen && statusMenuStyle && createPortal(<div style={statusMenuStyle} className="fixed z-[130] grid max-h-[min(280px,calc(100dvh-24px))] gap-1 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1 shadow-[0_18px_44px_rgba(15,23,42,0.2)]" role="group" aria-label="Status penanganan">{data.nextStatuses.map((option) => <button key={option} type="button" className="rounded-lg px-3 py-2.5 text-left text-xs font-semibold hover:bg-red-50" disabled={busy} onClick={() => { setStatus(option); setMenuOpen(false); }}>{reportStatusLabels[option]}</button>)}</div>, document.body)}</div>}
       <label className="grid gap-1 text-xs font-semibold">{status === "CLARIFICATION" ? "Informasi yang perlu dilengkapi" : "Catatan"}<textarea required minLength={4} maxLength={2000} disabled={busy} className={`${field} min-h-24 bg-white`} value={message} onChange={(event) => setMessage(event.target.value)} /></label>
       <div className="grid gap-1 text-xs font-semibold"><span>Bukti foto {status === "RESOLVED" ? "(wajib)" : "(opsional)"}</span><label onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); chooseFiles(Array.from(event.dataTransfer.files)); }} className="grid cursor-copy gap-2 rounded-xl border border-dashed border-slate-300 bg-white px-3 py-3 text-center hover:border-[#e62428]"><span className="font-bold text-slate-600">Tarik foto ke sini atau pilih file</span><input disabled={busy} type="file" accept="image/jpeg,image/png,image/webp" multiple className="mx-auto max-w-full text-xs file:mr-2 file:rounded-full file:border-0 file:bg-slate-100 file:px-3 file:py-2" onChange={(event) => { chooseFiles(Array.from(event.target.files ?? [])); event.target.value = ""; }} /><span className="font-normal text-slate-500">JPG, PNG, WebP. Maksimal 3 foto, 5 MB per foto.</span></label>{filePreviews.length > 0 && <div className="grid grid-cols-3 gap-2">{filePreviews.map(({ file, url }, index) => <div className="relative" key={`${file.name}-${file.lastModified}`}><button key={`${file.name}-${file.lastModified}`} type="button" className="overflow-hidden rounded-lg" onClick={() => setPreview({ src: url, alt: file.name })}><img src={url} alt={`Pratinjau ${file.name}`} className="h-20 w-full object-cover" /></button><button type="button" disabled={busy} aria-label={`Hapus ${file.name}`} onClick={() => { setFiles((current) => current.filter((_, i) => i !== index)); setUploadIds((current) => current.filter((_, i) => i !== index)); }} className="absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-full bg-slate-950/80 text-white disabled:opacity-50">&times;</button></div>)}</div>}</div>
       <button className={button} disabled={busy || message.trim().length < 4 || (data.canManage && !status) || (status === "RESOLVED" && !files.length)}>{busy ? "Menyimpan..." : data.canManage ? "Simpan pembaruan" : "Kirim klarifikasi"}</button>
