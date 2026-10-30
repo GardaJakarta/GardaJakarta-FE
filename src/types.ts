@@ -50,6 +50,7 @@ export interface IncidentReport {
 }
 
 export interface DashboardData {
+  notifications?: Array<{ id: string; title: string; body: string; createdAt: number }>;
   role: AuthPortal;
   reports: IncidentReport[];
   stats: { total: number; pending: number; inProgress: number; resolved: number };

@@ -733,7 +733,7 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
     setIsLoading(true);
     const [dashboardResult, publicResult, feedResult] = await Promise.allSettled([publicMode ? Promise.resolve(null) : getDashboard(), getPublicMap(), publicMode ? Promise.resolve(null) : getReportFeed(1, 10)]);
     if (publicMode) { setData(null); setFeedItems([]); setError(null); }
-    else if (dashboardResult.status === "fulfilled" && dashboardResult.value) { setData(dashboardResult.value); setError(null); }
+    else if (dashboardResult.status === "fulfilled" && dashboardResult.value) { setData(dashboardResult.value); setNotificationItems(dashboardResult.value.notifications ?? []); setError(null); }
     else setError("Dashboard belum dapat dimuat. Periksa koneksi lalu coba lagi.");
     if (feedResult.status === "fulfilled" && feedResult.value) {
       // Keep the feed useful when the feed endpoint has no rows but the dashboard does.
