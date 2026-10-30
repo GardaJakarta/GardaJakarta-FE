@@ -21,6 +21,31 @@ import { CheckCircle, FileText, HourglassHigh, Tray } from "@phosphor-icons/reac
 type ViewMode = "map" | "feed";
 type StatusFilter = ReportStatus[];
 type PoliceScope = "mine" | "all";
+
+function PoliceScopeSelect({ value, onChange, compact = false }: { value: PoliceScope; onChange: (value: PoliceScope) => void; compact?: boolean }) {
+  const [open, setOpen] = useState(false);
+  const [position, setPosition] = useState({ top: 0, left: 0, width: 150 });
+  const ref = useRef<HTMLButtonElement>(null);
+  const menu = useRef<HTMLDivElement>(null);
+  const options: Array<[PoliceScope, string]> = [["mine", "Unit saya"], ["all", "Semua unit"]];
+  useEffect(() => {
+    if (!open) return;
+    const update = () => {
+      const rect = ref.current?.getBoundingClientRect();
+      if (!rect) return;
+      const width = Math.min(170, window.innerWidth - 24);
+      const height = 96;
+      setPosition({ left: Math.max(12, Math.min(rect.right - width, window.innerWidth - width - 12)), top: window.innerHeight - rect.bottom >= height + 8 ? rect.bottom + 8 : rect.top - height - 8, width });
+    };
+    const close = (event: PointerEvent) => { if (!ref.current?.contains(event.target as Node) && !menu.current?.contains(event.target as Node)) setOpen(false); };
+    update();
+    document.addEventListener("pointerdown", close);
+    window.addEventListener("resize", update);
+    window.addEventListener("scroll", update, true);
+    return () => { document.removeEventListener("pointerdown", close); window.removeEventListener("resize", update); window.removeEventListener("scroll", update, true); };
+  }, [open]);
+  return <div className="relative min-w-0"><button ref={ref} type="button" aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen((current) => !current)} className={`${compact ? "h-8" : "h-9"} inline-flex min-w-[92px] items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-2.5 text-[10px] font-bold text-gray-700 transition-colors hover:border-gray-300`}><span className="truncate">{options.find(([option]) => option === value)?.[1]}</span><Chevron open={open} /></button>{open && createPortal(<div ref={menu} role="listbox" style={position} className="fixed z-[130] grid gap-1 rounded-xl border border-slate-100 bg-white p-1.5 shadow-[0_18px_44px_rgba(15,23,42,0.2)]">{options.map(([option, label]) => <button key={option} type="button" role="option" aria-selected={option === value} onClick={() => { onChange(option); setOpen(false); }} className={`flex items-center justify-between rounded-lg px-3 py-2.5 text-left text-[11px] font-semibold ${option === value ? "bg-red-50 text-red-700" : "text-slate-700 hover:bg-slate-50"}`}>{label}{option === value && <span aria-hidden="true">✓</span>}</button>)}</div>, document.body)}</div>;
+}
 type ReportFormState = { category: string; topic: string; description: string; severity: ReportSeverity; latitude: number; longitude: number };
 
 const statusLabels: Record<ReportStatus, string> = {
@@ -326,7 +351,7 @@ function DashboardControls({ mobile = false, view, citizen, showActions = true, 
   const pinButton = showActions && citizen && <button type="button" onClick={onPickLocation} className={`inline-flex ${buttonHeight} min-w-0 items-center justify-center gap-1.5 ${controlRadius} px-2 text-[10px] font-black transition-colors ${pinMode ? "bg-[#e62428] text-white shadow-sm" : "border border-gray-100 bg-white text-gray-600 hover:bg-gray-100"}`} aria-label="Tandai lokasi laporan"><PinIcon /><span className={mobile ? "truncate" : "hidden sm:inline"}>{pinMode ? "Pilih" : "Tandai"}</span></button>;
   const listButton = showActions && <button type="button" onClick={onToggleList} className={`inline-flex ${buttonHeight} min-w-0 items-center justify-center gap-1.5 ${controlRadius} px-2 text-[10px] font-black transition-colors ${listOpen ? "bg-gray-900 text-white" : "border border-gray-100 bg-white text-gray-600 hover:bg-gray-100"}`} aria-label="Buka daftar laporan"><ListIcon /><span className={mobile ? "truncate" : "hidden sm:inline"}>{citizen ? "Laporan" : role === "polisi" ? "Antrian" : "Monitoring"}</span></button>;
   const createButton = showActions && citizen && <button type="button" onClick={onCreateReport} className={`inline-flex ${buttonHeight} min-w-0 items-center justify-center gap-1.5 ${controlRadius} px-2 text-[10px] font-black text-white shadow-sm transition-colors ${reportOpen ? "bg-gray-900 hover:bg-gray-800" : "bg-[#e62428] hover:bg-[#c91d22]"}`} aria-label={reportOpen ? "Tutup form laporan" : "Buat laporan"}>{reportOpen ? <CloseIcon /> : <PlusIcon />}<span className={mobile ? "truncate" : "hidden sm:inline"}>{reportOpen ? "Tutup" : "Buat"}</span></button>;
-  const policeScopeControl = role === "polisi" && <select value={policeScope} onChange={(event) => onPoliceScopeChange(event.target.value as PoliceScope)} aria-label="Cakupan laporan polisi" className={`${buttonHeight} min-w-0 ${controlRadius} border border-gray-200 bg-white px-2 text-[10px] font-bold text-gray-700 outline-none`}><option value="mine">Unit saya</option><option value="all">Semua unit</option></select>;
+  const policeScopeControl = role === "polisi" && <PoliceScopeSelect value={policeScope} onChange={onPoliceScopeChange} compact={mobile} />;
 
   if (mobile) {
     return <div className="relative flex w-full flex-col gap-1.5">
