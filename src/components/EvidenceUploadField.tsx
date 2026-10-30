@@ -24,7 +24,7 @@ export default function EvidenceUploadField({ files, onChange, disabled = false,
       onDrop={(event) => { event.preventDefault(); chooseFiles(Array.from(event.dataTransfer.files)); }}
       className="grid cursor-pointer gap-2 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-3 text-center transition hover:border-[#e62428] hover:bg-red-50"
     >
-      <span className="mx-auto grid h-9 w-9 place-items-center rounded-full bg-white text-[#e62428] shadow-sm">
+      <span className="mx-auto grid h-9 w-9 place-items-center text-slate-600">
         <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2" /><circle cx="8.5" cy="9" r="1.5" /><path d="m21 15-4-4L7 20" /></svg>
       </span>
       <span className="font-bold text-slate-600">Tarik foto ke sini atau pilih file</span>
