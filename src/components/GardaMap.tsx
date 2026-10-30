@@ -1,6 +1,8 @@
 import { memo, useEffect, useRef, useState } from "react";
 import * as maplibregl from "maplibre-gl";
 import type { GeoJSONSource, Map as MapInstance, Marker } from "maplibre-gl";
+import { ChatCircleDots, CheckCircle, Clock, HourglassHigh, MapPin, PoliceCar, ShieldCheck, XCircle } from "@phosphor-icons/react";
+import { renderToStaticMarkup } from "react-dom/server";
 import maplibreWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?url";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { IncidentReport, PoliceUnit } from "../types";
@@ -134,13 +136,13 @@ function safetyGeoJson(reports: IncidentReport[]): GeoJSON.FeatureCollection<Geo
   };
 }
 
-const reportStatusMarker: Record<IncidentReport["status"], { icon: string; color: string; background: string }> = {
-  PENDING: { icon: '<circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/>', color: "#6B7280", background: "#F3F4F6" },
-  VERIFIED: { icon: '<path d="M12 3 19 6v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6l7-3Z"/><path d="m9 12 2 2 4-4"/>', color: "#2563EB", background: "#DBEAFE" },
-  IN_PROGRESS: { icon: '<path d="M7 4h10M7 20h10M8 4c0 4 8 4 8 8s-8 4-8 8"/>', color: "#D97706", background: "#FEF3C7" },
-  CLARIFICATION: { icon: '<path d="M5 6.5A3.5 3.5 0 0 1 8.5 3h7A3.5 3.5 0 0 1 19 6.5v4a3.5 3.5 0 0 1-3.5 3.5H11l-4 4v-4.2a3.5 3.5 0 0 1-2-3.3v-4Z"/><path d="M9 8h6M9 11h4"/>', color: "#9333EA", background: "#F3E8FF" },
-  RESOLVED: { icon: '<circle cx="12" cy="12" r="9"/><path d="m8 12 2.5 2.5L16 9"/>', color: "#16A34A", background: "#DCFCE7" },
-  REJECTED: { icon: '<circle cx="12" cy="12" r="9"/><path d="m9 9 6 6m0-6-6 6"/>', color: "#DC2626", background: "#FEE2E2" },
+const reportStatusMarker: Record<IncidentReport["status"], { icon: typeof Clock; color: string; background: string }> = {
+  PENDING: { icon: Clock, color: "#6B7280", background: "#F3F4F6" },
+  VERIFIED: { icon: ShieldCheck, color: "#2563EB", background: "#DBEAFE" },
+  IN_PROGRESS: { icon: HourglassHigh, color: "#D97706", background: "#FEF3C7" },
+  CLARIFICATION: { icon: ChatCircleDots, color: "#9333EA", background: "#F3E8FF" },
+  RESOLVED: { icon: CheckCircle, color: "#16A34A", background: "#DCFCE7" },
+  REJECTED: { icon: XCircle, color: "#DC2626", background: "#FEE2E2" },
 };
 
 function markerElement(kind: "police" | "report", severity?: IncidentReport["severity"], status?: IncidentReport["status"], selected = false) {
@@ -152,13 +154,9 @@ function markerElement(kind: "police" | "report", severity?: IncidentReport["sev
     const palette = reportStatusMarker[status];
     pin.style.background = palette.background;
     pin.style.color = palette.color;
-    pin.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${palette.icon}</svg>`;
+    pin.innerHTML = renderToStaticMarkup(<palette.icon size={25} weight="duotone" aria-hidden="true" />);
   } else {
-    const image = document.createElement("img");
-    image.src = "/markers/garda-police-mark.svg";
-    image.alt = "";
-    image.setAttribute("aria-hidden", "true");
-    pin.append(image);
+    pin.innerHTML = renderToStaticMarkup(<PoliceCar size={27} weight="fill" color="#2A6CDE" aria-hidden="true" />);
   }
   element.append(pin);
   return element;
@@ -166,7 +164,7 @@ function markerElement(kind: "police" | "report", severity?: IncidentReport["sev
 function searchedLocationElement(location: { label: string }, onClear?: () => void) {
   const element = document.createElement("div");
   element.className = "garda-search-marker";
-  element.innerHTML = '<button type="button" class="garda-search-marker-pin"><img src="/markers/garda-search-mark.svg" alt="" aria-hidden="true" /></button><button type="button" class="garda-search-marker-remove" aria-label="Hapus lokasi terpilih"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>';
+  element.innerHTML = `<button type="button" class="garda-search-marker-pin" aria-hidden="true">${renderToStaticMarkup(<MapPin size={34} weight="fill" color="#E62428" />)}</button><button type="button" class="garda-search-marker-remove" aria-label="Hapus lokasi terpilih"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>`;
   element.querySelector(".garda-search-marker-pin")?.setAttribute("aria-label", `Lokasi terpilih: ${location.label}`);
   element.querySelector(".garda-search-marker-pin")?.addEventListener("click", (event) => event.stopPropagation());
   element.querySelector(".garda-search-marker-remove")?.addEventListener("click", (event) => { event.stopPropagation(); onClear?.(); });
@@ -183,7 +181,7 @@ function draftMarkerElement() {
   element.setAttribute("role", "button");
   element.tabIndex = 0;
   element.setAttribute("aria-label", "Geser lokasi laporan");
-  element.innerHTML = '<span aria-hidden="true"><img src="/markers/garda-draft-mark.svg" alt="" /></span>';
+  element.innerHTML = `<span aria-hidden="true">${renderToStaticMarkup(<MapPin size={36} weight="fill" color="#2CB899" />)}</span>`;
   element.addEventListener("dragstart", (event) => event.preventDefault());
   return element;
 }

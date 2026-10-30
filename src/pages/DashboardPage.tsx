@@ -16,6 +16,7 @@ import { useAuth } from "../context/useAuth";
 import { createReport, getDashboard, getPublicMap, getReportFeed, updatePoliceReportStatus, uploadReportEvidence } from "../lib/api";
 import { portalPaths } from "../lib/portals";
 import type { DashboardData, IncidentReport, PoliceUnit, ReportSeverity, ReportStatus } from "../types";
+import { CheckCircle, FileText, HourglassHigh, Tray } from "@phosphor-icons/react";
 
 type ViewMode = "map" | "feed";
 type StatusFilter = ReportStatus[];
@@ -125,13 +126,9 @@ function CloseIcon({ className = "h-4 w-4" }: { className?: string }) {
 }
 
 function StatIcon({ kind }: { kind: "total" | "pending" | "progress" | "done" }) {
-  const paths = {
-    total: <><path d="M6 3h9l3 3v15H6z" /><path d="M14 3v4h4M9 12h6M9 16h4" /></>,
-    pending: <><path d="M5 7h14v13H5zM8 4h8v3H8z" /><path d="M12 10v4l2 1" /></>,
-    progress: <><path d="M7 4h10M7 20h10M8 4c0 4 8 4 8 8s-8 4-8 8" /></>,
-    done: <><circle cx="12" cy="12" r="8" /><path d="m8 12 2.5 2.5L16 9" /></>,
-  };
-  return <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[kind]}</svg>;
+  const icons = { total: FileText, pending: Tray, progress: HourglassHigh, done: CheckCircle };
+  const Icon = icons[kind];
+  return <Icon weight="duotone" className="h-5 w-5" aria-hidden="true" />;
 }
 
 type SpritePosition = `${number}% ${number}%`;
