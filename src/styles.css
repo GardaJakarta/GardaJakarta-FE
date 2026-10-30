@@ -193,6 +193,7 @@ a:focus-visible, button:focus-visible { outline: 3px solid #e62428; outline-offs
 .garda-map-marker { position: absolute; display: grid; width: 44px; height: 50px; place-items: center; border: 0; background: transparent; cursor: pointer; }
 .garda-map-marker > span { position: relative; z-index: 1; display: grid; width: 39px; height: 44px; place-items: center; border: 2px solid #fff; border-radius: 50% 50% 50% 12%; background: #fff; box-shadow: 0 6px 13px rgba(15,23,42,.2); transform: rotate(-45deg); transition: transform .18s ease, box-shadow .18s ease; }
 .garda-map-marker > span img { width: 27px; height: 27px; object-fit: contain; transform: rotate(45deg); filter: drop-shadow(0 2px 3px rgba(15,23,42,.16)); }
+.garda-map-marker > span svg { width: 25px; height: 25px; transform: rotate(45deg); }
 .garda-map-marker:hover > span, .garda-map-marker:focus-visible > span { transform: rotate(-45deg) translateY(-2px) scale(1.06); box-shadow: 0 10px 22px rgba(15,23,42,.28); }
 .garda-map-marker-report { color: #d83d3d; }
 .garda-map-marker-report span { background: #fff0ed; }
@@ -242,4 +243,3 @@ a:focus-visible, button:focus-visible { outline: 3px solid #e62428; outline-offs
 
 .map-anchored-detail > aside { max-height: calc(100dvh - 120px); }
 .garda-map-marker-selected { z-index: 12; filter: drop-shadow(0 0 .35rem rgba(230,36,40,.75)); transform: scale(1.22); }
-

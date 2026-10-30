@@ -134,21 +134,35 @@ function safetyGeoJson(reports: IncidentReport[]): GeoJSON.FeatureCollection<Geo
   };
 }
 
-function markerElement(kind: "police" | "report", severity?: IncidentReport["severity"], selected = false) {
+const reportStatusMarker: Record<IncidentReport["status"], { icon: string; color: string; background: string }> = {
+  PENDING: { icon: '<circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/>', color: "#6B7280", background: "#F3F4F6" },
+  VERIFIED: { icon: '<path d="M12 3 19 6v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6l7-3Z"/><path d="m9 12 2 2 4-4"/>', color: "#2563EB", background: "#DBEAFE" },
+  IN_PROGRESS: { icon: '<path d="M7 4h10M7 20h10M8 4c0 4 8 4 8 8s-8 4-8 8"/>', color: "#D97706", background: "#FEF3C7" },
+  CLARIFICATION: { icon: '<path d="M5 6.5A3.5 3.5 0 0 1 8.5 3h7A3.5 3.5 0 0 1 19 6.5v4a3.5 3.5 0 0 1-3.5 3.5H11l-4 4v-4.2a3.5 3.5 0 0 1-2-3.3v-4Z"/><path d="M9 8h6M9 11h4"/>', color: "#9333EA", background: "#F3E8FF" },
+  RESOLVED: { icon: '<circle cx="12" cy="12" r="9"/><path d="m8 12 2.5 2.5L16 9"/>', color: "#16A34A", background: "#DCFCE7" },
+  REJECTED: { icon: '<circle cx="12" cy="12" r="9"/><path d="m9 9 6 6m0-6-6 6"/>', color: "#DC2626", background: "#FEE2E2" },
+};
+
+function markerElement(kind: "police" | "report", severity?: IncidentReport["severity"], status?: IncidentReport["status"], selected = false) {
   const element = document.createElement("button");
   element.type = "button";
   element.className = `garda-map-marker garda-map-marker-${kind} garda-map-marker-${severity?.toLowerCase() || "default"}${selected ? " garda-map-marker-selected" : ""}`;
-  const image = document.createElement("img");
-  image.src = kind === "police" ? "/markers/garda-police-mark.svg" : "/markers/garda-report-mark.svg";
-  image.alt = "";
-  image.setAttribute("aria-hidden", "true");
   const pin = document.createElement("span");
-  pin.setAttribute("aria-hidden", "true");
-  pin.append(image);
+  if (kind === "report" && status) {
+    const palette = reportStatusMarker[status];
+    pin.style.background = palette.background;
+    pin.style.color = palette.color;
+    pin.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${palette.icon}</svg>`;
+  } else {
+    const image = document.createElement("img");
+    image.src = "/markers/garda-police-mark.svg";
+    image.alt = "";
+    image.setAttribute("aria-hidden", "true");
+    pin.append(image);
+  }
   element.append(pin);
   return element;
 }
-
 function searchedLocationElement(location: { label: string }, onClear?: () => void) {
   const element = document.createElement("div");
   element.className = "garda-search-marker";
@@ -315,7 +329,7 @@ function GardaMap({ units, reports, className, popupAnchor, onPopupPosition, onM
     markersRef.current.forEach((marker) => marker.remove());
     markersRef.current = [];
     if (showPoliceMarkers) units.forEach((unit) => {
-      const element = markerElement("police", undefined, Boolean(focusLocation && Math.abs(focusLocation.latitude - unit.latitude) < 0.00001 && Math.abs(focusLocation.longitude - unit.longitude) < 0.00001));
+      const element = markerElement("police", undefined, undefined, Boolean(focusLocation && Math.abs(focusLocation.latitude - unit.latitude) < 0.00001 && Math.abs(focusLocation.longitude - unit.longitude) < 0.00001));
       const marker = new maplibregl.Marker({ element, anchor: "center" })
         .setLngLat([unit.longitude, unit.latitude])
         .addTo(map);
@@ -326,7 +340,7 @@ function GardaMap({ units, reports, className, popupAnchor, onPopupPosition, onM
       markersRef.current.push(marker);
     });
     if (showReportMarkers) reports.forEach((report) => {
-      const element = markerElement("report", report.severity, Boolean(focusLocation && Math.abs(focusLocation.latitude - report.latitude) < 0.00001 && Math.abs(focusLocation.longitude - report.longitude) < 0.00001));
+      const element = markerElement("report", report.severity, report.status, Boolean(focusLocation && Math.abs(focusLocation.latitude - report.latitude) < 0.00001 && Math.abs(focusLocation.longitude - report.longitude) < 0.00001));
       const marker = new maplibregl.Marker({ element, anchor: "center" })
         .setLngLat([report.longitude, report.latitude])
         .addTo(map);
@@ -459,5 +473,4 @@ function areMapPropsEqual(previous: GardaMapProps, next: GardaMapProps) {
 }
 
 export default memo(GardaMap, areMapPropsEqual);
-
 
