@@ -441,10 +441,10 @@ function MyReportsPanel({ reports, selectedId, onSelect, onClose, isDesktop, sta
   const visibleReports = reports.filter((report) => (status === "ALL" || report.status === status) && (!query.trim() || [report.ticketNumber, report.category, report.description, report.policeUnit?.name, report.policeUnit?.district].filter(Boolean).some((value) => value!.toLowerCase().includes(query.trim().toLowerCase()))));
   const listDragControls = useDragControls();
   const statTiles = [
-    ["Total", stats.total, "/illustrations/stats/total.png"],
-    ["Masuk", stats.pending, "/illustrations/stats/incoming.png"],
-    ["Proses", stats.inProgress, "/illustrations/stats/progress.png"],
-    ["Selesai", stats.resolved, "/illustrations/stats/resolved.png"],
+    ["Total", stats.total, "total", "bg-blue-100 text-blue-600"],
+    ["Masuk", stats.pending, "pending", "bg-purple-100 text-purple-700"],
+    ["Proses", stats.inProgress, "progress", "bg-amber-100 text-amber-700"],
+    ["Selesai", stats.resolved, "done", "bg-emerald-100 text-emerald-600"],
   ] as const;
   return <motion.aside drag={isDesktop ? true : "y"} dragControls={listDragControls} dragListener={false} dragMomentum={false} dragElastic={0.06} dragConstraints={isDesktop ? { top: -120, bottom: 120, left: -Math.max(0, window.innerWidth - 440), right: Math.max(0, window.innerWidth - 440) } : { top: -window.innerHeight * 0.5, bottom: 0 }} className={`${isDesktop ? "absolute left-6 top-24 h-[calc(100dvh-120px)] w-[380px]" : "fixed bottom-0 left-0 right-0 h-[86dvh] w-full rounded-t-2xl"} z-[45] overflow-hidden rounded-xl border border-slate-100 bg-white shadow-[0_22px_65px_rgba(15,23,42,0.2)] active:cursor-grabbing`} aria-label="Daftar laporan saya">
     <div className="flex h-full flex-col">
