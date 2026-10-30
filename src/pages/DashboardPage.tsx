@@ -20,6 +20,7 @@ import { CheckCircle, FileText, HourglassHigh, Tray } from "@phosphor-icons/reac
 
 type ViewMode = "map" | "feed";
 type StatusFilter = ReportStatus[];
+type PoliceScope = "mine" | "all";
 type ReportFormState = { category: string; topic: string; description: string; severity: ReportSeverity; latitude: number; longitude: number };
 
 const statusLabels: Record<ReportStatus, string> = {
@@ -308,9 +309,11 @@ type DashboardControlsProps = {
   onSelectLocation?: (location: LocationSearchResult) => void;
   mapFilters: MapFilterState;
   onMapFiltersChange: (value: MapFilterState) => void;
+  policeScope: PoliceScope;
+  onPoliceScopeChange: (value: PoliceScope) => void;
 };
 
-function DashboardControls({ mobile = false, view, citizen, showActions = true, role, search, onSearchChange, onSearchSubmit, statusFilter, onStatusFilterChange, listOpen, onToggleList, onCreateReport, onPickLocation, pinMode, reportOpen, locationSuggestions = [], onSelectLocation, mapFilters, onMapFiltersChange }: DashboardControlsProps) {
+function DashboardControls({ mobile = false, view, citizen, showActions = true, role, search, onSearchChange, onSearchSubmit, statusFilter, onStatusFilterChange, listOpen, onToggleList, onCreateReport, onPickLocation, pinMode, reportOpen, locationSuggestions = [], onSelectLocation, mapFilters, onMapFiltersChange, policeScope, onPoliceScopeChange }: DashboardControlsProps) {
   const controlRadius = "rounded-lg";
   const input = <div className="relative min-w-0 flex-1">
     <div className={`${mobile ? "h-8" : "min-h-10"} flex min-w-0 items-center gap-2 ${controlRadius} border border-gray-200 bg-gray-50 px-3 py-1 transition-all focus-within:border-[#e62428] focus-within:bg-white focus-within:ring-2 focus-within:ring-red-100`}>
@@ -323,13 +326,14 @@ function DashboardControls({ mobile = false, view, citizen, showActions = true, 
   const pinButton = showActions && citizen && <button type="button" onClick={onPickLocation} className={`inline-flex ${buttonHeight} min-w-0 items-center justify-center gap-1.5 ${controlRadius} px-2 text-[10px] font-black transition-colors ${pinMode ? "bg-[#e62428] text-white shadow-sm" : "border border-gray-100 bg-white text-gray-600 hover:bg-gray-100"}`} aria-label="Tandai lokasi laporan"><PinIcon /><span className={mobile ? "truncate" : "hidden sm:inline"}>{pinMode ? "Pilih" : "Tandai"}</span></button>;
   const listButton = showActions && <button type="button" onClick={onToggleList} className={`inline-flex ${buttonHeight} min-w-0 items-center justify-center gap-1.5 ${controlRadius} px-2 text-[10px] font-black transition-colors ${listOpen ? "bg-gray-900 text-white" : "border border-gray-100 bg-white text-gray-600 hover:bg-gray-100"}`} aria-label="Buka daftar laporan"><ListIcon /><span className={mobile ? "truncate" : "hidden sm:inline"}>{citizen ? "Laporan" : role === "polisi" ? "Antrian" : "Monitoring"}</span></button>;
   const createButton = showActions && citizen && <button type="button" onClick={onCreateReport} className={`inline-flex ${buttonHeight} min-w-0 items-center justify-center gap-1.5 ${controlRadius} px-2 text-[10px] font-black text-white shadow-sm transition-colors ${reportOpen ? "bg-gray-900 hover:bg-gray-800" : "bg-[#e62428] hover:bg-[#c91d22]"}`} aria-label={reportOpen ? "Tutup form laporan" : "Buat laporan"}>{reportOpen ? <CloseIcon /> : <PlusIcon />}<span className={mobile ? "truncate" : "hidden sm:inline"}>{reportOpen ? "Tutup" : "Buat"}</span></button>;
+  const policeScopeControl = role === "polisi" && <select value={policeScope} onChange={(event) => onPoliceScopeChange(event.target.value as PoliceScope)} aria-label="Cakupan laporan polisi" className={`${buttonHeight} min-w-0 ${controlRadius} border border-gray-200 bg-white px-2 text-[10px] font-bold text-gray-700 outline-none`}><option value="mine">Unit saya</option><option value="all">Semua unit</option></select>;
 
   if (mobile) {
     return <div className="relative flex w-full flex-col gap-1.5">
       {showActions ? <>
         <div className="flex h-8 items-center rounded-lg border border-gray-100 bg-gray-50 px-1 shadow-inner">{input}</div>
         <div className={`grid min-w-0 gap-1 ${citizen ? "grid-cols-4" : "grid-cols-2"}`}>
-        {view === "map" ? <MapFilterMenu mobile value={mapFilters} onChange={onMapFiltersChange} categories={categories} publicOnly={citizen} /> : <StatusFilterMenu mobile fullWidth value={statusFilter} onChange={onStatusFilterChange} />}
+        {view === "map" ? <MapFilterMenu mobile value={mapFilters} onChange={onMapFiltersChange} categories={categories} publicOnly={citizen} /> : <StatusFilterMenu mobile fullWidth value={statusFilter} onChange={onStatusFilterChange} />}{policeScopeControl}
         {citizen && pinButton}
         {listButton}
         {createButton}
@@ -344,7 +348,7 @@ function DashboardControls({ mobile = false, view, citizen, showActions = true, 
   return <div className="flex w-full max-w-[700px] items-center gap-1 rounded-lg border border-gray-100 bg-white px-2 py-1.5 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.18)]">
     {input}
     <span className="h-5 w-px shrink-0 bg-gray-200" aria-hidden="true" />
-    {view === "map" ? <MapFilterMenu value={mapFilters} onChange={onMapFiltersChange} categories={categories} publicOnly={citizen} /> : <StatusFilterMenu value={statusFilter} onChange={onStatusFilterChange} />}
+    {view === "map" ? <MapFilterMenu value={mapFilters} onChange={onMapFiltersChange} categories={categories} publicOnly={citizen} /> : <StatusFilterMenu value={statusFilter} onChange={onStatusFilterChange} />}{policeScopeControl}
     {showActions && citizen && <><span className="h-5 w-px shrink-0 bg-gray-200" aria-hidden="true" />{pinButton}</>}
     {showActions && <><span className="h-5 w-px shrink-0 bg-gray-200" aria-hidden="true" />{listButton}{createButton}</>}
   </div>;
@@ -618,6 +622,7 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
   });
   const [listOpen, setListOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>(defaultReportStatuses);
+  const [policeScope, setPoliceScope] = useState<PoliceScope>("mine");
   const [mapFilters, setMapFilters] = useState<MapFilterState>({ ...defaultMapFilters });
   const [search, setSearch] = useState("");
   const [locationSearch, setLocationSearch] = useState("");
@@ -724,23 +729,24 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
 
   const reports = data?.reports ?? EMPTY_REPORTS;
   const stats = data?.stats || { total: 0, pending: 0, inProgress: 0, resolved: 0 };
+  const policeUnitName = role === "polisi" ? reports[0]?.policeUnit?.name : null;
   const matches = useCallback((report: IncidentReport) => {
     const statusMatches = (view === "map" ? mapFilters.status : statusFilter).includes(report.status);
     const categoryMatches = view !== "map" || !mapFilters.category || report.category === mapFilters.category;
     const severityMatches = view !== "map" || !mapFilters.severity || report.severity === mapFilters.severity;
     const query = view === "feed" ? search.trim().toLowerCase() : "";
     const searchMatches = !query || [report.ticketNumber, report.category, report.description, report.policeUnit?.name, report.policeUnit?.district].filter(Boolean).some((value) => value!.toLowerCase().includes(query));
-    const visibilityMatches = true;
+    const visibilityMatches = role !== "polisi" || policeScope === "all" || !policeUnitName || report.policeUnit?.name === policeUnitName;
     return visibilityMatches && statusMatches && categoryMatches && severityMatches && searchMatches;
-  }, [mapFilters, search, statusFilter, view]);
+  }, [mapFilters, policeScope, policeUnitName, role, search, statusFilter, view]);
   const filteredReports = useMemo(() => reports.filter(matches), [matches, reports]);
   const publicReports = useMemo(() => (publicMap?.reports ?? []).filter((report) => report.status !== "REJECTED" && matches(report)), [matches, publicMap?.reports]);
-  const mapReports = citizen ? publicReports : filteredReports;
+  const mapReports = citizen ? publicReports : policeScope === "all" && role === "polisi" ? publicReports : filteredReports;
   const mapUnits = useMemo(() => citizen ? (publicMap?.units ?? data?.units ?? []) : (data?.units ?? []), [citizen, data?.units, publicMap?.units]);
   const feedReports = useMemo(() => {
-    const source = citizen ? [...(publicMap?.reports ?? []), ...reports] : feedItems;
+    const source = citizen ? [...(publicMap?.reports ?? []), ...reports] : policeScope === "all" && role === "polisi" ? [...(publicMap?.reports ?? []), ...feedItems] : feedItems;
     return [...new Map(source.map((report) => [report.id, report])).values()].filter(matches);
-  }, [citizen, feedItems, matches, publicMap?.reports, reports]);
+  }, [citizen, feedItems, matches, policeScope, publicMap?.reports, reports, role]);
   const selectedReport = useMemo(() => [...reports, ...publicReports, ...feedItems].find((report) => report.id === selectedId) ?? null, [feedItems, publicReports, reports, selectedId]);
 
 
@@ -874,7 +880,7 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
          </div></div>}
       </div>
       <div className="w-full sm:hidden">
-        <DashboardControls mobile view={view} citizen={citizen} showActions={!publicMode} role={role} search={view === "map" ? locationSearch : search} onSearchChange={(value) => { if (view === "map") { setLocationSearch(value); setLocationSuggestions([]); if (searchedLocation) setSearchedLocation(null); } else setSearch(value); }} onSearchSubmit={view === "map" ? searchLocation : undefined} locationSuggestions={locationSuggestions} onSelectLocation={selectLocation} mapFilters={mapFilters} onMapFiltersChange={setMapFilters} statusFilter={statusFilter} onStatusFilterChange={setStatusFilter} listOpen={listOpen} onToggleList={() => { setView("map"); setListOpen((current) => !current); setSelectedId(null); }} onCreateReport={toggleReportForm} onPickLocation={() => { if (!reportOpen) openReportForm(); else setPinMode((current) => !current); }} pinMode={pinMode} reportOpen={reportOpen} />
+        <DashboardControls mobile view={view} citizen={citizen} showActions={!publicMode} role={role} search={view === "map" ? locationSearch : search} onSearchChange={(value) => { if (view === "map") { setLocationSearch(value); setLocationSuggestions([]); if (searchedLocation) setSearchedLocation(null); } else setSearch(value); }} onSearchSubmit={view === "map" ? searchLocation : undefined} locationSuggestions={locationSuggestions} onSelectLocation={selectLocation} mapFilters={mapFilters} onMapFiltersChange={setMapFilters} policeScope={policeScope} onPoliceScopeChange={setPoliceScope} statusFilter={statusFilter} onStatusFilterChange={setStatusFilter} listOpen={listOpen} onToggleList={() => { setView("map"); setListOpen((current) => !current); setSelectedId(null); }} onCreateReport={toggleReportForm} onPickLocation={() => { if (!reportOpen) openReportForm(); else setPinMode((current) => !current); }} pinMode={pinMode} reportOpen={reportOpen} />
       </div>
     </header>
 
@@ -883,10 +889,10 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
          <GardaMap popupAnchor={popupAnchor} onPopupPosition={setPopupPosition} className="!h-full !min-h-0" units={mapUnits} reports={mapReports} showReportMarkers={mapFilters.showReports} showPoliceMarkers={mapFilters.showPoliceUnits} showSafetyZones={mapFilters.showSafetyZones} userLocation={userLocation} followUser={followingUser && !focusLocation && !selectedId && !selectedUnit && !selectedZone && !reportOpen} focusLocation={focusLocation} searchedLocation={searchedLocation} onClearSearchedLocation={clearSearchedLocation} draftLocation={form} draftActive={canReport && reportOpen} onDraftLocationChange={handleDraftLocationChange} onMapClick={canReport && reportOpen && pinMode ? mapClick : undefined} onSelectReport={(report) => { setSelectedUnit(null); setSelectedZone(null); selectReportFromMap(report); }} onSelectUnit={(unit) => { setFollowingUser(false); setSelectedId(null); setSelectedZone(null); setFocusLocation({ latitude: unit.latitude, longitude: unit.longitude }); setSelectedUnit(unit); }} onSelectSafetyZone={(zone) => { setFollowingUser(false); setSelectedId(null); setSelectedUnit(null); setSelectedZone(zone); }} />
         {isLoading && <MapLoadingOverlay label="Memeriksa keamanan Jakarta..." />}
       </>}
-      <div className="pointer-events-none absolute left-1/2 bottom-6 z-40 hidden w-full -translate-x-1/2 items-center justify-center px-4 sm:flex"><div className="pointer-events-auto w-full max-w-[700px]"><DashboardControls view={view} citizen={citizen} showActions={!publicMode} role={role} search={view === "map" ? locationSearch : search} onSearchChange={(value) => { if (view === "map") { setLocationSearch(value); setLocationSuggestions([]); if (searchedLocation) setSearchedLocation(null); } else setSearch(value); }} onSearchSubmit={view === "map" ? searchLocation : undefined} locationSuggestions={locationSuggestions} onSelectLocation={selectLocation} mapFilters={mapFilters} onMapFiltersChange={setMapFilters} statusFilter={statusFilter} onStatusFilterChange={setStatusFilter} listOpen={listOpen} onToggleList={() => { setView("map"); setListOpen((current) => !current); setSelectedId(null); }} onCreateReport={toggleReportForm} onPickLocation={() => { if (!reportOpen) openReportForm(); else setPinMode((current) => !current); }} pinMode={pinMode} reportOpen={reportOpen} /></div></div>
+      <div className="pointer-events-none absolute left-1/2 bottom-6 z-40 hidden w-full -translate-x-1/2 items-center justify-center px-4 sm:flex"><div className="pointer-events-auto w-full max-w-[700px]"><DashboardControls view={view} citizen={citizen} showActions={!publicMode} role={role} search={view === "map" ? locationSearch : search} onSearchChange={(value) => { if (view === "map") { setLocationSearch(value); setLocationSuggestions([]); if (searchedLocation) setSearchedLocation(null); } else setSearch(value); }} onSearchSubmit={view === "map" ? searchLocation : undefined} locationSuggestions={locationSuggestions} onSelectLocation={selectLocation} mapFilters={mapFilters} onMapFiltersChange={setMapFilters} policeScope={policeScope} onPoliceScopeChange={setPoliceScope} statusFilter={statusFilter} onStatusFilterChange={setStatusFilter} listOpen={listOpen} onToggleList={() => { setView("map"); setListOpen((current) => !current); setSelectedId(null); }} onCreateReport={toggleReportForm} onPickLocation={() => { if (!reportOpen) openReportForm(); else setPinMode((current) => !current); }} pinMode={pinMode} reportOpen={reportOpen} /></div></div>
       {view === "map" && <CurrentLocationButton onClick={centerOnUser} className="fixed left-3 bottom-6 z-40 sm:absolute sm:left-4 sm:top-auto sm:bottom-20" />}
       {view === "map" && <>
-        {listOpen && <MyReportsPanel reports={reports} selectedId={selectedId} onSelect={selectReport} onClose={() => setListOpen(false)} isDesktop={isDesktop} stats={stats} />}
+        {listOpen && <MyReportsPanel reports={role === "polisi" && policeScope === "all" ? publicReports : filteredReports} selectedId={selectedId} onSelect={selectReport} onClose={() => setListOpen(false)} isDesktop={isDesktop} stats={stats} />}
         {selectedReport && !reportOpen && <ReportDetail report={selectedReport} role={role} isDesktop={isDesktop} onClose={() => { setSelectedId(null); setFocusLocation(null); }} onOpenFeed={() => { setView("feed"); setListOpen(false); }} onStatusChange={(status) => void updateStatus(selectedReport.id, status)} updating={updatingId === selectedReport.id} />}
         {isDesktop ? <div className="map-anchored-detail" style={{ left: popupPosition?.x, top: popupPosition?.y, visibility: popupPosition ? "visible" : "hidden" }}>
           {selectedUnit && !reportOpen && <PoliceMapDetail unit={selectedUnit} isDesktop onClose={() => { setSelectedUnit(null); setFocusLocation(null); }} />}
