@@ -18,6 +18,7 @@ function authError(error: { code?: string; message?: string } | null) {
     PASSWORD_TOO_SHORT: "Password minimal terdiri dari 8 karakter.",
     PASSWORD_TOO_LONG: "Password maksimal terdiri dari 128 karakter.",
     INVALID_EMAIL: "Alamat email belum valid.",
+    EMAIL_NOT_VERIFIED: "Verifikasi email diperlukan.",
   };
   return new Error(messages[error?.code || ""] || "Permintaan belum berhasil. Coba lagi.");
 }
@@ -25,7 +26,7 @@ function authError(error: { code?: string; message?: string } | null) {
 export async function register(input: { name: string; email: string; password: string }) {
   const { data, error } = await authClient.signUp.email(input);
   if (error || !data) throw authError(error);
-  return { user: normalizeUser(data.user) };
+  return { user: normalizeUser(data.user), requiresVerification: !data.token };
 }
 
 export async function login(input: { email: string; password: string; portal: AuthPortal }) {

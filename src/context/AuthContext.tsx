@@ -35,7 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
   const signUp = useCallback(async (name: string, email: string, password: string) => {
     setIsLoading(true);
-    try { setUser((await api.register({ name, email, password })).user); }
+    try { const result = await api.register({ name, email, password }); if (!result.requiresVerification) setUser(result.user); return result.requiresVerification; }
     finally { setIsLoading(false); }
   }, []);
   const signOut = useCallback(async () => {

@@ -19,6 +19,12 @@ export function readAdmin(resource: Resource, id: string) {
 export function saveAdmin(resource: Resource, input: Record<string, unknown>, id?: string) {
   return requestJson<AdminRecord>(`/admin/${resource}${id ? `/${encodeURIComponent(id)}` : ""}`, { method: id ? "PATCH" : "POST", body: JSON.stringify(input) });
 }
+export function saveAdminCategory(input: { name: string; image?: File }, id?: string) {
+  const form = new FormData();
+  form.set("name", input.name);
+  if (input.image) form.set("image", input.image);
+  return requestJson<AdminCategory>(`/admin/categories${id ? `/${encodeURIComponent(id)}` : ""}`, { method: id ? "PATCH" : "POST", body: form });
+}
 export function removeAdmin(resource: Resource, id: string) {
   return requestJson<{ id: string }>(`/admin/${resource}/${encodeURIComponent(id)}`, { method: "DELETE" });
 }

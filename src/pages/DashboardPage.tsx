@@ -1,3 +1,4 @@
+import CategoryImage from "../components/CategoryImage";
 import MobileDetailSheet from "../components/MobileDetailSheet";
 import EvidenceUploadField from "../components/EvidenceUploadField";
 import ReportConversation from "../components/ReportConversation";
@@ -186,7 +187,7 @@ const categoryIllustrations: Record<string, string> = {
 };
 
 function CategoryIllustration({ category, className = "h-10 w-10" }: { category: string; className?: string }) {
-  return <img src={categoryIllustrations[category] || categoryIllustrations[categories[8]]} alt="" aria-hidden="true" className={`${className} shrink-0 rounded-xl object-cover shadow-sm ring-1 ring-black/5`} />;
+  return <CategoryImage category={category} className={`${className} shrink-0 rounded-xl object-cover shadow-sm ring-1 ring-black/5`} />;
 }
 
 function IllustrationTile({ sprite, position, className = "h-10 w-10" }: { sprite: "categories" | "severity"; position: SpritePosition; className?: string }) {
@@ -268,7 +269,7 @@ function CategoryMenu({ value, onChange }: { value: string; onChange: (value: st
   };
   return <div ref={ref} className="relative">
     <button type="button" role="combobox" aria-expanded={open} aria-controls="report-category-options" aria-activedescendant={open ? activeOptionId : undefined} aria-haspopup="listbox" onKeyDown={handleKeyDown} onClick={() => setOpen((current) => !current)} className={`flex min-h-11 w-full items-center gap-3 rounded-sm border bg-white px-3 text-left text-sm font-bold transition-colors focus:outline-none focus:ring-2 focus:ring-red-100 ${open ? "border-[#e62428] shadow-[0_0_0_3px_rgba(230,36,40,0.08)]" : "border-gray-200 hover:border-gray-300"}`}>
-      {selected ? <IllustrationTile sprite="categories" position={selected.illustration} className="h-9 w-9 rounded-xl" /> : <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#fff0ed] text-[#e62428]"><GardaMark className="h-4 w-4" /></span>}
+      {selected ? <CategoryImage category={selected.value} className="h-9 w-9 rounded-xl" /> : <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#fff0ed] text-[#e62428]"><GardaMark className="h-4 w-4" /></span>}
       <span className="min-w-0 flex-1 py-2 text-gray-900">{selected?.value || "Pilih kategori kejadian"}</span>
       <Chevron open={open} />
     </button>
@@ -276,7 +277,7 @@ function CategoryMenu({ value, onChange }: { value: string; onChange: (value: st
       <div className="mb-1.5 flex items-center gap-3 border-b border-gray-100 bg-gray-50 px-2.5 py-2.5"><AppLogo className="h-6 w-auto shrink-0" size={145} aria-label="Garda Jakarta" /><div className="min-w-0 border-l border-gray-200 pl-3"><strong className="block text-[10px] font-black uppercase tracking-[.14em] text-gray-900">Kategori laporan</strong><span className="mt-0.5 block truncate text-[10px] font-semibold text-gray-400">Pilih jenis kejadian.</span></div></div>
       <div className="space-y-1">
         {options.map((option, index) => <button id={`report-category-option-${index}`} key={option.value} type="button" role="option" tabIndex={-1} aria-selected={value === option.value} onMouseDown={(event) => event.preventDefault()} onClick={() => { onChange(option.value); setActiveIndex(index); setOpen(false); }} className={`flex min-h-12 w-full items-center gap-3 rounded-sm border-l-2 px-2 py-1.5 text-left transition-colors ${value === option.value ? "border-[#e62428] bg-[#fff1ef] text-[#b21e24]" : activeIndex === index ? "border-gray-300 bg-gray-50 text-gray-900" : "border-transparent text-gray-700 hover:bg-gray-50"}`}>
-          <IllustrationTile sprite="categories" position={option.illustration} className={`h-12 w-12 rounded-xl transition-transform ${value === option.value ? "scale-105 shadow-md" : ""}`} />
+          <CategoryImage category={option.value} className={`h-12 w-12 rounded-xl transition-transform ${value === option.value ? "scale-105 shadow-md" : ""}`} />
           <span className="min-w-0 flex-1"><strong className="block text-[11px] font-black leading-snug">{option.value}</strong><span className="mt-0.5 block text-[10px] font-medium text-gray-500">{option.description}</span></span>
           {value === option.value && <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#e62428] text-[11px] font-black text-white">✓</span>}
         </button>)}

@@ -64,6 +64,7 @@ export interface DashboardData {
     reports: number;
     assignedPolice: number;
     auditLogs: number;
+    trend?: Array<{ date: string; count: number }>;
     categories: Array<{ name: string; count: number }>;
     statuses: Array<{ status: ReportStatus; count: number }>;
     unitsByReport: Array<{ name: string; count: number }>;
@@ -81,7 +82,7 @@ export interface AdminUsersPage {
 export interface AdminUnit {
   id: string; name: string; district: string; address: string; phone: string | null; latitude: number; longitude: number; photoUrl: string | null; isPublished: boolean; reports: number; staff: number;
 }
-export interface AdminCategory { id: string; name: string; createdAt: string; updatedAt: string; reports: number; }
+export interface AdminCategory { id: string; name: string; imageUrl: string | null; createdAt: string; updatedAt: string; reports: number; }
 
 export interface ReportInteractions {
  status: ReportStatus; voteCount: number; hasVoted: boolean;

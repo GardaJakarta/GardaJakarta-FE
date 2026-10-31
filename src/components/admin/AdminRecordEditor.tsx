@@ -1,11 +1,15 @@
+import LocationPicker from "./LocationPicker";
 import { useEffect, useRef, useState, type FormEvent, type InputHTMLAttributes } from "react";
-import { listAdmin, saveAdmin, type AdminRecord, type AdminReport, type AdminUser, type Resource } from "../../lib/admin-api";
+import { listAdmin, saveAdmin, saveAdminCategory, type AdminRecord, type AdminReport, type AdminUser, type Resource } from "../../lib/admin-api";
 import type { AdminCategory, AdminUnit, ReportStatus } from "../../types";
 import { uploadReportEvidence } from "../../lib/api";
 import { reportStatusLabels } from "../../lib/report-status";
+import EvidenceFilePreview from "../EvidenceFilePreview";
+import CategoryImage from "../CategoryImage";
+import { useSearchParams } from "react-router-dom";
 import EvidenceUploadField from "../EvidenceUploadField";
 import { ReportListSkeleton } from "../LoadingSkeleton";
-import { AdminSelect, Modal } from "./AdminUi";
+import { AdminSelect } from "./AdminUi";
 import { button, field, quietButton } from "./admin-styles";
 
 const nextStatuses: Record<ReportStatus, ReportStatus[]> = {
@@ -37,12 +41,15 @@ async function allOptions<T extends AdminRecord>(resource: Resource, role?: stri
 }
 
 export default function AdminRecordEditor({ resource, record, onClose, onSaved }: { resource: Resource; record: AdminRecord | null; onClose: () => void; onSaved: () => void }) {
-  const [form, setForm] = useState(() => initial(resource, record));
+  const [params] = useSearchParams();
+  const [form, setForm] = useState<Record<string, string>>(() => ({ ...initial(resource, record), ...(resource === "users" && !record && params.get("role") === "POLISI" ? { role: "POLISI" } : {}) }));
   const [busy, setBusy] = useState(false), [error, setError] = useState("");
   const [units, setUnits] = useState<AdminUnit[]>([]), [categories, setCategories] = useState<AdminCategory[]>([]), [citizens, setCitizens] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(resource === "users" || resource === "reports");
   const [optionsReady, setOptionsReady] = useState(false), [attempt, setAttempt] = useState(0);
   const [files, setFiles] = useState<File[]>([]);
+  const categoryInput = useRef<HTMLInputElement>(null);
+  const [categoryImage, setCategoryImage] = useState<File | null>(null);
   const uploads = useRef(new Map<File, string>());
   useEffect(() => {
     if (resource !== "users" && resource !== "reports") return;
@@ -55,7 +62,7 @@ export default function AdminRecordEditor({ resource, record, onClose, onSaved }
   }, [resource, record, attempt]);
   const set = (key: string, value: string) => setForm((old) => ({ ...old, [key]: value }));
   const choose = (key: string, label: string, options: Array<{ value: string; label: string }>) => <div className="grid gap-1.5"><span className="text-xs font-semibold">{label}</span><AdminSelect label={label} value={form[key]} options={options} onChange={(value) => { set(key, value); if (key === "role" && value !== "POLISI") set("policeUnitId", ""); }} disabled={busy} /></div>;
-  const unitOptions = [{ value: "", label: resource === "users" ? "Pilih unit polisi" : "Belum dirutekan" }, ...units.filter((unit) => unit.isPublished || unit.id === form.policeUnitId).map((unit) => ({ value: unit.id, label: unit.name }))];
+  const unitOptions = [{ value: "", label: resource === "users" ? "Pilih unit polisi" : "Belum dirutekan" }, ...units.filter((unit) => resource === "users" ? (unit.isPublished && unit.staff === 0) || unit.id === (record as AdminUser | null)?.policeUnitId : unit.isPublished || unit.id === form.policeUnitId).map((unit) => ({ value: unit.id, label: unit.name }))];
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (busy) return;
@@ -63,7 +70,12 @@ export default function AdminRecordEditor({ resource, record, onClose, onSaved }
     try {
       let input: Record<string, unknown>;
       if (resource === "units") input = { ...form, latitude: Number(form.latitude), longitude: Number(form.longitude), phone: form.phone || null, photoUrl: form.photoUrl || null, isPublished: form.isPublished === "true" };
-      else if (resource === "categories") input = { name: form.name };
+      else if (resource === "categories") {
+        if (!record && !categoryImage) throw new Error("Foto kategori wajib diunggah.");
+        await saveAdminCategory({ name: form.name, image: categoryImage || undefined }, record?.id);
+        onSaved();
+        return;
+      }
       else if (resource === "users") {
         if (form.role === "POLISI" && !form.policeUnitId) throw new Error("Pilih unit untuk akun polisi.");
         input = { name: form.name, role: form.role, policeUnitId: form.role === "POLISI" ? form.policeUnitId : null, ...(!record ? { email: form.email, password: form.password } : {}) };
@@ -87,12 +99,13 @@ export default function AdminRecordEditor({ resource, record, onClose, onSaved }
   }
   const report = resource === "reports" ? record as AdminReport | null : null;
   const canAttach = report && !["RESOLVED", "REJECTED"].includes(report.status);
-  return <Modal title={(record ? "Edit " : "Tambah ") + labels[resource]} onClose={onClose} busy={busy}>
+  return <section aria-label={(record ? "Edit " : "Tambah ") + labels[resource]} className="max-w-3xl rounded-xl border border-slate-200 bg-white p-5 sm:p-7">
     {error && <p role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
     {loading ? <ReportListSkeleton count={2} /> : (resource === "users" || resource === "reports") && !optionsReady ? <button className={quietButton} onClick={() => { setLoading(true); setAttempt((n) => n + 1); }}>Muat ulang pilihan</button> :
       <form onSubmit={(event) => void submit(event)} className="grid gap-4">
         <fieldset disabled={busy} className="grid min-w-0 gap-4">
           {(resource === "units" || resource === "users" || resource === "categories") && <Input label={resource === "categories" ? "Nama kategori" : resource === "units" ? "Nama unit" : "Nama lengkap"} required minLength={2} maxLength={resource === "users" ? 100 : 120} value={form.name} onChange={(event) => set("name", event.target.value)} />}
+          {resource === "categories" && <div className="grid gap-2 text-xs font-semibold"><label htmlFor="category-photo">Foto kategori{!record && <span className="ml-1 text-red-600">*</span>}</label><input id="category-photo" ref={categoryInput} type="file" accept="image/jpeg,image/png,image/webp" required={!record} onChange={(event) => { const file = event.target.files?.[0]; if (file && (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 5 * 1024 * 1024)) { setError("Pilih JPG, PNG, atau WebP maksimal 5 MB."); event.target.value = ""; setCategoryImage(null); return; } setError(""); setCategoryImage(file || null); }} className={field + " file:mr-3 file:rounded-md file:border-0 file:bg-red-50 file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-red-700"} />{categoryImage ? <div className="w-40"><EvidenceFilePreview file={categoryImage} onRemove={() => { setCategoryImage(null); if (categoryInput.current) categoryInput.current.value = ""; }} /></div> : record && <CategoryImage category={(record as AdminCategory).name} src={(record as AdminCategory).imageUrl} className="h-28 w-28 rounded-xl bg-slate-100 object-contain p-2" />}{record && <p className="text-[11px] text-slate-500">JPG, PNG, WebP maksimal 5 MB. Kosongkan jika foto lama tetap dipakai.</p>}</div>}
           {resource === "units" && <>
             <Input label="Wilayah" required minLength={2} maxLength={80} value={form.district} onChange={(event) => set("district", event.target.value)} />
             <Input label="Alamat" required minLength={5} maxLength={240} value={form.address} onChange={(event) => set("address", event.target.value)} />
@@ -100,15 +113,12 @@ export default function AdminRecordEditor({ resource, record, onClose, onSaved }
             <Input label="URL foto kantor (opsional)" type="url" value={form.photoUrl} onChange={(event) => set("photoUrl", event.target.value)} />
             {choose("isPublished", "Publikasi unit", [{ value: "true", label: "Tampil di peta dan menerima routing" }, { value: "false", label: "Disembunyikan" }])}
           </>}
-          {(resource === "units" || resource === "reports") && <div className="grid gap-4 sm:grid-cols-2">
-            <Input label="Latitude" type="number" step="any" min={-7.2} max={-5.8} required value={form.latitude} onChange={(event) => set("latitude", event.target.value)} />
-            <Input label="Longitude" type="number" step="any" min={106.4} max={107.2} required value={form.longitude} onChange={(event) => set("longitude", event.target.value)} />
-          </div>}
+          {(resource === "units" || resource === "reports") && <LocationPicker value={{ latitude: Number(form.latitude), longitude: Number(form.longitude) }} disabled={busy} onChange={(point) => setForm((old) => ({ ...old, latitude: String(point.latitude), longitude: String(point.longitude) }))} />}
           {resource === "users" && <>
             <Input label="Email" type="email" required disabled={Boolean(record) || busy} value={form.email} onChange={(event) => set("email", event.target.value)} />
             {!record && <Input label="Password awal" type="password" autoComplete="new-password" required minLength={12} maxLength={128} value={form.password} onChange={(event) => set("password", event.target.value)} />}
             {choose("role", "Peran akun", [{ value: "WARGA", label: "Warga" }, { value: "POLISI", label: "Polisi" }, { value: "ADMIN", label: "Admin" }])}
-            {form.role === "POLISI" && choose("policeUnitId", "Unit polisi (wajib)", unitOptions)}
+            {form.role === "POLISI" && <div className="space-y-3 rounded-xl border border-blue-100 bg-blue-50/50 p-4"><h3 className="text-sm font-bold text-blue-900">Penugasan kantor polisi</h3><p className="text-xs leading-relaxed text-slate-600">Pilih kantor tempat akun ini bertugas. Satu kantor memiliki satu akun polisi dan menerima laporan sesuai routing wilayah.</p>{choose("policeUnitId", "Unit polisi (wajib)", unitOptions)}{unitOptions.length === 1 && <p role="status" className="text-xs text-amber-700">Semua kantor aktif sudah memiliki akun. Tambahkan kantor terlebih dahulu atau edit penugasan akun yang sudah ada.</p>}</div>}
           </>}
           {resource === "reports" && <>
             {!record && choose("reporterId", "Pelapor (wajib)", [{ value: "", label: "Pilih akun warga" }, ...citizens.map((user) => ({ value: user.id, label: user.name + " - " + user.email }))])}
@@ -125,5 +135,5 @@ export default function AdminRecordEditor({ resource, record, onClose, onSaved }
         </fieldset>
         <div className="flex justify-end gap-2 border-t border-slate-100 pt-4"><button type="button" disabled={busy} onClick={onClose} className={quietButton}>Batal</button><button type="submit" disabled={busy} className={button}>{busy ? "Menyimpan..." : "Simpan"}</button></div>
       </form>}
-  </Modal>;
+  </section>;
 }

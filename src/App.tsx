@@ -37,7 +37,7 @@ export default function App() {
   if (location.pathname === "/") return <LandingRedirect />;
   if (!isReady && location.pathname !== "/map") return <GardaLoading label="Memeriksa sesi..." />;
   const knownPaths = ["/login", "/polisi/login", "/admin/login", "/register", "/dashboard", "/profile", "/map", "/polisi", "/admin", "/not-found"];
-  if (!knownPaths.includes(location.pathname)) return <Navigate to="/not-found" replace />;
+  if (!knownPaths.includes(location.pathname) && !/^\/dashboard\/(units|categories|users|reports)\/[^/]+(?:\/edit)?$/.test(location.pathname)) return <Navigate to="/not-found" replace />;
   const home = user ? portalPaths[user.role].home : "/login";
 
   return (
@@ -47,6 +47,7 @@ export default function App() {
       <Route path="/admin/login" element={user ? <Navigate to={home} replace /> : <LoginPage key="admin" portal="admin" />} />
       <Route path="/register" element={user ? <Navigate to={home} replace /> : <RegisterPage />} />
       <Route path="/dashboard" element={<ProtectedRoute portal={user?.role || "warga"}>{user?.role === "admin" ? <AdminDashboardPage /> : <DashboardPage />}</ProtectedRoute>} />
+      <Route path="/dashboard/:resource/:recordId/:action?" element={<ProtectedRoute portal="admin"><AdminDashboardPage /></ProtectedRoute>} />
       <Route path="/map" element={<PublicMapPage />} />
       <Route path="/profile" element={<ProtectedRoute portal={user?.role || "warga"}><ProfilePage /></ProtectedRoute>} />
       <Route path="/polisi" element={<Navigate to="/dashboard" replace />} />

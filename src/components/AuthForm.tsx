@@ -1,11 +1,12 @@
 import { useState, type FormEvent } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion, useReducedMotion } from "motion/react";
 import { useAuth } from "../context/useAuth";
 import type { AuthPortal } from "../types";
 import { portalPaths } from "../lib/portals";
 import GoogleIcon from "./GoogleIcon";
 import AuthToast from "./AuthToast";
+import EmailVerification from "./EmailVerification";
 
 type FieldName = "name" | "email" | "password";
 type FieldErrors = Partial<Record<FieldName, string>>;
@@ -38,10 +39,13 @@ function oauthMessage() {
 
 export default function AuthForm({ mode, portal = "warga" }: { mode: "login" | "register"; portal?: AuthPortal }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { signIn, signUp, signInGoogle, isLoading } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [verificationEmail, setVerificationEmail] = useState("");
+  const [verified, setVerified] = useState(location.state?.emailVerified === true);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [oauthError, setOauthError] = useState<string | null>(oauthMessage);
   const isRegister = mode === "register";
@@ -83,10 +87,11 @@ export default function AuthForm({ mode, portal = "warga" }: { mode: "login" | "
       return;
     }
     try {
-      if (isRegister) await signUp(name.trim(), email.trim(), password);
+      if (isRegister) { const requiresVerification = await signUp(name.trim(), email.trim(), password); if (requiresVerification) { setVerificationEmail(email.trim()); setPassword(""); return; } }
       else await signIn(email.trim(), password, portal);
       navigate(portalPaths[portal].home);
     } catch (submissionError) {
+      if (submissionError instanceof Error && submissionError.message === "Verifikasi email diperlukan.") { setVerificationEmail(email.trim()); setPassword(""); return; }
       showSubmissionError(safeSubmissionMessage(submissionError, isRegister ? "Pendaftaran belum berhasil. Periksa data Anda." : "Email atau password tidak cocok."));
     }
   };
@@ -99,8 +104,10 @@ export default function AuthForm({ mode, portal = "warga" }: { mode: "login" | "
     }
   };
 
+  if (verificationEmail) return <EmailVerification email={verificationEmail} onBack={() => { setVerificationEmail(""); navigate(portalPaths[portal].login); }} onVerified={() => { setVerificationEmail(""); setVerified(true); navigate(portalPaths[portal].login, { replace: true, state: { emailVerified: true } }); }} />;
   return (
     <form className="auth-form" noValidate onSubmit={handleSubmit}>
+      {verified && <p role="status" className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-800">Email berhasil diverifikasi. Silakan masuk dengan password kamu.</p>}
       {isRegister && <motion.label animate={fieldErrors.name && !reducedMotion ? { x: [0, -6, 6, -4, 4, 0] } : { x: 0 }} transition={{ duration: .38 }}>Nama lengkap<input value={name} onChange={(event) => { setName(event.target.value); clearFieldError("name"); }} placeholder="Nama Anda" autoComplete="name" required aria-invalid={Boolean(fieldErrors.name)} aria-describedby={fieldErrors.name ? "name-error" : undefined} />{fieldErrors.name && <span id="name-error" className="auth-field-error" role="alert">{fieldErrors.name}</span>}</motion.label>}
       <motion.label animate={fieldErrors.email && !reducedMotion ? { x: [0, -6, 6, -4, 4, 0] } : { x: 0 }} transition={{ duration: .38 }}>Email<input value={email} onChange={(event) => { setEmail(event.target.value); clearFieldError("email"); }} placeholder="nama@email.com" type="email" autoComplete="email" required aria-invalid={Boolean(fieldErrors.email)} aria-describedby={fieldErrors.email ? "email-error" : undefined} />{fieldErrors.email && <span id="email-error" className="auth-field-error" role="alert">{fieldErrors.email}</span>}</motion.label>
       <motion.label animate={fieldErrors.password && !reducedMotion ? { x: [0, -6, 6, -4, 4, 0] } : { x: 0 }} transition={{ duration: .38 }}>Password<input value={password} onChange={(event) => { setPassword(event.target.value); clearFieldError("password"); }} placeholder="Minimal 8 karakter" type="password" autoComplete={isRegister ? "new-password" : "current-password"} required aria-invalid={Boolean(fieldErrors.password)} aria-describedby={fieldErrors.password ? "password-error" : undefined} />{fieldErrors.password && <span id="password-error" className="auth-field-error" role="alert">{fieldErrors.password}</span>}</motion.label>

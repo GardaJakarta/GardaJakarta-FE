@@ -1,3 +1,4 @@
+import CategoryImage from "./CategoryImage";
 import { useReportCategories } from "../lib/use-report-categories";
 import { createPortal } from "react-dom";
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
@@ -39,7 +40,7 @@ function IllustratedFilterSelect({ label, value, options, onChange, imageFor, ow
   useEffect(() => { if (open) document.getElementById(`${id}-${active}`)?.scrollIntoView({ block: "nearest" }); }, [open, active, id]);
   const art = (option: string) => label === "Keparahan"
     ? <span aria-hidden="true" className="h-9 w-9 shrink-0 rounded-lg bg-slate-50" style={{ backgroundImage: "url(/illustrations/categories/severity-sprite.png)", backgroundSize: option ? "200% 200%" : "100% 100%", backgroundPosition: option ? ({ P0: "0% 0%", P1: "100% 0%", P2: "0% 100%", P3: "100% 100%" })[option] : "center" }} />
-    : <img src={`/illustrations/categories/${imageFor(option, options.indexOf(option))}`} alt="" className="h-9 w-9 shrink-0 rounded-lg object-cover" />;
+    : option ? <CategoryImage category={option} className="h-9 w-9 shrink-0 rounded-lg object-contain" /> : <img src={`/illustrations/categories/${imageFor(option, options.indexOf(option))}`} alt="" className="h-9 w-9 shrink-0 rounded-lg object-cover" />;
   return <div className="grid min-w-0 gap-1 text-[11px] font-bold text-slate-600">
     <span id={`${id}-label`}>{label}</span>
     <button ref={ref} type="button" role="combobox" aria-labelledby={`${id}-label`} aria-controls={id} aria-haspopup="listbox" aria-expanded={open} aria-activedescendant={open ? `${id}-${active}` : undefined} onClick={() => { setActive(Math.max(0, choices.indexOf(value))); setOpen(!open); }} onKeyDown={(event) => {
