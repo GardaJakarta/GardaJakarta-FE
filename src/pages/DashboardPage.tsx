@@ -5,6 +5,7 @@ import ReportConversation from "../components/ReportConversation";
 import ReportStatusOptions from "../components/ReportStatusOptions";
 import { defaultReportStatuses } from "../lib/report-status";
 import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type FormEvent, type PointerEvent as ReactPointerEvent, type ReactNode, type SetStateAction } from "react";
+import { useMapView } from "../lib/use-map-view";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion, useDragControls } from "motion/react";
 import GardaMap from "../components/GardaMap";
@@ -630,6 +631,7 @@ function MapLoadingOverlay({ label = "Memeriksa keamanan Jakarta..." }: { label?
 
 export default function DashboardPage({ publicMode = false }: { publicMode?: boolean }) {
   const { user, signOut } = useAuth();
+  const [view, changeView] = useMapView(user?.role === "admin" ? "feed" : "map");
   const role = publicMode ? "warga" : (user?.role || "warga");
   const citizen = role === "warga";
   const canReport = citizen && !publicMode;
@@ -643,12 +645,6 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
   const [notificationItems, setNotificationItems] = useState<LocalNotification[]>([]);
   const [notificationOpen, setNotificationOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [view, setView] = useState<ViewMode>(() => {
-    if (publicMode) return "map";
-    if (user?.role === "admin") return "feed";
-    const stored = window.localStorage.getItem("garda.dashboard.viewMode");
-    return stored === "feed" ? "feed" : "map";
-  });
   const [listOpen, setListOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>(defaultReportStatuses);
   const [policeScope, setPoliceScope] = useState<PoliceScope>("mine");
@@ -694,10 +690,6 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
-
-  useEffect(() => {
-    window.localStorage.setItem("garda.dashboard.viewMode", view);
-  }, [view]);
 
   useEffect(() => {
     if (publicMode || !citizen || !publicMap?.reports.length || !navigator.geolocation || typeof navigator.geolocation.watchPosition !== "function") return;
@@ -813,7 +805,7 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
     finally { setLoadingMore(false); }
   }, [feedHasMore, feedPage, loadingMore]);
 
-  const openReportForm = useCallback(() => { if (!canReport) return; setView("map"); setSelectedId(null); setFocusLocation({ latitude: form.latitude, longitude: form.longitude }); setReportOpen(true); setPinMode(true); setError(null); }, [canReport, form.latitude, form.longitude]);
+  const openReportForm = useCallback(() => { if (!canReport) return; changeView("map"); setSelectedId(null); setFocusLocation({ latitude: form.latitude, longitude: form.longitude }); setReportOpen(true); setPinMode(true); setError(null); }, [canReport, changeView, form.latitude, form.longitude]);
   const selectReport = useCallback((report: IncidentReport) => { setFollowingUser(false); setSelectedId(report.id); setListOpen(false); setReportOpen(false); }, []);
   const selectReportFromMap = useCallback((report: IncidentReport) => { setFollowingUser(false); setFocusLocation({ latitude: report.latitude, longitude: report.longitude }); selectReport(report); }, [selectReport]);
   const toggleReportForm = useCallback(() => {
@@ -892,8 +884,8 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
         <div className="flex min-w-0 shrink items-center gap-2 sm:gap-3">
           <a href="https://gardajakarta.my.id" aria-label="Beranda Garda Jakarta" className="group flex min-w-0 shrink-0 items-center"><AppLogo className="h-6 w-auto max-w-[76px] object-contain transition-opacity group-hover:opacity-80 sm:h-9 sm:max-w-none" size={145} aria-label="Garda Jakarta" /></a>
           {role !== "admin" && <div className="flex shrink-0 rounded-full border border-gray-100 bg-gray-50 p-0.5 shadow-inner sm:p-1">
-            <button type="button" onClick={() => { setView("map"); setSelectedId(null); setSelectedUnit(null); setSelectedZone(null); setFocusLocation(null); setListOpen(false); setReportOpen(false); }} aria-pressed={view === "map"} className={`flex h-7 min-w-[48px] items-center justify-center gap-1 rounded-full px-1.5 text-[9px] font-black transition-colors sm:h-8 sm:min-w-[74px] sm:gap-1.5 sm:px-3 sm:text-[11px] ${view === "map" ? "bg-gray-900 text-white shadow-sm" : "text-gray-500 hover:bg-white hover:text-gray-900"}`}><MapModeIcon /><span>Map</span></button>
-            <button type="button" onClick={() => { setView("feed"); setSelectedId(null); setSelectedUnit(null); setSelectedZone(null); setFocusLocation(null); setListOpen(false); setReportOpen(false); }} aria-pressed={view === "feed"} className={`flex h-7 min-w-[48px] items-center justify-center gap-1 rounded-full px-1.5 text-[9px] font-black transition-colors sm:h-8 sm:min-w-[74px] sm:gap-1.5 sm:px-3 sm:text-[11px] ${view === "feed" ? "bg-gray-900 text-white shadow-sm" : "text-gray-500 hover:bg-white hover:text-gray-900"}`}><FeedModeIcon /><span>Feed</span></button>
+            <button type="button" onClick={() => { changeView("map"); setSelectedId(null); setSelectedUnit(null); setSelectedZone(null); setFocusLocation(null); setListOpen(false); setReportOpen(false); }} aria-pressed={view === "map"} className={`flex h-7 min-w-[48px] items-center justify-center gap-1 rounded-full px-1.5 text-[9px] font-black transition-colors sm:h-8 sm:min-w-[74px] sm:gap-1.5 sm:px-3 sm:text-[11px] ${view === "map" ? "bg-gray-900 text-white shadow-sm" : "text-gray-500 hover:bg-white hover:text-gray-900"}`}><MapModeIcon /><span>Map</span></button>
+            <button type="button" onClick={() => { changeView("feed"); setSelectedId(null); setSelectedUnit(null); setSelectedZone(null); setFocusLocation(null); setListOpen(false); setReportOpen(false); }} aria-pressed={view === "feed"} className={`flex h-7 min-w-[48px] items-center justify-center gap-1 rounded-full px-1.5 text-[9px] font-black transition-colors sm:h-8 sm:min-w-[74px] sm:gap-1.5 sm:px-3 sm:text-[11px] ${view === "feed" ? "bg-gray-900 text-white shadow-sm" : "text-gray-500 hover:bg-white hover:text-gray-900"}`}><FeedModeIcon /><span>Feed</span></button>
           </div>}
         </div>
         {publicMode ? <a href="/login" className="inline-flex h-8 shrink-0 items-center justify-center whitespace-nowrap rounded-lg bg-[#e62428] px-3 text-[10px] font-black leading-none text-white shadow-sm transition-colors hover:bg-[#c91d22] sm:h-9 sm:px-4 sm:text-[11px]" aria-label="Masuk sebagai pelapor"><span className="sm:hidden">Masuk</span><span className="hidden sm:inline">Masuk sebagai pelapor</span></a> : <div className="flex shrink-0 items-center gap-1.5"><div ref={notificationRef} className="relative">
@@ -909,7 +901,7 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
          </div></div>}
       </div>
       <div className="w-full sm:hidden">
-        <DashboardControls mobile view={view} citizen={citizen} showActions={!publicMode} role={role} search={view === "map" ? locationSearch : search} onSearchChange={(value) => { if (view === "map") { setLocationSearch(value); setLocationSuggestions([]); if (searchedLocation) setSearchedLocation(null); } else setSearch(value); }} onSearchSubmit={view === "map" ? searchLocation : undefined} locationSuggestions={locationSuggestions} onSelectLocation={selectLocation} mapFilters={mapFilters} onMapFiltersChange={setMapFilters} policeScope={policeScope} onPoliceScopeChange={setPoliceScope} statusFilter={statusFilter} onStatusFilterChange={setStatusFilter} listOpen={listOpen} onToggleList={() => { setView("map"); setListOpen((current) => !current); setSelectedId(null); }} onCreateReport={toggleReportForm} onPickLocation={() => { if (!reportOpen) openReportForm(); else setPinMode((current) => !current); }} pinMode={pinMode} reportOpen={reportOpen} />
+        <DashboardControls mobile view={view} citizen={citizen} showActions={!publicMode} role={role} search={view === "map" ? locationSearch : search} onSearchChange={(value) => { if (view === "map") { setLocationSearch(value); setLocationSuggestions([]); if (searchedLocation) setSearchedLocation(null); } else setSearch(value); }} onSearchSubmit={view === "map" ? searchLocation : undefined} locationSuggestions={locationSuggestions} onSelectLocation={selectLocation} mapFilters={mapFilters} onMapFiltersChange={setMapFilters} policeScope={policeScope} onPoliceScopeChange={setPoliceScope} statusFilter={statusFilter} onStatusFilterChange={setStatusFilter} listOpen={listOpen} onToggleList={() => { changeView("map"); setListOpen((current) => !current); setSelectedId(null); }} onCreateReport={toggleReportForm} onPickLocation={() => { if (!reportOpen) openReportForm(); else setPinMode((current) => !current); }} pinMode={pinMode} reportOpen={reportOpen} />
       </div>
     </header>
 
@@ -918,11 +910,11 @@ export default function DashboardPage({ publicMode = false }: { publicMode?: boo
          <GardaMap popupAnchor={popupAnchor} onPopupPosition={setPopupPosition} className="!h-full !min-h-0" units={mapUnits} reports={mapReports} showReportMarkers={mapFilters.showReports} showPoliceMarkers={mapFilters.showPoliceUnits} showSafetyZones={mapFilters.showSafetyZones} userLocation={userLocation} followUser={followingUser && !focusLocation && !selectedId && !selectedUnit && !selectedZone && !reportOpen} focusLocation={focusLocation} searchedLocation={searchedLocation} onClearSearchedLocation={clearSearchedLocation} draftLocation={form} draftActive={canReport && reportOpen} onDraftLocationChange={handleDraftLocationChange} onMapClick={canReport && reportOpen && pinMode ? mapClick : undefined} onSelectReport={(report) => { setSelectedUnit(null); setSelectedZone(null); selectReportFromMap(report); }} onSelectUnit={(unit) => { setFollowingUser(false); setSelectedId(null); setSelectedZone(null); setFocusLocation({ latitude: unit.latitude, longitude: unit.longitude }); setSelectedUnit(unit); }} onSelectSafetyZone={(zone) => { setFollowingUser(false); setSelectedId(null); setSelectedUnit(null); setSelectedZone(zone); }} />
         {isLoading && <MapLoadingOverlay label="Memeriksa keamanan Jakarta..." />}
       </>}
-      <div className="pointer-events-none absolute left-1/2 bottom-6 z-40 hidden w-full -translate-x-1/2 items-center justify-center px-4 sm:flex"><div className="pointer-events-auto w-full max-w-[700px]"><DashboardControls view={view} citizen={citizen} showActions={!publicMode} role={role} search={view === "map" ? locationSearch : search} onSearchChange={(value) => { if (view === "map") { setLocationSearch(value); setLocationSuggestions([]); if (searchedLocation) setSearchedLocation(null); } else setSearch(value); }} onSearchSubmit={view === "map" ? searchLocation : undefined} locationSuggestions={locationSuggestions} onSelectLocation={selectLocation} mapFilters={mapFilters} onMapFiltersChange={setMapFilters} policeScope={policeScope} onPoliceScopeChange={setPoliceScope} statusFilter={statusFilter} onStatusFilterChange={setStatusFilter} listOpen={listOpen} onToggleList={() => { setView("map"); setListOpen((current) => !current); setSelectedId(null); }} onCreateReport={toggleReportForm} onPickLocation={() => { if (!reportOpen) openReportForm(); else setPinMode((current) => !current); }} pinMode={pinMode} reportOpen={reportOpen} /></div></div>
+      <div className="pointer-events-none absolute left-1/2 bottom-6 z-40 hidden w-full -translate-x-1/2 items-center justify-center px-4 sm:flex"><div className="pointer-events-auto w-full max-w-[700px]"><DashboardControls view={view} citizen={citizen} showActions={!publicMode} role={role} search={view === "map" ? locationSearch : search} onSearchChange={(value) => { if (view === "map") { setLocationSearch(value); setLocationSuggestions([]); if (searchedLocation) setSearchedLocation(null); } else setSearch(value); }} onSearchSubmit={view === "map" ? searchLocation : undefined} locationSuggestions={locationSuggestions} onSelectLocation={selectLocation} mapFilters={mapFilters} onMapFiltersChange={setMapFilters} policeScope={policeScope} onPoliceScopeChange={setPoliceScope} statusFilter={statusFilter} onStatusFilterChange={setStatusFilter} listOpen={listOpen} onToggleList={() => { changeView("map"); setListOpen((current) => !current); setSelectedId(null); }} onCreateReport={toggleReportForm} onPickLocation={() => { if (!reportOpen) openReportForm(); else setPinMode((current) => !current); }} pinMode={pinMode} reportOpen={reportOpen} /></div></div>
       {view === "map" && <CurrentLocationButton onClick={centerOnUser} className="fixed left-3 bottom-6 z-40 sm:absolute sm:left-4 sm:top-auto sm:bottom-20" />}
       {view === "map" && <>
         {listOpen && <MyReportsPanel reports={role === "polisi" && policeScope === "all" ? publicReports : filteredReports} selectedId={selectedId} onSelect={selectReport} onClose={() => setListOpen(false)} isDesktop={isDesktop} stats={stats} />}
-        {selectedReport && !reportOpen && <ReportDetail report={selectedReport} role={role} isDesktop={isDesktop} onClose={() => { setSelectedId(null); setFocusLocation(null); }} onOpenFeed={() => { setView("feed"); setListOpen(false); }} onStatusChange={(status) => void updateStatus(selectedReport.id, status)} updating={updatingId === selectedReport.id} />}
+        {selectedReport && !reportOpen && <ReportDetail report={selectedReport} role={role} isDesktop={isDesktop} onClose={() => { setSelectedId(null); setFocusLocation(null); }} onOpenFeed={() => { changeView("feed"); setListOpen(false); }} onStatusChange={(status) => void updateStatus(selectedReport.id, status)} updating={updatingId === selectedReport.id} />}
         {isDesktop ? <div className="map-anchored-detail" style={{ left: popupPosition?.x, top: popupPosition?.y, visibility: popupPosition ? "visible" : "hidden" }}>
           {selectedUnit && !reportOpen && <PoliceMapDetail unit={selectedUnit} isDesktop onClose={() => { setSelectedUnit(null); setFocusLocation(null); }} />}
           {selectedZone && !reportOpen && <SafetyMapDetail zone={selectedZone} isDesktop onClose={() => { setSelectedZone(null); setFocusLocation(null); }} onSelectReport={(report) => { setSelectedZone(null); setFocusLocation({ latitude: report.latitude, longitude: report.longitude }); selectReport(report); }} />}
