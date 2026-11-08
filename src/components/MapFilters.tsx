@@ -91,7 +91,7 @@ export function MapFilterMenu({ value, onChange, categories: fallbackCategories,
   const visibility = [
     ["showReports", "Penanda laporan"],
     ["showPoliceUnits", "Penanda kantor polisi"],
-    ["showSafetyZones", "Polygon area"],
+    ["showSafetyZones", "Heatmap kerawanan"],
   ] as const;
   return <div ref={ref} className="relative shrink-0">
     <button type="button" onClick={() => setOpen((current) => !current)} aria-expanded={open} aria-haspopup="true" aria-label="Filter peta" className={`inline-flex ${mobile ? "h-8" : "h-9"} items-center justify-center gap-1.5 rounded-lg px-3 text-[10px] font-bold transition-colors ${count ? "bg-slate-900 text-white" : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}`}>

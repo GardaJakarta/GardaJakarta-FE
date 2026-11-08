@@ -47,6 +47,10 @@ export interface IncidentReport {
   voteCount?: number;
   commentCount?: number;
   hasVoted?: boolean;
+  upVoteCount?: number;
+  downVoteCount?: number;
+  communitySignal?: "SUPPORTED" | "QUESTIONED" | "NEUTRAL";
+  voteDirection?: "UP" | "DOWN" | null;
 }
 
 export interface DashboardData {
@@ -85,7 +89,7 @@ export interface AdminUnit {
 export interface AdminCategory { id: string; name: string; imageUrl: string | null; createdAt: string; updatedAt: string; reports: number; }
 
 export interface ReportInteractions {
- status: ReportStatus; voteCount: number; hasVoted: boolean;
+ status: ReportStatus; voteCount: number; upVoteCount: number; downVoteCount: number; communitySignal: "SUPPORTED" | "QUESTIONED" | "NEUTRAL"; hasVoted: boolean; voteDirection: "UP" | "DOWN" | null;
  comments: Array<{id: string; body: string; createdAt: string; evidence: Array<{id: string; url: string}>}>;
  activities: Array<{id: string; type: string; status: ReportStatus | null; message: string; createdAt: string; author: string; evidence: Array<{id: string; url: string}>}>;
  canParticipate: boolean; canManage: boolean; canClarify: boolean; nextStatuses: ReportStatus[];

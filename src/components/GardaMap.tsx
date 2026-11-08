@@ -37,6 +37,8 @@ type GardaMapProps = {
 const SAFETY_SOURCE_ID = "garda-safety-zones";
 const SAFETY_FILL_ID = "garda-safety-zone-fill";
 const SAFETY_OUTLINE_ID = "garda-safety-zone-outline";
+const PREDICTIVE_SOURCE_ID = "garda-predictive-heatmap";
+const PREDICTIVE_LAYER_ID = "garda-predictive-heatmap-layer";
 
 type SafetyZone = {
   center: [number, number];
@@ -136,6 +138,19 @@ function safetyGeoJson(reports: IncidentReport[]): GeoJSON.FeatureCollection<Geo
   };
 }
 
+function predictiveWeight(report: IncidentReport) {
+  const ageDays = Math.max(0, (Date.now() - new Date(report.createdAt).getTime()) / 86_400_000);
+  const recency = Math.exp(-ageDays / 30);
+  const severity = { P0: 4, P1: 3, P2: 2, P3: 1 }[report.severity];
+  const status = { PENDING: 1, VERIFIED: 1.25, IN_PROGRESS: 1.1, CLARIFICATION: 0.9, RESOLVED: 0.45, REJECTED: 0 }[report.status];
+  const community = report.communitySignal === "SUPPORTED" ? 1.12 : report.communitySignal === "QUESTIONED" ? 0.65 : 1;
+  return Number((recency * severity * status * community).toFixed(3));
+}
+
+function predictiveGeoJson(reports: IncidentReport[]): GeoJSON.FeatureCollection<GeoJSON.Point, { weight: number }> {
+  return { type: "FeatureCollection", features: reports.filter((report) => report.status !== "REJECTED").map((report) => ({ type: "Feature", properties: { weight: predictiveWeight(report) }, geometry: { type: "Point", coordinates: [report.longitude, report.latitude] } })) };
+}
+
 const reportStatusMarker: Record<IncidentReport["status"], { icon: typeof Clock; color: string; background: string }> = {
   PENDING: { icon: Clock, color: "#6B7280", background: "#F3F4F6" },
   VERIFIED: { icon: ShieldCheck, color: "#2563EB", background: "#DBEAFE" },
@@ -150,6 +165,7 @@ function markerElement(kind: "police" | "report", severity?: IncidentReport["sev
   element.type = "button";
   element.className = `garda-map-marker garda-map-marker-${kind} garda-map-marker-${severity?.toLowerCase() || "default"}${selected ? " garda-map-marker-selected" : ""}`;
   const pin = document.createElement("span");
+  pin.className = "garda-marker-pin";
   if (kind === "report" && status) {
     const palette = reportStatusMarker[status];
     pin.style.background = palette.background;
@@ -157,6 +173,13 @@ function markerElement(kind: "police" | "report", severity?: IncidentReport["sev
     pin.innerHTML = renderToStaticMarkup(<palette.icon size={25} weight="duotone" aria-hidden="true" />);
   } else {
     pin.innerHTML = renderToStaticMarkup(<PoliceCar size={27} weight="fill" color="#2A6CDE" aria-hidden="true" />);
+  }
+  if (kind === "report") {
+    const signal = document.createElement("span");
+    signal.className = "garda-community-signal";
+    signal.dataset.signal = "neutral";
+    signal.setAttribute("aria-hidden", "true");
+    element.append(signal);
   }
   element.append(pin);
   return element;
@@ -291,9 +314,24 @@ function GardaMap({ units, reports, className, popupAnchor, onPopupPosition, onM
         if (map.getLayer(SAFETY_FILL_ID)) map.removeLayer(SAFETY_FILL_ID);
         if (map.getLayer(SAFETY_OUTLINE_ID)) map.removeLayer(SAFETY_OUTLINE_ID);
         if (map.getSource(SAFETY_SOURCE_ID)) map.removeSource(SAFETY_SOURCE_ID);
+        if (map.getLayer(PREDICTIVE_LAYER_ID)) map.removeLayer(PREDICTIVE_LAYER_ID);
+        if (map.getSource(PREDICTIVE_SOURCE_ID)) map.removeSource(PREDICTIVE_SOURCE_ID);
         return;
       }
       const data = safetyGeoJson(reports);
+      const predictiveData = predictiveGeoJson(reports);
+      const predictiveSource = map.getSource(PREDICTIVE_SOURCE_ID) as GeoJSONSource | undefined;
+      if (predictiveSource) predictiveSource.setData(predictiveData);
+      else {
+        map.addSource(PREDICTIVE_SOURCE_ID, { type: "geojson", data: predictiveData });
+        map.addLayer({ id: PREDICTIVE_LAYER_ID, type: "heatmap", source: PREDICTIVE_SOURCE_ID, maxzoom: 15, paint: {
+          "heatmap-weight": ["interpolate", ["linear"], ["get", "weight"], 0, 0, 4, 1],
+          "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 9, 0.7, 14, 1.5],
+          "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 9, 24, 14, 42],
+          "heatmap-opacity": 0.42,
+          "heatmap-color": ["interpolate", ["linear"], ["heatmap-density"], 0, "rgba(34,197,94,0)", 0.25, "#86efac", 0.5, "#facc15", 0.75, "#fb923c", 1, "#dc2626"],
+        } });
+      }
       const source = map.getSource(SAFETY_SOURCE_ID) as GeoJSONSource | undefined;
       if (source) source.setData(data);
       else {
@@ -346,6 +384,8 @@ function GardaMap({ units, reports, className, popupAnchor, onPopupPosition, onM
         event.stopPropagation();
         onSelectReportRef.current?.(report);
       });
+      const signal = element.querySelector<HTMLElement>(".garda-community-signal");
+      if (signal) signal.dataset.signal = report.communitySignal?.toLowerCase() || "neutral";
       markersRef.current.push(marker);
     });
     return () => { map.off("render", retrySafetyZones); };

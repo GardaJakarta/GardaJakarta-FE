@@ -112,8 +112,8 @@ export function updatePoliceReportStatus(id: string, status: Exclude<ReportStatu
 export function getReportInteractions(id: string, page = 1) {
   return requestJson<ReportInteractions>(`/reports/${id}/interactions?page=${page}`);
 }
-export function voteReport(id: string, active: boolean) {
-  return requestJson<{ voteCount: number; hasVoted: boolean }>(`/reports/${id}/vote`, { method: active ? "POST" : "DELETE" });
+export function voteReport(id: string, direction: "UP" | "DOWN" | null) {
+  return requestJson<{ voteCount: number; upVoteCount: number; downVoteCount: number; hasVoted: boolean; voteDirection: "UP" | "DOWN" | null }>(`/reports/${id}/vote`, { method: direction ? "POST" : "DELETE", ...(direction ? { body: JSON.stringify({ direction }) } : {}) });
 }
 export function commentOnReport(id: string, body: string, images: File[] = []) {
   const data = new FormData(); data.append("body", body); images.forEach((file) => data.append("images", file));
