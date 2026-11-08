@@ -2,7 +2,7 @@ import { requestJson } from "./api";
 import type { AdminCategory, AdminUnit, IncidentReport } from "../types";
 
 export type AdminRole = "WARGA" | "POLISI" | "ADMIN";
-export type AdminUser = { id: string; name: string; email: string; role: AdminRole; policeUnitId: string | null; policeUnit: { id: string; name: string } | null; createdAt: string; updatedAt: string };
+export type AdminUser = { id: string; name: string; email: string; role: AdminRole; policeUnitId: string | null; policeUnit: { id: string; name: string } | null; createdAt: string; updatedAt: string; lastLoginAt: string | null };
 export type AdminReport = IncidentReport & { reporterId: string; policeUnitId: string | null; reporter: { id: string; name: string; email: string } };
 export type Resource = "units" | "categories" | "users" | "reports";
 export type AdminRecord = AdminUnit | AdminCategory | AdminUser | AdminReport;

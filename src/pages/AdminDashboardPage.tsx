@@ -28,11 +28,12 @@ export default function AdminDashboardPage() {
   const [params] = useSearchParams();
   const route = useParams();
   const active = tabs.find((tab) => tab.id === (route.resource || params.get("tab"))) || tabs[0];
-  const [drawer, setDrawer] = useState(false), [notifications, setNotifications] = useState(false), [accountOpen, setAccountOpen] = useState(false);
+  const [drawer, setDrawer] = useState(false), [notificationOpen, setNotificationOpen] = useState(false), [accountOpen, setAccountOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(() => { try { return localStorage.getItem("garda-admin-sidebar") === "compact"; } catch { return false; } });
   const [data, setData] = useState<DashboardData | null>(null), [error, setError] = useState("");
   const [revision, setRevision] = useState(0), [loading, setLoading] = useState(true), [signingOut, setSigningOut] = useState(false);
   const accountRef = useRef<HTMLDivElement>(null), accountTrigger = useRef<HTMLButtonElement>(null);
+  const notificationRef = useRef<HTMLDivElement>(null), notificationTrigger = useRef<HTMLButtonElement>(null);
   const compact = collapsed && !drawer;
   useEffect(() => {
     let live = true;
@@ -51,7 +52,14 @@ export default function AdminDashboardPage() {
     document.addEventListener("pointerdown", close); document.addEventListener("keydown", key);
     return () => { document.removeEventListener("pointerdown", close); document.removeEventListener("keydown", key); };
   }, [accountOpen]);
-  const go = (tab: Tab) => { navigate(tab === "overview" ? "/dashboard" : `/dashboard?tab=${tab}`); setDrawer(false); setAccountOpen(false); };
+  useEffect(() => {
+    if (!notificationOpen) return;
+    const close = (event: PointerEvent) => { if (!notificationRef.current?.contains(event.target as Node)) setNotificationOpen(false); };
+    const key = (event: KeyboardEvent) => { if (event.key === "Escape") { setNotificationOpen(false); notificationTrigger.current?.focus(); } };
+    document.addEventListener("pointerdown", close); document.addEventListener("keydown", key);
+    return () => { document.removeEventListener("pointerdown", close); document.removeEventListener("keydown", key); };
+  }, [notificationOpen]);
+  const go = (tab: Tab) => { navigate(tab === "overview" ? "/dashboard" : `/dashboard?tab=${tab}`); setDrawer(false); setAccountOpen(false); setNotificationOpen(false); };
   const toggleSidebar = () => { const next = !collapsed; setCollapsed(next); try { localStorage.setItem("garda-admin-sidebar", next ? "compact" : "expanded"); } catch { /* Storage can be disabled. */ } };
   async function exit() {
     setSigningOut(true);
@@ -69,7 +77,8 @@ export default function AdminDashboardPage() {
     <div className={`min-w-0 transition-[padding] ${collapsed ? "lg:pl-20" : "lg:pl-60"}`}>
       <header className="sticky top-0 z-20 flex min-h-[72px] items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-3 sm:px-7">
         <div className="flex min-w-0 items-center gap-3"><button type="button" onClick={() => setDrawer(true)} className={quietButton + " h-10 w-10 shrink-0 p-0 lg:hidden"} aria-label="Buka menu admin"><List size={20} /></button><div className="min-w-0"><p className="hidden text-[10px] font-bold uppercase tracking-widest text-slate-400 sm:block">Garda Jakarta / Admin</p><h1 className="truncate font-heading text-base font-bold sm:text-lg">{active.label}</h1></div></div>
-        <div className="flex shrink-0 items-center gap-3"><button type="button" aria-label="Notifikasi" onClick={() => { setAccountOpen(false); setNotifications(true); }} className={quietButton + " h-10 w-10 rounded-full p-0"}><Bell size={19} /></button>
+        <div className="flex shrink-0 items-center gap-3"><div ref={notificationRef} className="relative"><button ref={notificationTrigger} type="button" aria-label="Notifikasi" aria-haspopup="menu" aria-expanded={notificationOpen} aria-controls={notificationOpen ? "admin-notification-menu" : undefined} onClick={() => { setAccountOpen(false); setNotificationOpen((value) => !value); }} className={quietButton + " relative h-10 w-10 rounded-full p-0"}><Bell size={19} />{data?.notifications?.length ? <span className="absolute right-1 top-1 grid h-3.5 min-w-3.5 place-items-center rounded-full bg-[#e62428] px-0.5 text-[8px] font-black text-white">{Math.min(data.notifications.length, 9)}</span> : null}</button>
+          {notificationOpen && <div id="admin-notification-menu" role="menu" className="absolute right-0 top-12 z-50 w-[min(360px,calc(100vw-32px))] overflow-hidden rounded-xl border-2 border-slate-200 bg-white p-2 shadow-2xl"><div className="border-b border-slate-100 px-3 py-2.5"><strong className="text-xs">Notifikasi</strong></div><div className="max-h-[min(70dvh,480px)] overflow-y-auto">{data?.notifications?.length ? data.notifications.map((item) => <article key={item.id} className="flex gap-2 border-b border-slate-50 px-3 py-3 last:border-0"><span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full bg-red-50 text-[#e62428]"><Bell size={14} weight="fill" /></span><div className="min-w-0"><h3 className="text-[11px] font-black">{item.title}</h3><p className="mt-0.5 break-words text-[10px] leading-relaxed text-slate-500">{item.body}</p><time className="mt-1 block text-[9px] text-slate-400">{new Date(item.createdAt).toLocaleString("id-ID")}</time></div></article>) : <p className="px-3 py-5 text-center text-xs font-semibold text-slate-400">Belum ada notifikasi.</p>}</div></div>}</div>
           <div ref={accountRef} className="relative" onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setAccountOpen(false); }}>
             <button ref={accountTrigger} type="button" aria-label="Menu akun" aria-expanded={accountOpen} aria-controls={accountOpen ? "admin-account-menu" : undefined} onClick={() => setAccountOpen((value) => !value)} className="flex items-center gap-2 rounded-full focus-visible:outline-2 focus-visible:outline-red-600"><span className="grid h-10 w-10 overflow-hidden rounded-full border border-red-100 bg-red-50 text-sm font-bold text-red-700 place-items-center">{user?.image ? <img src={user.image} referrerPolicy="no-referrer" alt="Avatar akun" className="h-full w-full object-cover" /> : user?.name.split(" ").slice(0, 2).map((word) => word[0]).join("") || <UserCircle size={24} />}</span><CaretDown size={13} className="hidden sm:block" /></button>
             {accountOpen && <div id="admin-account-menu" className="absolute right-0 top-12 z-50 w-[min(260px,calc(100vw-32px))] rounded-xl border border-slate-200 bg-white p-2 shadow-xl"><div className="border-b border-slate-100 px-3 py-3"><p className="truncate text-xs font-bold">{user?.name}</p><p className="mt-1 truncate text-[11px] text-slate-500">{user?.email}</p></div><Link className="mt-1 flex items-center gap-2 rounded-lg px-3 py-3 text-xs font-semibold hover:bg-slate-50" to="/profile" onClick={() => setAccountOpen(false)}><UserCircle size={18} />Profile</Link><button type="button" disabled={signingOut} onClick={() => void exit()} className="flex w-full items-center gap-2 rounded-lg px-3 py-3 text-left text-xs font-semibold text-red-700 hover:bg-red-50"><SignOut size={18} />{signingOut ? "Keluar..." : "Keluar"}</button></div>}
@@ -81,6 +90,5 @@ export default function AdminDashboardPage() {
         {active.id !== "overview" ? route.recordId ? <AdminRecordPage key={`${active.id}-${route.recordId}-${route.action || "detail"}`} resource={active.id} id={route.recordId} edit={route.action === "edit"} onChanged={() => setRevision((n) => n + 1)} /> : <AdminResourcePage key={active.id} resource={active.id} onChanged={() => setRevision((n) => n + 1)} /> : loading ? <ReportListSkeleton count={3} /> : data?.adminOverview ? <AdminOverview data={data} go={go} /> : <p className="rounded-xl bg-white p-8 text-center text-slate-500">Ringkasan belum tersedia.</p>}
       </main>
     </div>
-    {notifications && <Modal title="Notifikasi" onClose={() => setNotifications(false)}><div className="space-y-3">{data?.notifications?.length ? data.notifications.map((item) => <article key={item.id} className="rounded-lg border border-slate-200 p-3"><h3 className="text-sm font-bold">{item.title}</h3><p className="mt-1 break-words text-xs leading-relaxed text-slate-600">{item.body}</p><time className="mt-2 block text-[11px] text-slate-400">{new Date(item.createdAt).toLocaleString("id-ID")}</time></article>) : <p className="text-sm text-slate-500">Belum ada notifikasi.</p>}</div></Modal>}
   </div>;
 }
