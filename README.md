@@ -166,13 +166,14 @@ Status dokumentasi: **8 November 2026**, berdasarkan implementasi pada branch ut
 | Area | Status | Bukti implementasi |
 | --- | --- | --- |
 | Auth, profile, navigasi per role | Tersedia | `src/App.tsx`, `src/context`, `src/pages/ProfilePage.tsx` |
-| Peta, pin, filter, area keamanan | Tersedia | `src/components/GardaMap.tsx`, `src/components/MapFilters.tsx` |
+| Peta, pin, filter, area keamanan, heatmap indikatif | Tersedia | `src/components/GardaMap.tsx`, `src/components/MapFilters.tsx` |
 | Laporan, feed, komentar, timeline | Tersedia | `src/pages/DashboardPage.tsx`, `src/components/ReportConversation.tsx` |
 | Admin: grafik, tabel, CRUD halaman | Tersedia | `src/components/admin` |
 | Katalog gambar kategori | Tersedia; perlu storage | `src/components/CategoryImage.tsx` |
 | Verifikasi OTP | Implementasi tersedia; perlu SMTP | `src/components/EmailVerification.tsx`, [setup OTP backend](https://github.com/GardaJakarta/GardaJakarta-BE/blob/main/docs/email-otp.md) |
 | Routing polygon resmi | Belum tersedia | Saat ini kantor aktif terdekat |
-| Analitik keamanan terverifikasi | Rencana | Visual area saat ini bersifat indikatif |
+| Validasi komunitas dan heatmap indikatif | Tersedia | Sinyal marker memakai ambang minimal 10 vote dan dominasi 80% |
+| Prediksi ML terkalibrasi | Rencana | Memerlukan histori kejadian dan evaluasi model |
 
 Dependensi eksternal: tile peta dan pencarian lokasi perlu internet, Google login perlu OAuth, serta foto perlu bucket. SMTP belum termasuk Compose. Status aktivasi layanan production mengikuti konfigurasi operator.
 
