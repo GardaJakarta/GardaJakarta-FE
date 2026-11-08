@@ -49,7 +49,7 @@ export default function App() {
       <Route path="/dashboard" element={<ProtectedRoute portal={user?.role || "warga"}>{user?.role === "admin" ? <AdminDashboardPage /> : <DashboardPage />}</ProtectedRoute>} />
       <Route path="/dashboard/:resource/:recordId/:action?" element={<ProtectedRoute portal="admin"><AdminDashboardPage /></ProtectedRoute>} />
       <Route path="/map" element={<PublicMapPage />} />
-      <Route path="/feed" element={<Navigate to={user ? "/dashboard?view=feed" : "/map?view=feed"} replace />} />
+      <Route path="/feed" element={<Navigate to={user?.role === "admin" ? "/dashboard" : user ? "/dashboard?view=feed" : "/map?view=feed"} replace />} />
       <Route path="/profile" element={<ProtectedRoute portal={user?.role || "warga"}><ProfilePage /></ProtectedRoute>} />
       <Route path="/polisi" element={<Navigate to="/dashboard" replace />} />
       <Route path="/admin" element={<Navigate to="/dashboard" replace />} />
