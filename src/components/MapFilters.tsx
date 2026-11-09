@@ -69,13 +69,14 @@ export function CustomStatusSelect({ value, onChange }: { value: ReportStatus | 
   return <div className="relative min-w-0"><button ref={ref} type="button" aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen((current) => !current)} className="flex min-h-10 w-full items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-3 text-left text-xs font-bold text-slate-800"><span className="truncate">{value === "ALL" ? "Semua status" : reportStatusLabels[value]}</span><span aria-hidden="true">⌄</span></button>{open && createPortal(<div role="listbox" style={{ ...position, maxHeight: "min(280px, calc(100dvh - 24px))" }} className="fixed z-[120] grid gap-1 overflow-y-auto rounded-xl border border-slate-100 bg-white p-1.5 shadow-2xl">{options.map((option) => <button key={option} type="button" role="option" aria-selected={option === value} onClick={() => { onChange(option as ReportStatus | "ALL"); setOpen(false); }} className={`rounded-lg px-3 py-2 text-left text-xs font-semibold ${option === value ? "bg-red-50 text-red-700" : "hover:bg-slate-50"}`}>{option === "ALL" ? "Semua status" : reportStatusLabels[option as ReportStatus]}</button>)}</div>, document.body)}</div>;
 }
 
-export function MapFilterMenu({ value, onChange, categories: fallbackCategories, publicOnly = false, mobile = false, alignRight = false }: {
+export function MapFilterMenu({ value, onChange, categories: fallbackCategories, publicOnly = false, mobile = false, alignRight = false, fullWidth = false }: {
   value: MapFilterState;
   onChange: (value: MapFilterState) => void;
   categories: string[];
   publicOnly?: boolean;
   mobile?: boolean;
   alignRight?: boolean;
+  fullWidth?: boolean;
 }) {
   const categories = useReportCategories(fallbackCategories);
   const [open, setOpen] = useState(false);
@@ -94,7 +95,7 @@ export function MapFilterMenu({ value, onChange, categories: fallbackCategories,
     ["showSafetyZones", "Heatmap kerawanan"],
   ] as const;
   return <div ref={ref} className="relative shrink-0">
-    <button type="button" onClick={() => setOpen((current) => !current)} aria-expanded={open} aria-haspopup="true" aria-label="Filter peta" className={`inline-flex ${mobile ? "h-8" : "h-9"} items-center justify-center gap-1.5 rounded-lg px-3 text-[10px] font-bold transition-colors ${count ? "bg-slate-900 text-white" : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}`}>
+    <button type="button" onClick={() => setOpen((current) => !current)} aria-expanded={open} aria-haspopup="true" aria-label="Filter peta" className={`inline-flex ${mobile ? "h-8" : "h-9"} ${fullWidth ? "w-full min-w-0 px-2" : "px-3"} items-center justify-center gap-1.5 rounded-lg text-[10px] font-bold transition-colors ${count ? "bg-slate-900 text-white" : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}`}>
       <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M4 6h16M7 12h10m-7 6h4" /></svg>Filter{count > 0 && <span className="grid h-4 min-w-4 place-items-center rounded-full bg-[#e62428] px-1 text-[9px] text-white">{count}</span>}
     </button>
     {open && <div role="group" aria-label="Filter peta" className={`absolute top-[calc(100%+10px)] z-[80] max-h-[min(65dvh,530px)] w-[min(320px,calc(100vw-24px))] sm:w-[min(600px,calc(100vw-32px))] overflow-y-auto rounded-xl border border-slate-100 bg-white p-4 text-left shadow-[0_18px_44px_rgba(15,23,42,0.18)] sm:top-auto sm:bottom-[calc(100%+10px)] sm:left-auto sm:right-0 ${alignRight ? "right-0 left-auto" : "left-0 right-auto"}`}>
